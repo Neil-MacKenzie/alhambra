@@ -94,7 +94,7 @@ def create_sticky_end_sequences( tileset, inputs='complements', *options ):
 
     return tset
 
-def reorder_sticky_ends( tileset, *options ):
+def reorder_sticky_ends( tileset, hightemp=0.1, lowtemp=1e-8, steps=4000, update=200, *options ):
     import endreorder2
     import anneal
 
@@ -105,12 +105,12 @@ def reorder_sticky_ends( tileset, *options ):
     # FIXME: better parameter control here.
     annealer = anneal.Annealer( reordersys.score, reordersys.mutate )
 
-    newstate = annealer.anneal( reordersys.initstate, 0.1, 1e-8, 4000, 200 )
+    newstate = annealer.anneal( reordersys.initstate, hightemp, lowtemp, steps, update )
 
     # Now take that new state, and apply it to the new tileset.
     for end in tset['ends']:
         if end['type'] in ['DT','TD']:
-            eloc = b.enlocs[end['name']]
+            eloc = reordersys.enlocs[end['name']]
             end['fseq'] = newstate[0].seqs[eloc[1]].tolist()[eloc[0]]
 
     return tset
@@ -142,7 +142,7 @@ def create_pepper_input_files( tileset, basename ):
     for tile in tileset['tiles']:
         e = [[],[]]
         for end in tile['ends']:
-            if (end['type'] != 'DT') and (end['type'] != 'TD'):
+            if (end == 'hp'):
                 continue # skip hairpins, etc that aren't designed by stickydesign
             e[0].append( 'e_'+end.replace('/','*') )
             if end[-1]=='/':

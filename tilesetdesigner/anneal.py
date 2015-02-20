@@ -104,14 +104,14 @@ class Annealer:
 			
 			elapsed = time.time() - start
 			if step == 0:
-				log.info( ' Temperature        Energy    Accept   Improve     Elapsed   Remaining' )
-				log.info( '%12.2f  %12.2e                      %s            ' % \
+				log.info( ' Temperature        Energy    Accept   Improve     Elapsed   Remaining  Step' )
+				log.info( '%12.2e  %12.2e                      %s            ' % \
 					(T, E, time_string(elapsed) ) )
 			else:
 				remain = ( steps - step ) * ( elapsed / step )
-				log.info( '%12.2f  %12.2e  %7.2f%%  %7.2f%%  %s  %s' % \
+				log.info( '%12.2e  %12.2e  %7.2f%%  %7.2f%%  %s  %s   %s' % \
 					(T, E, 100.0*acceptance, 100.0*improvement,
-						time_string(elapsed), time_string(remain)) )
+						time_string(elapsed), time_string(remain), step) )
 		
 		# Precompute factor for exponential cooling from Tmax to Tmin
 		if Tmin <= 0.0:
@@ -128,7 +128,7 @@ class Annealer:
 		bestEnergy = E
 		trials, accepts, improves = 0, 0, 0
 		if updates > 0:
-			updateWavelength = float(steps) / updates
+			updateWavelength = updates
 			update(T, E, None, None)
 		
 		# Attempt moves to new states
@@ -213,7 +213,7 @@ class Annealer:
 			"""Prints the current temperature, energy, acceptance rate,
 			improvement rate, and elapsed time."""
 			elapsed = time.time() - start
-			log.info( '%12.2f  %12.2g  %7.2f%%  %7.2f%%  %s' % (T, E, 100.0*acceptance, 100.0*improvement, time_string(elapsed)))
+			log.info( '%12.2e  %12.2e  %7.2f%%  %7.2f%%  %s' % (T, E, 100.0*acceptance, 100.0*improvement, time_string(elapsed)))
 		
 		# Search for Tmax - a temperature that gives 98% acceptance
 		state, E, acceptance, improvement = run(state, T, steps)

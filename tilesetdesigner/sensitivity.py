@@ -1,6 +1,5 @@
 import logging as log
 import numpy as np
-import pylab as pl
 
 secondclasses = { (False, True): 'O', (False, False): 'U', (True, True): 'U', (True, False): 'U' }
 firstsortorder = [ 'F', 'M', 'C', 'D' ]
@@ -53,7 +52,7 @@ def _find_pairs_from_tile( An, Ae, Ai, tiles, **params ):
                 log.warning("{0} and {1} have *identical* ends.".format(An,Bn))
 
         # Now we need to iterate over each non-inert common side:
-        for side in pl.find( (Ae == Be) & (Ai != -1) & (Bi != -1) ) :
+        for side in (np.nonzero( np.ravel( (Ae == Be) & (Ai != -1) & (Bi != -1) ) ))[0] :
             senslist += _pairs_commonside( An, Ae, Ai, Bn, Be, Bi, side, tiles, **params )
 
     return senslist
@@ -76,7 +75,7 @@ def _pairs_commonside( An, Ae, Ai, Bn, Be, Bi, common, tiles, order=2, **params 
 
         # Skip, but warn, about any second common mismatch
         if Ae[mismatch] == Be[mismatch]:
-            log.warning("Tiles {} and {} have two common sides.".format(An,Bn))
+            log.debug("Tiles {} and {} have two common sides.".format(An,Bn))
             continue
 
         # Now we know we have a sensitive pair, and we just need to determine type.
@@ -125,7 +124,7 @@ def _second_order_type( An, Ae, Ai, Bn, Be, Bi, common, mismatch, tiles, firstty
                 if B2e[flipdir[internal]]!=comp(Be[internal]): continue
                 # And now we consider every common side of that except the bond it has with the
                 # first tile...
-                for secondedge in pl.find( (A2e == B2e) & (A2i != -1) & (B2i != -1) ):
+                for secondedge in (np.nonzero(np.ravel( (A2e == B2e) & (A2i != -1) & (B2i != -1) ) ))[0]:
                     if secondedge == flipdir[internal]: continue
                     types.add(secondclasses[ ( Ai[internal]>=1, A2i[secondedge]>=1 ) ])
 

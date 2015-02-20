@@ -6,8 +6,35 @@ import stickydesign as sd
 import numpy.random as random
 import numpy as np
 import random as pyrand
-from pylab import flatten
 from copy import deepcopy
+
+def is_scalar_or_string(val):
+    """Return whether the given object is a scalar or string like."""
+    return is_string_like(val) or not iterable(val)
+
+
+def flatten(seq, scalarp=is_scalar_or_string):
+    """
+    Returns a generator of flattened nested containers
+
+    For example:
+
+        >>> from matplotlib.cbook import flatten
+        >>> l = (('John', ['Hunter']), (1, 23), [[([42, (5, 23)], )]])
+        >>> print(list(flatten(l)))
+        ['John', 'Hunter', 1, 23, 42, 5, 23]
+
+    By: Composite of Holger Krekel and Luther Blissett
+    From: http://aspn.activestate.com/ASPN/Cookbook/Python/Recipe/121294
+    and Recipe 1.12 in cookbook
+    (copied from matplotlib.cbook)
+    """
+    for item in seq:
+        if scalarp(item):
+            yield item
+        else:
+            for subitem in flatten(item, scalarp):
+                yield subitem
 
 def ecomp(x):
     if x[-1]=='/':
