@@ -1,7 +1,9 @@
+# vim: set sw=4 ts=4
 from random import shuffle
 import copy
 import tileutils
 import stickydesign as sd
+import logging
 
 
 # Color dictionary for xgrow colors...
@@ -9,6 +11,40 @@ import pkg_resources
 import os.path
 rgbv = pkg_resources.resource_stream(__name__, os.path.join('data','rgb.txt'))
 xcolors={ " ".join(y[3:]): "rgb({},{},{})".format(y[0],y[1],y[2]) for y in [x.split() for x in rgbv] }
+
+def design_set(tileset, name, includes=None):
+    """DO EVERYTHING
+
+    :tileset: TODO
+    :name: TODO
+    :returns: TODO
+
+    """
+    import yaml 
+    # If tileset is a filename, open and load it. If it's a file, open it.
+    # If it's a dict / something else, copy and use it.
+
+    if hasattr(tileset,'read'):
+        tileset = yaml.load(tileset)
+    elif isinstance(tileset, basestring):
+        with open(tileset,'r') as f:
+            tileset = yaml.load(f)
+    else:
+        tileset = copy.deepcopy(tileset)
+
+    # Make some sequences for the sticky ends. But we probably don't need
+    # to save the non-reordered version!
+    tileset_with_ends_randomorder = create_sticky_end_sequences( tileset )
+    
+    # Now reorder them.
+    tileset_with_ends_ordered = reorder_sticky_ends( tileset_with_ends_randomorder, steps=4 )
+
+    # Now create the strands.
+    tileset_with_strands = create_strand_sequences( tileset_with_ends_ordered, name, includes = includes )
+
+    # Now do some output.
+    return tileset_with_strands
+
 
 def create_sticky_end_sequences( tileset, inputs='complements', *options ):
     """Given a tileset dictionary in the usual format, without sticky ends, create sticky
@@ -115,8 +151,35 @@ def reorder_sticky_ends( tileset, hightemp=0.1, lowtemp=1e-8, steps=4000, update
 
     return tset
 
-def create_core_sequences( tileset, *options ):
-    pass
+def create_strand_sequences( tileset, basename, includes=None, *options ):
+    import sys
+    sys.path.insert(0, "/Users/cge/Dropbox/tilesetseqdesign/DNACircuitCompiler" )
+    # FIXME: how do we do this in a reasonable way? 
+    import compiler
+    import design.spurious_design as spurious_design
+    import finish
+
+    tileset = copy.deepcopy(tileset)
+
+    create_pepper_input_files( tileset, basename )
+
+    compiler.compiler( basename, [], basename+'.pil', basename+'.save', \
+            fixed_file=basename+'.fix', includes=includes, synth=True )
+
+    spurious_design.design( basename, infilename=basename+'.pil', outfilename=basename+'.mfe',
+            verbose=True, struct_orient=True, tempname=basename+'-temp', extra_pars="bored=2",
+            findmfe=False) 
+    # FIXME: this is a debugging test to make running faster. Fix.
+
+    finish.finish( basename+'.save', designname=basename+'.mfe', seqsname=basename+'.seqs',
+            strandsname=None, run_kin=False, cleanup=False, trials=0, time=0, temp=27, conc=1,
+            spurious=False, spurious_time=0 ) #FIXME: shouldn't need so many options.
+
+    tileset_with_strands = load_pepper_output_files( tileset, basename )
+
+    return tileset_with_strands
+
+    
 
 def create_pepper_input_files( tileset, basename ):
     # We first need to create a fixed sequence list/file for pepper.
