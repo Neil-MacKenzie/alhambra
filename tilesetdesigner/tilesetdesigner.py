@@ -152,12 +152,9 @@ def reorder_sticky_ends( tileset, hightemp=0.1, lowtemp=1e-8, steps=4000, update
     return tset
 
 def create_strand_sequences( tileset, basename, includes=None, *options ):
-    import sys
-    sys.path.insert(0, "/Users/cge/Dropbox/tilesetseqdesign/DNACircuitCompiler" )
-    # FIXME: how do we do this in a reasonable way? 
-    import compiler
-    import design.spurious_design as spurious_design
-    import finish
+    import DNACircuitCompiler.compiler as compiler
+    import DNACircuitCompiler.design.spurious_design as spurious_design
+    import DNACircuitCompiler.finish as finish
 
     tileset = copy.deepcopy(tileset)
 
