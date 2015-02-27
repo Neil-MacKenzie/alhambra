@@ -37,7 +37,7 @@ def design_set(tileset, name, includes=None):
     tileset_with_ends_randomorder = create_sticky_end_sequences( tileset )
     
     # Now reorder them.
-    tileset_with_ends_ordered = reorder_sticky_ends( tileset_with_ends_randomorder, steps=4 )
+    tileset_with_ends_ordered = reorder_sticky_ends( tileset_with_ends_randomorder )
 
     # Now create the strands.
     tileset_with_strands = create_strand_sequences( tileset_with_ends_ordered, name, includes = includes )
@@ -164,7 +164,7 @@ def create_strand_sequences( tileset, basename, includes=None, *options ):
             fixed_file=basename+'.fix', includes=includes, synth=True )
 
     spurious_design.design( basename, infilename=basename+'.pil', outfilename=basename+'.mfe',
-            verbose=True, struct_orient=True, tempname=basename+'-temp', extra_pars="bored=2",
+            verbose=True, struct_orient=True, tempname=basename+'-temp',
             findmfe=False) 
     # FIXME: this is a debugging test to make running faster. Fix.
 

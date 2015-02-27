@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generator: Adobe Illustrator 18.0.0, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
+<!DOCTYPE svg PUBLIC "-//W3C//DTD SVG 1.1//EN" "http://www.w3.org/Graphics/SVG/1.1/DTD/svg11.dtd">
+<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+	 viewBox="0 0 612 792" enable-background="new 0 0 612 792" xml:space="preserve">
+<g>
+	<polyline fill="none" stroke="#118642" stroke-miterlimit="10" points="0,62.4 167.6,62.4 167.6,95.9 0,95.9 7.6,88.3 	"/>
+	<polyline fill="none" stroke="#2256A6" stroke-miterlimit="10" points="78.2,129.4 279.3,129.4 324,95.9 413.4,95.9 413.4,62.4 
+		324,62.4 279.3,28.8 78.2,28.8 85.8,21.3 	"/>
+	<polyline fill="none" stroke="#EE322D" stroke-miterlimit="10" points="525.1,129.4 324,129.4 279.3,95.9 189.9,95.9 189.9,62.4 
+		279.3,62.4 324,28.8 525.1,28.8 517.6,21.3 	"/>
+	<polyline fill="none" stroke="#FAA22B" stroke-miterlimit="10" points="543.5,28.8 674.4,28.8 674.4,62.4 435.8,62.4 435.8,95.9 
+		603.3,95.9 595.8,88.3 	"/>
+	<text transform="matrix(1 0 0 1 2.027273e-02 57.7893)" font-family="'Courier'" font-size="18.6184">11ATG  CTCTATCC</text>
+	<text transform="matrix(1 0 0 1 2.027273e-02 110.8542)" font-family="'Courier'" font-size="18.6184">12TTG  GTAATCTT</text>
+	<text transform="matrix(1 0 0 1 78.2158 124.8128)" font-family="'Courier'" font-size="18.6184">21TTAGAA  ACAAGTTT</text>
+	<text transform="matrix(1 0 0 1 323.979 110.8542)" font-family="'Courier'" font-size="18.6184">22ATAGCA</text>
+	<text transform="matrix(1 0 0 1 323.979 57.7893)" font-family="'Courier'" font-size="18.6184">23AGCTCC</text>
+	<text transform="matrix(1 0 0 1 78.2158 43.8222)" font-family="'Courier'" font-size="18.6184">24GATAGG  TGCTATAA</text>
+	<text transform="matrix(1 0 0 1 323.979 124.8128)" font-family="'Courier'" font-size="18.6184">31TATCGT  CCGATGAC</text>
+	<text transform="matrix(1 0 0 1 189.9273 110.8542)" font-family="'Courier'" font-size="18.6184">32TTCAAA</text>
+	<text transform="matrix(1 0 0 1 189.9273 57.7893)" font-family="'Courier'" font-size="18.6184">33ACTTGT</text>
+	<text transform="matrix(1 0 0 1 323.979 43.8222)" font-family="'Courier'" font-size="18.6184">34TCGAGG  ACGGATCG</text>
+	<text transform="matrix(1 0 0 1 547.4218 43.8222)" font-family="'Courier'" font-size="18.6184">hp21A-GG-TT</text>
+	<text transform="matrix(1 0 0 1 603.2758 57.7893)" font-family="'Courier'" font-size="18.6184">-hp-22</text>
+	<text transform="matrix(1 0 0 1 435.6906 57.7893)" font-family="'Courier'" font-size="18.6184">41CCTAGC  TCACT</text>
+	<text transform="matrix(1 0 0 1 435.6906 110.8542)" font-family="'Courier'" font-size="18.6184">42CTACTG  GAGAT</text>
+	<text transform="matrix(1 0 0 1 28.9575 28.9287)" font-family="'Courier'" font-size="22.342">A</text>
+	<text transform="matrix(1 0 0 1 561.9203 144.3724)" font-family="'Courier'" font-size="22.342">C</text>
+	<text transform="matrix(1 0 0 1 28.9575 144.3724)" font-family="'Courier'" font-size="22.342">D</text>
+	<text transform="matrix(1 0 0 1 259.4762 20.5784)" font-family="'Courier'" font-size="26.0659">TC1-A</text>
+</g>
+</svg>
