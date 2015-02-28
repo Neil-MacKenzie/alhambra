@@ -16,7 +16,7 @@ import tiletypes
 
 tfactory = tiletypes.TileFactory()
 
-def design_set(tileset, name, includes=[pkg_resources.resource_filename(__name__,'peppercomps')]):
+def design_set(tileset, name, includes=[pkg_resources.resource_filename(__name__,'peppercomps')], reorderopts={}, coreopts={}):
     """DO EVERYTHING
 
     :tileset: TODO
@@ -41,10 +41,10 @@ def design_set(tileset, name, includes=[pkg_resources.resource_filename(__name__
     tileset_with_ends_randomorder = create_sticky_end_sequences( tileset )
     
     # Now reorder them.
-    tileset_with_ends_ordered = reorder_sticky_ends( tileset_with_ends_randomorder )
+    tileset_with_ends_ordered = reorder_sticky_ends( tileset_with_ends_randomorder, **reorderopts )
 
     # Now create the strands.
-    tileset_with_strands = create_strand_sequences( tileset_with_ends_ordered, name, includes = includes )
+    tileset_with_strands = create_strand_sequences( tileset_with_ends_ordered, name, includes = includes, **coreopts )
 
     # Now do some output.
     return tileset_with_strands
@@ -134,7 +134,7 @@ def create_sticky_end_sequences( tileset, inputs='complements', *options ):
 
     return tset
 
-def reorder_sticky_ends( tileset, hightemp=0.1, lowtemp=1e-7, steps=15000, update=1000, *options ):
+def reorder_sticky_ends( tileset, hightemp=0.1, lowtemp=1e-7, steps=15000, update=1000 ):
     import endreorder2
     import anneal
 
@@ -155,7 +155,7 @@ def reorder_sticky_ends( tileset, hightemp=0.1, lowtemp=1e-7, steps=15000, updat
 
     return tset
 
-def create_strand_sequences( tileset, basename, includes=None, *options ):
+def create_strand_sequences( tileset, basename, includes=None, spurious_pars="verboten_weak=1.5", *options ):
     import DNACircuitCompiler.compiler as compiler
     import DNACircuitCompiler.design.spurious_design as spurious_design
     import DNACircuitCompiler.finish as finish
@@ -168,7 +168,7 @@ def create_strand_sequences( tileset, basename, includes=None, *options ):
             fixed_file=basename+'.fix', includes=includes, synth=True )
 
     spurious_design.design( basename, infilename=basename+'.pil', outfilename=basename+'.mfe',
-            verbose=True, struct_orient=True, tempname=basename+'-temp',
+            verbose=True, struct_orient=True, tempname=basename+'-temp', extra_pars=spurious_pars,
             findmfe=False) 
     # FIXME: this is a debugging test to make running faster. Fix.
 
