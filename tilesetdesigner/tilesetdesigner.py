@@ -169,7 +169,8 @@ def create_strand_sequences( tileset, basename, includes=None, spurious_pars="ve
 
     spurious_design.design( basename, infilename=basename+'.pil', outfilename=basename+'.mfe',
             verbose=True, struct_orient=True, tempname=basename+'-temp', extra_pars=spurious_pars,
-            findmfe=False) 
+            findmfe=False, \
+                    spuriousbinary=pkg_resources.resource_filename(__name__,'spuriousSSM')) 
     # FIXME: this is a debugging test to make running faster. Fix.
 
     finish.finish( basename+'.save', designname=basename+'.mfe', seqsname=basename+'.seqs',
