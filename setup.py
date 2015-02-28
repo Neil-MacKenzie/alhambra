@@ -6,7 +6,7 @@ setup(
     version = "0.0.1dev",
     packages = ['tilesetdesigner'],
 
-    install_requires = ['numpy','stickydesign', 'svgwrite'],
+    install_requires = ['numpy','stickydesign','svgwrite','lxml'],
 
     include_package_data=True,
 

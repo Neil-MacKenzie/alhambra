@@ -64,7 +64,7 @@ def create_sticky_end_sequences( tileset, inputs='complements', *options ):
     # Go through each tile, adding the ends to the sets, and making sure that
     # the ends were not previously added to the other set.
     for tile in tset['tiles']:
-        ends = tfactory(tile).tile_ends
+        ends = tfactory.parse(tile).tile_ends
         
         for end in ends:
             if end[1] == 'TD':
