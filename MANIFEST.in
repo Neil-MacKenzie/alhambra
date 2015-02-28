@@ -1,0 +1,5 @@
+include tilesetdesigner/peppercomps/*.comp
+
+include tilesetdesigner/seqdiagrambases/*.svg
+
+include tilesetdesigner/data/rgb.txt

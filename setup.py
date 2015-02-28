@@ -8,9 +8,7 @@ setup(
 
     install_requires = ['numpy','stickydesign', 'svgwrite'],
 
-    package_data = {
-        'tilesetdesigner': ['data/rgb.txt']
-    },
+    include_package_data=True,
 
     author = "Constantine Evans",
     author_email = "cge@dna.caltech.edu",

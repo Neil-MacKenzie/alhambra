@@ -12,7 +12,11 @@ import os.path
 rgbv = pkg_resources.resource_stream(__name__, os.path.join('data','rgb.txt'))
 xcolors={ " ".join(y[3:]): "rgb({},{},{})".format(y[0],y[1],y[2]) for y in [x.split() for x in rgbv] }
 
-def design_set(tileset, name, includes=None):
+import tiletypes
+
+tfactory = tiletypes.TileFactory()
+
+def design_set(tileset, name, includes=[pkg_resources.resource_filename(__name__,'peppercomps')]):
     """DO EVERYTHING
 
     :tileset: TODO
@@ -60,7 +64,7 @@ def create_sticky_end_sequences( tileset, inputs='complements', *options ):
     # Go through each tile, adding the ends to the sets, and making sure that
     # the ends were not previously added to the other set.
     for tile in tset['tiles']:
-        ends = tileutils.get_tile_ends(tile)
+        ends = tfactory(tile).tile_ends
         
         for end in ends:
             if end[1] == 'TD':
@@ -130,7 +134,7 @@ def create_sticky_end_sequences( tileset, inputs='complements', *options ):
 
     return tset
 
-def reorder_sticky_ends( tileset, hightemp=0.1, lowtemp=1e-8, steps=4000, update=200, *options ):
+def reorder_sticky_ends( tileset, hightemp=0.1, lowtemp=1e-7, steps=15000, update=1000, *options ):
     import endreorder2
     import anneal
 
@@ -175,7 +179,6 @@ def create_strand_sequences( tileset, basename, includes=None, *options ):
     tileset_with_strands = load_pepper_output_files( tileset, basename )
 
     return tileset_with_strands
-
     
 
 def create_pepper_input_files( tileset, basename ):
@@ -240,105 +243,48 @@ def load_pepper_output_files( tileset, basename ):
     
     return tset
 
+def create_sequence_diagrams( tileset, filename, *options ):
+    from lxml import etree
+    import pkg_resources
+    import os.path
+
+    base = etree.parse( \
+            pkg_resources.resource_stream(__name__,os.path.join('seqdiagrambases','blank.svg')) \
+            )
+    baseroot = base.getroot()
+    pos = 150
+    for tiledef in tileset['tiles']:
+
+        tile = tfactory.parse(tiledef)
+        group = tile.sequence_diagram()
+
+        group.attrib['transform'] = 'translate(0,{})'.format(pos)
+        pos+=150
+        baseroot.append(group)
+
+    base.write( filename )
+
+
 def create_abstract_diagrams( tileset, filename, *options ):
     import svgwrite
     
-    
-
-    b = svgwrite.Drawing( filename )
+    drawing = svgwrite.Drawing( filename )
 
     pos = 0
     lim = 10000
     
-    for tile in tileset['tiles']:
-        a = b.g(transform="translate({},{})".format((pos%lim)*150,pos/lim*150))
+    for tiledef in tileset['tiles']:
+        tile = tfactory.parse(tiledef)
         
-        if tile['type'] in ['tile_daoe_3up','tile_daoe_5up','tile_single']:
-            # Tile Box
-            a.add( b.rect((100,100),(100,100),stroke="black",fill=xcolors[tile['color']]) )
+        group = tile.abstract_diagram(drawing)
 
-            # End Names
-            a.add( b.text( tile['ends'][0], insert=(150,110), text_anchor='middle', alignment_baseline="middle", font_size="14pt" ) )
-            a.add( b.text( tile['ends'][1], insert=(190,150), text_anchor='middle', alignment_baseline="middle", transform="rotate(90,190,150)", font_size="14pt") )
-            a.add( b.text( tile['ends'][2], insert=(150,190), text_anchor='middle', alignment_baseline="middle", font_size="14pt") )
-            a.add( b.text( tile['ends'][3], insert=(110,150), text_anchor='middle', alignment_baseline="middle", transform="rotate(-90,110,150)", font_size="14pt") ) 
-
-            # Tile Name
-            a.add( b.text( tile['name'], insert=(150,150), text_anchor='middle', alignment_baseline="middle", font_size="14pt" ) )
-            
-            orient = None
-            if tile['type'] == 'tile_daoe_3up':
-                orient = ('3','5')
-            elif tile['type'] == 'tile_daoe_5up':
-                orient = ('5','3')
-            
-            if orient:
-                # Orientation
-                a.add( b.text( orient[0], insert=(192,108), text_anchor='middle', alignment_baseline="middle", font_size="9pt"))
-                a.add( b.text( orient[1], insert=(108,192), text_anchor='middle', alignment_baseline="middle", font_size="9pt"))
-
-        if tile['type'] in ['tile_daoe_doublehoriz_35up', 'tile_doublehoriz']:
-            # Tile Box
-            a.add( b.rect((100,100),(200,100),stroke="black",fill=xcolors[tile['color']]) )
-
-            # End Names
-            a.add( b.text( tile['ends'][0], insert=(150,110), text_anchor='middle', alignment_baseline="middle", font_size="14pt" ) )
-            a.add( b.text( tile['ends'][1], insert=(250,110), text_anchor='middle', alignment_baseline="middle", font_size="14pt" ) )
-            a.add( b.text( tile['ends'][2], insert=(290,150), text_anchor='middle', alignment_baseline="middle", transform="rotate(90,290,150)", font_size="14pt") )
-            a.add( b.text( tile['ends'][3], insert=(250,190), text_anchor='middle', alignment_baseline="middle", font_size="14pt") )
-            a.add( b.text( tile['ends'][4], insert=(150,190), text_anchor='middle', alignment_baseline="middle", font_size="14pt") )
-            a.add( b.text( tile['ends'][5], insert=(110,150), text_anchor='middle', alignment_baseline="middle", transform="rotate(-90,110,150)", font_size="14pt") ) 
-
-            # Tile Name
-            a.add( b.text( tile['name'], insert=(200,150), text_anchor='middle', alignment_baseline="middle", font_size="14pt" ) )
-            
-            orient = None
-            if tile['type'] == 'tile_daoe_doublehoriz_35up':
-                orient = ('3','5')
-            elif tile['type'] == 'tile_daoe_5up':
-                orient = ('5','3')
-            
-            if orient:
-                # Orientation
-                a.add( b.text( orient[0], insert=(192,108), text_anchor='middle', alignment_baseline="middle", font_size="9pt"))
-                a.add( b.text( orient[1], insert=(292,108), text_anchor='middle', alignment_baseline="middle", font_size="9pt"))
-                a.add( b.text( orient[1], insert=(108,192), text_anchor='middle', alignment_baseline="middle", font_size="9pt"))
-                a.add( b.text( orient[0], insert=(208,192), text_anchor='middle', alignment_baseline="middle", font_size="9pt"))
-            pos += 1
-            
-        if tile['type'] in ['tile_daoe_doublevert_35up', 'tile_doublevert']:
-            # Tile Box
-            a.add( b.rect((100,100),(100,200),stroke="black",fill=xcolors[tile['color']]) )
-
-            # End Names
-            a.add( b.text( tile['ends'][0], insert=(150,110), text_anchor='middle', alignment_baseline="middle", font_size="14pt" ) )
-            a.add( b.text( tile['ends'][1], insert=(190,150), text_anchor='middle', alignment_baseline="middle", transform="rotate(90,190,150)", font_size="14pt") )
-            a.add( b.text( tile['ends'][2], insert=(190,250), text_anchor='middle', alignment_baseline="middle", transform="rotate(90,190,250)", font_size="14pt") )
-            a.add( b.text( tile['ends'][3], insert=(150,290), text_anchor='middle', alignment_baseline="middle", font_size="14pt") )
-            a.add( b.text( tile['ends'][4], insert=(110,250), text_anchor='middle', alignment_baseline="middle", transform="rotate(-90,110,250)", font_size="14pt") ) 
-            a.add( b.text( tile['ends'][5], insert=(110,150), text_anchor='middle', alignment_baseline="middle", transform="rotate(-90,110,150)", font_size="14pt") ) 
-
-            
-            # Tile Name
-            a.add( b.text( tile['name'], insert=(150,200), text_anchor='middle', alignment_baseline="middle", font_size="14pt" ) )
-            
-            orient = None
-            if tile['type'] == 'tile_daoe_doublevert_35up':
-                orient = ('3','5')
-            elif tile['type'] == 'tile_daoe_5up':
-                orient = ('5','3')
-            
-            if orient:
-                # Orientation
-                a.add( b.text( orient[0], insert=(192,108), text_anchor='middle', alignment_baseline="middle", font_size="9pt"))
-                a.add( b.text( orient[0], insert=(108,292), text_anchor='middle', alignment_baseline="middle", font_size="9pt"))
-                a.add( b.text( orient[1], insert=(192,208), text_anchor='middle', alignment_baseline="middle", font_size="9pt"))
-                a.add( b.text( orient[1], insert=(108,192), text_anchor='middle', alignment_baseline="middle", font_size="9pt"))
-            pos += 1
+        group['transform'] = "translate({},{})".format((pos%lim)*150,pos/lim*150)
+        pos+=1
                 
-        b.add(a)
+        drawing.add( group )
         pos += 1        
-    b.save()
+    
+    drawing.save()
 
 def create_layout_diagrams( tileset, xgrowarray, filename, scale=1, *options ):
     import svgwrite
@@ -349,92 +295,12 @@ def create_layout_diagrams( tileset, xgrowarray, filename, scale=1, *options ):
     c = b.g()
 
     svgtiles = {}
+    
+    for tiledef in tileset['tiles']:
+        tile = tfactory.parse(tiledef)
 
-    for tile in tileset['tiles']:
-        a = b.g()
-        
-        if tile['type'] in ['tile_daoe_3up','tile_daoe_5up','tile_single']:
-            # Tile Box
-            a.add( b.rect((100,100),(100,100),stroke="black",fill=xcolors[tile['color']]) )
-
-            # End Names
-            a.add( b.text( tile['ends'][0], insert=(150,110), text_anchor='middle', alignment_baseline="middle", font_size="14pt" ) )
-            a.add( b.text( tile['ends'][1], insert=(190,150), text_anchor='middle', alignment_baseline="middle", transform="rotate(90,190,150)", font_size="14pt") )
-            a.add( b.text( tile['ends'][2], insert=(150,190), text_anchor='middle', alignment_baseline="middle", font_size="14pt") )
-            a.add( b.text( tile['ends'][3], insert=(110,150), text_anchor='middle', alignment_baseline="middle", transform="rotate(-90,110,150)", font_size="14pt") ) 
-
-            # Tile Name
-            a.add( b.text( tile['name'], insert=(150,150), text_anchor='middle', alignment_baseline="middle", font_size="14pt" ) )
-            
-            orient = None
-            if tile['type'] == 'tile_daoe_3up':
-                orient = ('3','5')
-            elif tile['type'] == 'tile_daoe_5up':
-                orient = ('5','3')
-            
-            if orient:
-                # Orientation
-                a.add( b.text( orient[0], insert=(192,108), text_anchor='middle', alignment_baseline="middle", font_size="9pt"))
-                a.add( b.text( orient[1], insert=(108,192), text_anchor='middle', alignment_baseline="middle", font_size="9pt"))
-
-        if tile['type'] in ['tile_daoe_doublehoriz_35up', 'tile_doublehoriz']:
-            # Tile Box
-            a.add( b.rect((100,100),(200,100),stroke="black",fill=xcolors[tile['color']]) )
-
-            # End Names
-            a.add( b.text( tile['ends'][0], insert=(150,110), text_anchor='middle', alignment_baseline="middle", font_size="14pt" ) )
-            a.add( b.text( tile['ends'][1], insert=(250,110), text_anchor='middle', alignment_baseline="middle", font_size="14pt" ) )
-            a.add( b.text( tile['ends'][2], insert=(290,150), text_anchor='middle', alignment_baseline="middle", transform="rotate(90,290,150)", font_size="14pt") )
-            a.add( b.text( tile['ends'][3], insert=(250,190), text_anchor='middle', alignment_baseline="middle", font_size="14pt") )
-            a.add( b.text( tile['ends'][4], insert=(150,190), text_anchor='middle', alignment_baseline="middle", font_size="14pt") )
-            a.add( b.text( tile['ends'][5], insert=(110,150), text_anchor='middle', alignment_baseline="middle", transform="rotate(-90,110,150)", font_size="14pt") ) 
-
-            # Tile Name
-            a.add( b.text( tile['name'], insert=(200,150), text_anchor='middle', alignment_baseline="middle", font_size="14pt" ) )
-            
-            orient = None
-            if tile['type'] == 'tile_daoe_doublehoriz_35up':
-                orient = ('3','5')
-            elif tile['type'] == 'tile_daoe_5up':
-                orient = ('5','3')
-            
-            if orient:
-                # Orientation
-                a.add( b.text( orient[0], insert=(192,108), text_anchor='middle', alignment_baseline="middle", font_size="9pt"))
-                a.add( b.text( orient[1], insert=(292,108), text_anchor='middle', alignment_baseline="middle", font_size="9pt"))
-                a.add( b.text( orient[1], insert=(108,192), text_anchor='middle', alignment_baseline="middle", font_size="9pt"))
-                a.add( b.text( orient[0], insert=(208,192), text_anchor='middle', alignment_baseline="middle", font_size="9pt"))
-            
-        if tile['type'] in ['tile_daoe_doublevert_35up', 'tile_doublevert']:
-            # Tile Box
-            a.add( b.rect((100,100),(100,200),stroke="black",fill=xcolors[tile['color']]) )
-
-            # End Names
-            a.add( b.text( tile['ends'][0], insert=(150,110), text_anchor='middle', alignment_baseline="middle", font_size="14pt" ) )
-            a.add( b.text( tile['ends'][1], insert=(190,150), text_anchor='middle', alignment_baseline="middle", transform="rotate(90,190,150)", font_size="14pt") )
-            a.add( b.text( tile['ends'][2], insert=(190,250), text_anchor='middle', alignment_baseline="middle", transform="rotate(90,190,250)", font_size="14pt") )
-            a.add( b.text( tile['ends'][3], insert=(150,290), text_anchor='middle', alignment_baseline="middle", font_size="14pt") )
-            a.add( b.text( tile['ends'][4], insert=(110,250), text_anchor='middle', alignment_baseline="middle", transform="rotate(-90,110,250)", font_size="14pt") ) 
-            a.add( b.text( tile['ends'][5], insert=(110,150), text_anchor='middle', alignment_baseline="middle", transform="rotate(-90,110,150)", font_size="14pt") ) 
-
-            
-            # Tile Name
-            a.add( b.text( tile['name'], insert=(150,200), text_anchor='middle', alignment_baseline="middle", font_size="14pt" ) )
-            
-            orient = None
-            if tile['type'] == 'tile_daoe_doublevert_35up':
-                orient = ('3','5')
-            elif tile['type'] == 'tile_daoe_5up':
-                orient = ('5','3')
-            
-            if orient:
-                # Orientation
-                a.add( b.text( orient[0], insert=(192,108), text_anchor='middle', alignment_baseline="middle", font_size="9pt"))
-                a.add( b.text( orient[0], insert=(108,292), text_anchor='middle', alignment_baseline="middle", font_size="9pt"))
-                a.add( b.text( orient[1], insert=(192,208), text_anchor='middle', alignment_baseline="middle", font_size="9pt"))
-                a.add( b.text( orient[1], insert=(108,192), text_anchor='middle', alignment_baseline="middle", font_size="9pt"))
-
-        svgtiles[tile['name']] = a
+        group = tile.abstract_diagram(b)
+        svgtiles[tile['name']] = group
         
     
     tilelist=stxg.from_yaml_endadj(tileset)['tiles']
@@ -463,9 +329,4 @@ def create_layout_diagrams( tileset, xgrowarray, filename, scale=1, *options ):
 
     b.add(c)
     b.save()
-
-
-def create_layout_diagram( tileset, array, tiledict, *options ):
-    pass
-
 
