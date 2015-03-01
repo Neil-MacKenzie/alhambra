@@ -10,8 +10,8 @@ def tilesetdesigner():
     
     parser = argparse.ArgumentParser()
     parser.add_argument("inputfile", help="tileset input YAML file")
-    parser.add_argument("-n", "--name", help="system name for temporary files")
-    parser.add_argument("-o", "--out", help="output file")
+    parser.add_argument("-n", "--name", help="base name for output files")
+    parser.add_argument("-o", "--out", help="output file (if not just NAME-out.yaml)")
     parser.add_argument("-r", "--reorderargs", help="extra arguments (as dict) to reorder function", default="{}")
     parser.add_argument("-s", "--spuriousargs", help="extra params (use \"s) for spuriousSSM", default="")
     parser.add_argument("-v", "--verbose", help="increase verbosity", action="store_true", default=False)
@@ -28,10 +28,12 @@ def tilesetdesigner():
     
     base = os.path.splitext(os.path.basename(args.inputfile))[0]
     
-    if not args.out:
-        args.out = base+'-out.yaml'
     if not args.name:
         args.name = base
+    else:
+        base = args.name
+    if not args.out:
+        args.out = base+'-out.yaml'
 
     # Check that we're not clobbering something here for the output. FIXME: do
     # this for temp files too.
@@ -39,6 +41,10 @@ def tilesetdesigner():
         logging.error("Output file already exists, and --force is not enabled.")
         sys.exit(1)
 
+    for ext in ['.sys','.save','.mfe','.fix','.pil','.seqs']:
+        if os.path.exists(args.name+ext) and not args.force:
+            logging.error("Temporary file {} already exists, and --force is not enabled.".format(args.name+ext))
+            sys.exit(1)
 
     if not os.path.exists(args.inputfile):
         logging.error("Input file does not exist.")

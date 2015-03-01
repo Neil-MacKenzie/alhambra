@@ -16,7 +16,7 @@ import tiletypes
 
 tfactory = tiletypes.TileFactory()
 
-def design_set(tileset, name, includes=[pkg_resources.resource_filename(__name__,'peppercomps')], reorderopts={}, coreopts={}):
+def design_set(tileset, name, includes=[pkg_resources.resource_filename(__name__,'peppercomps')], reorderopts={}, coreopts={}, keeptemp=False):
     """DO EVERYTHING
 
     :tileset: TODO
@@ -45,6 +45,14 @@ def design_set(tileset, name, includes=[pkg_resources.resource_filename(__name__
 
     # Now create the strands.
     tileset_with_strands = create_strand_sequences( tileset_with_ends_ordered, name, includes = includes, **coreopts )
+
+    if not keeptemp:
+        os.remove(name+'.fix')
+        os.remove(name+'.mfe')
+        os.remove(name+'.pil')
+        os.remove(name+'.save')
+        os.remove(name+'.seqs')
+        os.remove(name+'.sys')
 
     # Now do some output.
     return tileset_with_strands

@@ -460,6 +460,9 @@ def from_yaml_endadj( ts, perfect=False, rotate=False ):
             newends.append( { 'name': end['name']+'_c', 'strength': 0 } )
             if (end['type'] == 'TD') or (end['type'] == 'DT'):
                 gluelist.append([end['name'],end['name']+'_c',1.0]) 
+    
+    newends.append( {'name': 'hp', 'strength': 0} )
+
     xga = {}
     xga['doubletiles'] = [ list(x) for x in doubles ]
     xga['vdoubletiles'] = [ list(x) for x in vdoubles ]
