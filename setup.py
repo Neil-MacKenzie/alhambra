@@ -22,7 +22,9 @@ class develop_with_spurious(develop):
 setup(
     name = "tilesetdesigner",
     version = "0.0.1dev",
-    packages = ['tilesetdesigner'],
+    packages = ['tilesetdesigner', 
+        'tilesetdesigner.DNACircuitCompiler',
+        'tilesetdesigner.DNACircuitCompiler.design'],
 
     install_requires = ['numpy','stickydesign','svgwrite','lxml'],
 

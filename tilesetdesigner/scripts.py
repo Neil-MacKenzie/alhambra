@@ -1,13 +1,68 @@
 from tilesetdesigner import *
-import sys
 import yaml
+import argparse
+import logging
+import sys
+import os.path
 
 def tilesetdesigner():
-    import logging
     import sys
-    logging.getLogger().setLevel(logging.INFO)
-    sysname = sys.argv[1]
-    fname = sys.argv[2]
-    out = sys.argv[3]
-    sys = design_set(fname, sysname)
-    yaml.dump(sys, open(out,'w'))
+    
+    parser = argparse.ArgumentParser()
+    parser.add_argument("inputfile", help="tileset input YAML file")
+    parser.add_argument("-n", "--name", help="system name for temporary files")
+    parser.add_argument("-o", "--out", help="output file")
+    parser.add_argument("-r", "--reorderargs", help="extra arguments (as dict) to reorder function", default="{}")
+    parser.add_argument("-s", "--spuriousargs", help="extra params (use \"s) for spuriousSSM", default="")
+    parser.add_argument("-v", "--verbose", help="increase verbosity", action="store_true", default=False)
+    parser.add_argument("-f", "--force", help="overwrite output file", default=False, action="store_true")
+    parser.add_argument("-d", "--diagrams", help="make diagrams as well", default=False, action="store_true")
+    parser.add_argument("-x", "--xgrow", help="make xgrow files as well", default=False, action="store_true")
+    args = parser.parse_args()
+
+    
+    if args.verbose:
+        logging.getLogger().setLevel(logging.DEBUG)
+    else:
+        logging.getLogger().setLevel(logging.INFO)
+    
+    base = os.path.splitext(os.path.basename(args.inputfile))[0]
+    
+    if not args.out:
+        args.out = base+'-out.yaml'
+    if not args.name:
+        args.name = base
+
+    # Check that we're not clobbering something here for the output. FIXME: do
+    # this for temp files too.
+    if os.path.exists(args.out) and not args.force:
+        logging.error("Output file already exists, and --force is not enabled.")
+        sys.exit(1)
+
+
+    if not os.path.exists(args.inputfile):
+        logging.error("Input file does not exist.")
+        sys.exit(1)
+
+    sys = design_set( \
+            args.inputfile, 
+            args.name,
+            reorderopts=eval(args.reorderargs),
+            coreopts={'spurious_pars': args.spuriousargs})
+
+    yaml.dump(sys, open(args.out,'w'))
+
+    if args.diagrams:
+        create_abstract_diagrams( sys , base+'-abstract.svg' )
+        create_sequence_diagrams( sys, base+'-sequences.svg' )
+
+    if args.xgrow:
+        import stxg
+        yaml.dump( stxg.from_yaml_endadj( sys, perfect=True ), 
+                   open(base+'-perfectends.stxg', 'w') )
+        yaml.dump( stxg.from_yaml_endadj( sys, perfect=True, rotate=True ), 
+                   open(base+'-perfectends-rotated.stxg', 'w') )
+        yaml.dump( stxg.from_yaml_endadj( sys, perfect=False ), 
+                   open(base+'-withends.stxg', 'w') )
+        yaml.dump( stxg.from_yaml_endadj( sys, perfect=False, rotate=True ), 
+                   open(base+'-withends-rotated.stxg', 'w') )
