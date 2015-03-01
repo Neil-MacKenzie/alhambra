@@ -1,1 +1,1 @@
-from tilesetdesigner import *
+from designer import *

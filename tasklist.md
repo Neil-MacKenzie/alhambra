@@ -5,10 +5,6 @@ vim:textwidth=60:ft=pandoc
 * Make sure that functions don't modify their inputs. They
   should deepcopy tilesets. (I think this is already done,
   but I'm not sure. - CE)
-* Write scripts to take file inputs and do stuff with them,
-  without going into a python interpreter at all. These
-  should be integrated into the package/setup.py, as there
-  is some way to do this.
 * Implement code for generating adapter tiles and adapter
   tile diagrams, with flexibility as far as what adapters to
   make and what scaffold/staples are being used. Note that
@@ -17,15 +13,6 @@ vim:textwidth=60:ft=pandoc
   for a bunch of adapter tiles that give different starting
   values, and then only use a subset of them at once. Think
   about this.
-* Figure out what to do about SpuriousSSM. Everything else
-  should now be simple to install and configure, but this
-  remains a challenge. How can we include it such that
-  setup.py will compile it? I've (CE) asked about this on
-  stackoverflow, and we'll see what answers we can get. An
-  alternative would be to have an easy installation method
-  for spuriousSSM separately, by, for example, having a
-  configure script and so on, but this would still make
-  things more complicated.
 * Implement code for quickly and easily creating desired
   guard strands. This should be pretty trivial.
 * Implement more tile types; some tile types used in the

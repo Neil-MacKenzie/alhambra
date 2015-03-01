@@ -1,4 +1,4 @@
-from tilesetdesigner import *
+from designer import *
 import yaml
 import argparse
 import logging

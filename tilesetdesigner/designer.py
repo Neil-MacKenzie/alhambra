@@ -143,12 +143,12 @@ def create_sticky_end_sequences( tileset, inputs='complements', *options ):
     return tset
 
 def reorder_sticky_ends( tileset, hightemp=0.1, lowtemp=1e-7, steps=15000, update=1000 ):
-    import endreorder2
+    import endreorder
     import anneal
 
     tset = copy.deepcopy(tileset)
 
-    reordersys = endreorder2.EndSystemFseq( tset )
+    reordersys = endreorder.EndSystemFseq( tset )
 
     # FIXME: better parameter control here.
     annealer = anneal.Annealer( reordersys.score, reordersys.mutate )
