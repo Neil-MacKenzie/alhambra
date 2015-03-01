@@ -23,3 +23,8 @@ def order_pepper_strands( strandlist ):
     # We're going to assume, for now, that they're already ordered by Pepper.
     # We'll see.
     return [ strandseq for (strandname, strandseq) in strandlist ]
+
+def gettile(tset,tname):
+    foundtiles = [x for x in tset['tiles'] if x['name']==tname]
+    assert len(foundtiles)==1
+    return foundtiles[0]

@@ -13,8 +13,10 @@ rgbv = pkg_resources.resource_stream(__name__, os.path.join('data','rgb.txt'))
 xcolors={ " ".join(y[3:]): "rgb({},{},{})".format(y[0],y[1],y[2]) for y in [x.split() for x in rgbv] }
 
 import tiletypes
+import seeds
 
 tfactory = tiletypes.TileFactory()
+seedtypes = seeds.seedtypes
 
 def design_set(tileset, name, includes=[pkg_resources.resource_filename(__name__,'peppercomps')], reorderopts={}, coreopts={}, keeptemp=False):
     """DO EVERYTHING
@@ -45,6 +47,14 @@ def design_set(tileset, name, includes=[pkg_resources.resource_filename(__name__
 
     # Now create the strands.
     tileset_with_strands = create_strand_sequences( tileset_with_ends_ordered, name, includes = includes, **coreopts )
+
+    # Create guards if we need to.
+    if 'guards' in tileset_with_strands.keys():
+        tileset_with_strands = create_guard_strand_sequences( tileset_with_strands )
+
+    # FIXME: this is temporary, until we have a better way of deciding.
+    if 'createseqs' in tileset_with_strands['seed'].keys():
+        tileset_with_strands = create_adapter_sequences( tileset_with_strands )
 
     if not keeptemp:
         os.remove(name+'.fix')
@@ -255,6 +265,19 @@ def load_pepper_output_files( tileset, basename ):
     
     return tset
 
+
+def create_guard_strand_sequences( tileset ):
+    tset = copy.deepcopy(tileset)
+
+    from DNACircuitCompiler.DNA_classes import wc
+
+    for guard in tset['guards']:
+        tile = tileutils.gettile( tset, guard[0] )
+        guard.append(  wc(tile['fullseqs'][guard[1]-1]) )
+    
+    return tset
+
+
 def create_sequence_diagrams( tileset, filename, *options ):
     from lxml import etree
     import pkg_resources
@@ -276,6 +299,10 @@ def create_sequence_diagrams( tileset, filename, *options ):
 
     base.write( filename )
 
+def create_adapter_sequences( tileset ):
+    seedclass = seedtypes[ tileset['seed']['type'] ]
+    return seedclass.create_adapter_sequences( tileset )
+    
 
 def create_abstract_diagrams( tileset, filename, *options ):
     import svgwrite
