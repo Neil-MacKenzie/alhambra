@@ -244,6 +244,26 @@ class tile_daoe_doublevert_35up(tile_daoe_doublevert):
         self._endtypes = ['DT','DT','TD','DT','DT','TD']
         self._orient = ('3','5')
 
+class tile_daoe_doublehoriz_35up_1h2i(tile_daoe_doublehoriz_35up):
+    def __init__(self, defdict):
+        tile_daoe_doublehoriz_35up.__init__(self, defdict)
+        self._endtypes[0]='hairpin'
+        self._endtypes[1]='blunt'
+
+    @property
+    def _seqdiagseqstrings(self):
+        raise NotImplementedError
+
+class tile_daoe_doublehoriz_35up_4h5b(tile_daoe_doublehoriz_35up):
+    def __init__(self, defdict):
+        tile_daoe_doublehoriz_35up.__init__(self, defdict)
+        self._endtypes[3]='hairpin'
+        self._endtypes[4]='blunt'
+
+    @property
+    def _seqdiagseqstrings(self):
+        raise NotImplementedError
+
 class tile_daoe_doublehoriz_35up_2h3h(tile_daoe_doublehoriz_35up):
     def __init__(self, defdict):
         tile_daoe_doublehoriz_35up.__init__(self, defdict)
@@ -324,6 +344,8 @@ _tiletypes = { \
         'tile_daoe_5up_2h': tile_daoe_5up_2h,
         'tile_daoe_3up_2h': tile_daoe_3up_2h,
         'tile_daoe_doublehoriz_35up_2h3h': tile_daoe_doublehoriz_35up_2h3h,
+        'tile_daoe_doublehoriz_35up_1h2i': tile_daoe_doublehoriz_35up_1h2i,
+        'tile_daoe_doublehoriz_35up_4h5b': tile_daoe_doublehoriz_35up_4h5b,
         'tile_daoe_doublevert_35up_4h5h': tile_daoe_doublevert_35up_4h5h
         }
 

@@ -96,8 +96,11 @@ def create_sticky_end_sequences( tileset, inputs='complements', *options ):
     onetd = set( x[:-1] for x in endsets['TD'] if x[-1]=='/' ) ^ set( x for x in endsets['TD'] if x[-1]!='/' )
     onedt = set( x[:-1] for x in endsets['DT'] if x[-1]=='/' ) ^ set( x for x in endsets['DT'] if x[-1]!='/' )
     if onetd or onedt:
+        import warnings
         warnings.warn("FIXME: IMPLEMENT THIS WARNING MESSAGE (END/COMPLEMENT \
         MISSING")
+        print onetd
+        print onedt
 
     # Make all ends into non-complements, adding the end name if only the
     # complement was used.
