@@ -61,6 +61,8 @@ def tilesetdesigner():
     if args.diagrams:
         create_abstract_diagrams( sys , base+'-abstract.svg' )
         create_sequence_diagrams( sys, base+'-sequences.svg' )
+        if 'createseqs' in sys['seed'].keys():
+            create_adapter_sequence_diagrams( sys, base+'-adapters.svg' )
 
     if args.xgrow:
         import stxg

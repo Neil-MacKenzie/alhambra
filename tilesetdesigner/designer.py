@@ -155,7 +155,7 @@ def create_sticky_end_sequences( tileset, inputs='complements', *options ):
 
     return tset
 
-def reorder_sticky_ends( tileset, hightemp=0.1, lowtemp=1e-7, steps=15000, update=1000 ):
+def reorder_sticky_ends( tileset, hightemp=0.1, lowtemp=1e-7, steps=45000, update=1000 ):
     import endreorder
     import anneal
 
@@ -277,6 +277,26 @@ def create_guard_strand_sequences( tileset ):
     
     return tset
 
+def create_adapter_sequence_diagrams( tileset, filename, *options ):
+    from lxml import etree
+    import pkg_resources
+    import os.path
+
+    base = etree.parse( \
+            pkg_resources.resource_stream(__name__,os.path.join('seqdiagrambases','blank.svg')) \
+            )
+    baseroot = base.getroot()
+    pos = 200
+    for adapterdef in tileset['seed']['adapters']:
+
+        seedclass = seedtypes[ tileset['seed']['type'] ]
+        group = seedclass.create_adapter_sequence_diagram( adapterdef )
+
+        group.attrib['transform'] = 'translate(0,{})'.format(pos)
+        pos+=200
+        baseroot.append(group)
+
+    base.write( filename )
 
 def create_sequence_diagrams( tileset, filename, *options ):
     from lxml import etree
