@@ -18,6 +18,13 @@ import seeds
 tfactory = tiletypes.TileFactory()
 seedtypes = seeds.seedtypes
 
+def fix_paths():
+    import os, sys
+    if 'PEPPERPATH' in os.environ:
+        sys.path = [ os.path.abspath( os.path.join( os.environ['PEPPERPATH'], '..' ) ) ] + sys.path
+    if 'SPURIOUSPATH' in os.environ:
+        raise Exception("I don't know what to do here yet.")
+
 def design_set(tileset, name, includes=[pkg_resources.resource_filename(__name__,'peppercomps')], reorderopts={}, coreopts={}, keeptemp=False):
     """DO EVERYTHING
 
@@ -177,9 +184,9 @@ def reorder_sticky_ends( tileset, hightemp=0.1, lowtemp=1e-7, steps=45000, updat
     return tset
 
 def create_strand_sequences( tileset, basename, includes=None, spurious_pars="verboten_weak=1.5", *options ):
-    import DNACircuitCompiler.compiler as compiler
-    import DNACircuitCompiler.design.spurious_design as spurious_design
-    import DNACircuitCompiler.finish as finish
+    import PepperCompiler.compiler as compiler
+    import PepperCompiler.design.spurious_design as spurious_design
+    import PepperCompiler.finish as finish
 
     tileset = copy.deepcopy(tileset)
 
@@ -190,9 +197,7 @@ def create_strand_sequences( tileset, basename, includes=None, spurious_pars="ve
 
     spurious_design.design( basename, infilename=basename+'.pil', outfilename=basename+'.mfe',
             verbose=True, struct_orient=True, tempname=basename+'-temp', extra_pars=spurious_pars,
-            findmfe=False, \
-                    spuriousbinary=pkg_resources.resource_filename(__name__,'spuriousSSM')) 
-    # FIXME: this is a debugging test to make running faster. Fix.
+            findmfe=False ) 
 
     finish.finish( basename+'.save', designname=basename+'.mfe', seqsname=basename+'.seqs',
             strandsname=None, run_kin=False, cleanup=False, trials=0, time=0, temp=27, conc=1,
@@ -269,7 +274,7 @@ def load_pepper_output_files( tileset, basename ):
 def create_guard_strand_sequences( tileset ):
     tset = copy.deepcopy(tileset)
 
-    from DNACircuitCompiler.DNA_classes import wc
+    from PepperCompiler.DNA_classes import wc
 
     for guard in tset['guards']:
         tile = tileutils.gettile( tset, guard[0] )

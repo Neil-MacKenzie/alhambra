@@ -50,6 +50,8 @@ def tilesetdesigner():
         logging.error("Input file does not exist.")
         sys.exit(1)
 
+    fix_paths()
+
     sys = design_set( \
             args.inputfile, 
             args.name,
