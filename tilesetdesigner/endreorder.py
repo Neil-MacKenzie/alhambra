@@ -3,6 +3,7 @@
 import anneal
 import sensitivity as sens
 import stickydesign as sd
+import stickydesign.energetics as en
 import numpy.random as random
 import numpy as np
 import random as pyrand
@@ -34,7 +35,7 @@ class FseqState:
 class EndSystemFseq:
     def __init__(self, tilesys, pairs=None):
         # Set up variables, etc.
-        self.ef = sd.energyfuncs_santalucia(mismatchtype='max')
+        self.ef = en.energetics_santalucia(mismatchtype='max')
         tilesys = deepcopy(tilesys)
         self.ends = tilesys['ends']
         self.tiles = tilesys['tiles']

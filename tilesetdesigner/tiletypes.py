@@ -21,7 +21,7 @@ class tile_daoe(object):
         base_svg = etree.parse( pkg_resources.resource_stream(__name__, os.path.join('seqdiagrambases',ttype+'.svg') ) )
 
         strings = self._seqdiagseqstrings + \
-                [ e for e,t in self.tile_ends if t != 'hairpin' ] + \
+                [ e for e,t in self.tile_ends if not (t in ('hairpin','blunt','inert')) ] + \
                 [ self['name'] ]
 
         texts = base_svg.findall( "//{http://www.w3.org/2000/svg}text" )
@@ -196,6 +196,7 @@ class tile_daoe_doublehoriz(tile_daoe):
 
         return tilediag
 
+
 class tile_daoe_doublevert(tile_daoe):
     def __init__(self, defdict):
         tile_daoe.__init__(self, defdict)
@@ -237,12 +238,40 @@ class tile_daoe_doublehoriz_35up(tile_daoe_doublehoriz):
         tile_daoe_doublehoriz.__init__(self, defdict)
         self._endtypes = ['DT', 'TD', 'TD', 'DT', 'TD', 'TD']
         self._orient = ('3','5')
+    
+    @property
+    def _seqdiagseqstrings(self):
+        s = self['fullseqs']
+        return [ s[0][:5]+"--"+s[0][5:13], \
+              s[0][:-6:-1]+"--"+s[0][-6:-14:-1],
+              s[1][:8]+"--"+s[1][8:16], \
+              s[1][16:24], \
+              s[1][24:32][::-1], \
+              (s[1][32:40]+"--"+s[1][40:48])[::-1],
+              s[2][:5]+"--"+s[2][5:13], \
+              (s[2][13:21]+"--"+s[2][21:26]+"--"+s[2][26:34]+"--"+s[2][34:42])[::-1],
+              (s[2][42:50])[::-1],
+              s[2][50:58],
+              s[2][58:66]+"--"+s[2][66:74],
+              (s[3][0:5]+"--"+s[3][5:13])[::-1],
+              s[3][13:21]+"--"+s[3][21:26]+"--"+s[3][26:34]+"--"+s[3][34:42],
+              s[3][42:50],
+              s[3][50:58][::-1],
+              (s[3][58:66]+"--"+s[3][66:74])[::-1],
+              (s[4][0:8]+"--"+s[4][8:16])[::-1],
+              (s[4][16:24])[::-1],
+              s[4][24:32],
+              s[4][32:40]+"--"+s[4][40:48],
+              (s[5][0:5]+"--"+s[5][5:13])[::-1],
+              s[5][13:21]+"--"+s[5][21:26]
+             ] 
 
 class tile_daoe_doublevert_35up(tile_daoe_doublevert):
     def __init__(self, defdict):
         tile_daoe_doublevert.__init__(self, defdict)
         self._endtypes = ['DT','DT','TD','DT','DT','TD']
         self._orient = ('3','5')
+
 
 class tile_daoe_doublehoriz_35up_1h2i(tile_daoe_doublehoriz_35up):
     def __init__(self, defdict):
@@ -252,9 +281,33 @@ class tile_daoe_doublehoriz_35up_1h2i(tile_daoe_doublehoriz_35up):
 
     @property
     def _seqdiagseqstrings(self):
-        raise NotImplementedError
+        s = self['fullseqs']
+        return [ s[0][:5]+"--"+s[0][5:13], \
+                (s[0][13:21]+"--"+s[0][21:26]+"-"+s[0][26:28]+"-"+s[0][28:30])[::-1],
+              s[1][:8]+"--"+s[1][8:16], \
+              s[1][16:24], \
+              s[1][24:32][::-1], \
+              (s[1][32:40]+"--"+s[1][40:48])[::-1],
+              s[2][:5]+"--"+s[2][5:13], \
+              (s[2][13:21]+"--"+s[2][21:26]+"--"+s[2][26:34]+"--"+s[2][34:42])[::-1],
+              (s[2][42:50])[::-1],
+              s[2][50:58],
+              s[2][58:66]+"--"+s[2][66:74],
+              (s[3][0:5]+"--"+s[3][5:13])[::-1],
+              s[3][13:21]+"--"+s[3][21:26]+"--"+s[3][26:34]+"--"+s[3][34:42],
+              s[3][42:50],
+              s[3][50:58][::-1],
+              (s[3][58:66]+"--"+s[3][66:74]+"--"+s[3][74:79])[::-1],
+              (s[4][0:8]+"--"+s[4][8:16])[::-1],
+              (s[4][16:24])[::-1],
+              s[4][24:32],
+              s[4][32:40]+"--"+s[4][40:48],
+              (s[5][0:5]+"--"+s[5][5:13])[::-1],
+              s[5][13:21]+"--"+s[5][21:26],
+              s[0][30:32]+"-"+s[0][32:34]+"-"+s[0][34:39]
+             ] 
 
-class tile_daoe_doublehoriz_35up_4h5b(tile_daoe_doublehoriz_35up):
+class tile_daoe_doublehoriz_35up_4h5i(tile_daoe_doublehoriz_35up):
     def __init__(self, defdict):
         tile_daoe_doublehoriz_35up.__init__(self, defdict)
         self._endtypes[3]='hairpin'
@@ -262,7 +315,31 @@ class tile_daoe_doublehoriz_35up_4h5b(tile_daoe_doublehoriz_35up):
 
     @property
     def _seqdiagseqstrings(self):
-        raise NotImplementedError
+        s = self['fullseqs']
+        return [ s[0][:5]+"--"+s[0][5:13], \
+              s[0][:-6:-1]+"--"+s[0][-6:-14:-1],
+              s[1][:8]+"--"+s[1][8:16], \
+              s[1][16:24], \
+              s[1][24:32][::-1], \
+              (s[1][32:40]+"--"+s[1][40:48])[::-1],
+              s[2][:5]+"--"+s[2][5:13], \
+              (s[2][13:21]+"--"+s[2][21:26]+"--"+s[2][26:34]+"--"+s[2][34:42])[::-1],
+              (s[2][42:50])[::-1],
+              s[2][50:58],
+              s[2][58:66]+"--"+s[2][66:74]+"--"+s[2][74:79],
+              (s[3][0:5]+"--"+s[3][5:13])[::-1],
+              s[3][13:21]+"--"+s[3][21:26]+"--"+s[3][26:34]+"--"+s[3][34:42],
+              s[3][42:50],
+              s[3][50:58][::-1],
+              (s[3][58:66]+"--"+s[3][66:74])[::-1],
+              (s[4][0:8]+"--"+s[4][8:16])[::-1],
+              (s[4][16:24])[::-1],
+              s[4][24:32],
+              s[4][32:40]+"--"+s[4][40:48],
+              (s[5][0:5]+"--"+s[5][5:13])[::-1],
+              s[5][13:21]+"--"+s[5][21:26]+"-"+s[5][26:28]+"-"+s[5][28:30],
+              (s[5][30:32]+"-"+s[5][32:34]+"-"+s[5][34:39])[::-1]
+             ] 
 
 class tile_daoe_doublehoriz_35up_2h3h(tile_daoe_doublehoriz_35up):
     def __init__(self, defdict):
@@ -343,9 +420,11 @@ _tiletypes = { \
         'tile_daoe_3up': tile_daoe_3up,
         'tile_daoe_5up_2h': tile_daoe_5up_2h,
         'tile_daoe_3up_2h': tile_daoe_3up_2h,
+        'tile_daoe_doublehoriz_35up': tile_daoe_doublehoriz_35up,
         'tile_daoe_doublehoriz_35up_2h3h': tile_daoe_doublehoriz_35up_2h3h,
         'tile_daoe_doublehoriz_35up_1h2i': tile_daoe_doublehoriz_35up_1h2i,
-        'tile_daoe_doublehoriz_35up_4h5b': tile_daoe_doublehoriz_35up_4h5b,
+        'tile_daoe_doublehoriz_35up_4h5i': tile_daoe_doublehoriz_35up_4h5i,
+        'tile_daoe_doublehoriz_35up_4h5b': tile_daoe_doublehoriz_35up_4h5i,
         'tile_daoe_doublevert_35up_4h5h': tile_daoe_doublevert_35up_4h5h
         }
 
