@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 setup(
     name = "tilesetdesigner",
-    version = "0.0.1dev",
+    version = "0.0.1",
     packages = ['tilesetdesigner']
 
     install_requires = ['numpy','stickydesign','svgwrite','lxml'],

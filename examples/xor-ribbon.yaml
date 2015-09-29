@@ -1,0 +1,66 @@
+# vim: ft=yaml
+#
+seed:
+  type: longrect
+  use_adapters: [ A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12, A13 ]
+  createseqs: true
+  adapters: 
+    - { ends: [hp, B2], loc: 1, tilestrand: [DMn,5], name: A1, extra: 1h }
+    - { ends: [M, r0_v2], loc: 2, tilestrand: [BN02,3], name: A2 }
+    - { ends: [i00_1, i00_4], loc: 3, tilestrand: [t00_1,3], name: A3 }
+    - { ends: [r0_h2, r0_v2], loc: 4, tilestrand: [t00_3,3], name: A4 }
+    - { ends: [i01_1, i01_4], loc: 5, tilestrand: [t01_1,3], name: A5 }
+    - { ends: [r1_h2, r1_v2], loc: 6, tilestrand: [t11_3,3], name: A6 }
+    - { ends: [i10_1, i10_4], loc: 7, tilestrand: [t10_1,3], name: A7 }
+    - { ends: [r0_h2, r0_v2], loc: 8, tilestrand: [t00_3,3], name: A8 }
+    - { ends: [i00_1, i00_4], loc: 9, tilestrand: [t00_1,3], name: A9 }
+    - { ends: [r0_h2, r0_v2], loc: 10, tilestrand: [t00_3,3], name: A10 }
+    - { ends: [i00_1, i00_4], loc: 11, tilestrand: [t00_1,3], name: A11 }
+    - { ends: [r0_h2, Ms], loc: 12, tilestrand: [BS02,3], name: A12 }
+    - { ends: [B2s, hp], loc: 13, tilestrand: [DMs,5], name: A13, extra: 2h }
+tiles:
+  # SET-INDEPENDENT TILES
+  # Maintain-size boundary. Double-maintain-north
+- { color: purple, type: tile_daoe_doublehoriz_35up, ends: [B2/, hp, hp, B2, B1, M/], name: DMn, extra: 2h3h }
+  # Double-maintain-south. 
+- { color: purple, type: tile_daoe_doublevert_35up, ends: [Ms/, B1s, B2s, hp, hp, B2s/], name: DMs, extra: 4h5h }
+  # SET-DEPENDENT BOUNDARY TILES
+  # Maintain signals, north. Need ends [Bn1, Mn, OUT, IN], 
+  # plus Bn1_X versions if necessary for contraction with signal propagation.
+- { ends: [B1/, M, ibn1, r0_h1/], type: tile_daoe_5up, name: BN01 }
+- { ends: [B1/, M, r0_v2, ibn2/], type: tile_daoe_5up, name: BN02 }
+- { ends: [ibn1/, ibn2, r0_v1, r0_h2/], type: tile_daoe_3up, name: BN03 }
+- { ends: [B1/, M, ibn1, r1_h1/], type: tile_daoe_5up, name: BN11, color: pink }
+- { ends: [ibn1/, ibn2, r0_v1, r1_h2/], type: tile_daoe_3up, name: BN13 }
+#- { ends: [Bn1_1, Mn, v0, v0], name: signorth_m1 }
+  # Maintain signals, south. Need ends, [IN, OUT, Ms, Bs1],
+  # plus Bs1_X versions if necessary for contraction with signal propagation.
+- { ends: [r0_v1/, ibs1, Ms, B1s/], type: tile_daoe_5up, name: BS01 }
+- { ends: [ibs2/, r0_h2, Ms, B1s/], type: tile_daoe_5up, name: BS02 }
+- { ends: [r0_v2/, r0_h1, ibs2, ibs1/], type: tile_daoe_3up, name: BS03 }
+- { ends: [r1_v1/, ibs1, Ms, B1s/], type: tile_daoe_5up, name: BS11, color: pink }
+- { ends: [r1_v2/, r0_h1, ibs2, ibs1/], type: tile_daoe_3up, name: BS13 }
+  # RULE TILES 
+- { color: blue1, type: tile_daoe_5up, ends: [r0_v1/, i00_1, i00_4, r0_h1/], name: t00_1 }
+- { color: blue2, type: tile_daoe_3up, ends: [r0_v2/, r0_h1, i00_2, i00_1/], name: t00_2 }
+- { color: blue3, type: tile_daoe_5up, ends: [i00_2/, r0_h2, r0_v2, i00_3/], name: t00_3 }
+- { color: blue4, type: tile_daoe_3up, ends: [i00_4/, i00_3, r0_v1, r0_h2/], name: t00_4 }
+- { color: blue1, type: tile_daoe_5up, ends: [r0_v1/, i01_1, i01_4, r1_h1/], name: t01_1 }
+- { color: blue2, type: tile_daoe_3up, ends: [r0_v2/, r1_h1, i01_2, i01_1/], name: t01_2 }
+- { color: green3, type: tile_daoe_5up, ends: [i01_2/, r1_h2, r1_v2, i01_3/], name: t01_3 }
+- { color: green4, type: tile_daoe_3up, ends: [i01_4/, i01_3, r1_v1, r1_h2/], name: t01_4 }
+- { color: blue1, type: tile_daoe_5up, ends: [r1_v1/, i10_1, i10_4, r0_h1/], name: t10_1 }
+- { color: orange2, type: tile_daoe_3up, ends: [r1_v2/, r1_h1, i10_2, i10_1/], name: t10_2 }
+- { color: orange3, type: tile_daoe_5up, ends: [i10_2/, r1_h2, r1_v2, i10_3/], name: t10_3 }
+- { color: blue4, type: tile_daoe_3up, ends: [i10_4/, i10_3, r1_v1, r0_h2/], name: t10_4 }
+- { color: red1, type: tile_daoe_5up, ends: [r1_v1/, i11_1, i11_4, r1_h1/], name: t11_1 }
+- { color: blue2, type: tile_daoe_3up, ends: [r1_v2/, r0_h1, i11_2, i11_1/], name: t11_2 }
+- { color: blue3, type: tile_daoe_5up, ends: [i11_2/, r0_h2, r0_v2, i11_3/], name: t11_3 }
+- { color: blue4, type: tile_daoe_3up, ends: [i11_4/, i11_3, r0_v1, r1_h2/], name: t11_4 }
+guards: [ [t00_2,4], [t00_4,4], [t01_2,4], [t01_4,4], [t10_2,4], [t10_4,4], [t11_2,4], [t11_4,4], [BN02,4], [BN01,4], [BN11,4], [BS01,4], [BS11,4], [BS02,4] ]
+xgrow_options:
+  Gmc: 18
+  Gse: 9.1
+  fission: chunk
+  importfile: tallrect.seed
+  size: 128
