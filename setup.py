@@ -4,12 +4,12 @@ from setuptools import setup, find_packages
 setup(
     name = "tilesetdesigner",
     version = "0.0.1",
-    packages = ['tilesetdesigner']
+    packages = ['tilesetdesigner'],
 
     install_requires = ['numpy','stickydesign','svgwrite','lxml'],
 
     include_package_data=True,
-    cmdclass={'build': build_with_spurious, 'develop': develop_with_spurious},
+    #cmdclass={'build': build_with_spurious, 'develop': develop_with_spurious},
     entry_points={
         'console_scripts': [
             'tilesetdesigner = tilesetdesigner.scripts:tilesetdesigner'

@@ -6,10 +6,25 @@ class seed_tileadapts:
         tset = copy.deepcopy( tileset )
 
         for adapter in tset['seed']['adapters']:
-            tilelong = gettile( tset, adapter['tilestrand'][0] )['fullseqs'][adapter['tilestrand'][1]-1]
-            tileshort = gettile( tset, adapter['tilestrand'][0] )['fullseqs'][adapter['tilestrand'][1]+1-1]
+            tile_to_mimic = gettile( tset, adapter['tilestrand'][0] )
+            
+            if tile_to_mimic['type'] == 'tile_daoe_5up':
+                # Tile is single. If we have ends, check that they match.
+                if ( 'ends' in adapter.keys() ) and ( adapter['ends'] != tile_to_mimic['ends'][1:3] ):
+                    raise ValueError("adapter {} and tile base {} ends don't match: adapter has {}, tile has {}".format(
+                        adapter['name'], tile_to_mimic['name'], adapter['ends'], tile_to_mimic['ends'][1:3] ))
+                adapter_strand_short = tile_to_mimic['fullseqs'][-1]
+                tile_long_strand = tile_to_mimic['fullseqs'][-2]
+            elif tile_to_mimic['type'] == 'tile_daoe_doublehoriz_35up' \
+                    or tile_to_mimic['type'] == 'tile_daoe_doublevert_35up':
+                if ( 'ends' in adapter.keys() ) and ( adapter['ends'] != tile_to_mimic['ends'][2:4] ):
+                    raise ValueError("adapter {} and tile base {} ends don't match: adapter has {}, tile has {}".format(
+                        adapter['name'], tile_to_mimic['name'], adapter['ends'], tile_to_mimic['ends'][1:3] ))
+                adapter_strand_short = tile_to_mimic['fullseqs'][-1]
+                tile_long_strand = tile_to_mimic['fullseqs'][-2]
 
-            adapter['seqs'] = [ tilelong[0:8]+self.cores[adapter['loc']-1]+tilelong[40:48], tileshort ]
+            adapter['seqs'] = [ tile_long_strand[0:8]+self.cores[adapter['loc']-1]+tile_long_strand[40:48], 
+                                adapter_strand_short ]
 
         return tset
     

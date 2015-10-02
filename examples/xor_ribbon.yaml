@@ -10,7 +10,7 @@ seed:
     - { ends: [i00_1, i00_4], loc: 3, tilestrand: [t00_1,3], name: A3 }
     - { ends: [r0_h2, r0_v2], loc: 4, tilestrand: [t00_3,3], name: A4 }
     - { ends: [i01_1, i01_4], loc: 5, tilestrand: [t01_1,3], name: A5 }
-    - { ends: [r1_h2, r1_v2], loc: 6, tilestrand: [t11_3,3], name: A6 }
+    - { ends: [r1_h2, r1_v2], loc: 6, tilestrand: [t01_3,3], name: A6 }
     - { ends: [i10_1, i10_4], loc: 7, tilestrand: [t10_1,3], name: A7 }
     - { ends: [r0_h2, r0_v2], loc: 8, tilestrand: [t00_3,3], name: A8 }
     - { ends: [i00_1, i00_4], loc: 9, tilestrand: [t00_1,3], name: A9 }
