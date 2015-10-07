@@ -1,4 +1,5 @@
 from tileutils import gettile
+import warnings
 import copy
 
 class seed_tileadapts:
@@ -6,8 +7,11 @@ class seed_tileadapts:
         tset = copy.deepcopy( tileset )
 
         for adapter in tset['seed']['adapters']:
-            tile_to_mimic = gettile( tset, adapter['tilestrand'][0] )
-            
+            try:
+                tile_to_mimic = gettile( tset, adapter['tilebase'] )
+            except KeyError:
+                warnings.warn("tilestrand format is deprecated; strand number will be ignored")
+                tile_to_mimic = gettile( tset, adapter['tilestrand'][0] )
             if tile_to_mimic['type'] == 'tile_daoe_5up':
                 # Tile is single. If we have ends, check that they match.
                 if ( 'ends' in adapter.keys() ) and ( adapter['ends'] != tile_to_mimic['ends'][1:3] ):

@@ -5,19 +5,19 @@ seed:
   use_adapters: [ A1, A2, A3, A4, A5, A6, A7, A8, A9, A10, A11, A12, A13 ]
   createseqs: true
   adapters: 
-    - { ends: [hp, B2], loc: 1, tilestrand: [DMn,5], name: A1, extra: 1h }
-    - { ends: [M, r0_v2], loc: 2, tilestrand: [BN02,3], name: A2 }
-    - { ends: [i00_1, i00_4], loc: 3, tilestrand: [t00_1,3], name: A3 }
-    - { ends: [r0_h2, r0_v2], loc: 4, tilestrand: [t00_3,3], name: A4 }
-    - { ends: [i01_1, i01_4], loc: 5, tilestrand: [t01_1,3], name: A5 }
-    - { ends: [r1_h2, r1_v2], loc: 6, tilestrand: [t01_3,3], name: A6 }
-    - { ends: [i10_1, i10_4], loc: 7, tilestrand: [t10_1,3], name: A7 }
-    - { ends: [r0_h2, r0_v2], loc: 8, tilestrand: [t00_3,3], name: A8 }
-    - { ends: [i00_1, i00_4], loc: 9, tilestrand: [t00_1,3], name: A9 }
-    - { ends: [r0_h2, r0_v2], loc: 10, tilestrand: [t00_3,3], name: A10 }
-    - { ends: [i00_1, i00_4], loc: 11, tilestrand: [t00_1,3], name: A11 }
-    - { ends: [r0_h2, Ms], loc: 12, tilestrand: [BS02,3], name: A12 }
-    - { ends: [B2s, hp], loc: 13, tilestrand: [DMs,5], name: A13, extra: 2h }
+    - { ends: [hp, B2], loc: 1, tilebase: DMn, name: A1, extra: 1h }
+    - { ends: [M, r0_v2], loc: 2, tilebase: BN02, name: A2 }
+    - { ends: [i00_1, i00_4], loc: 3, tilebase: t00_1, name: A3 }
+    - { ends: [r0_h2, r0_v2], loc: 4, tilebase: t00_3, name: A4 }
+    - { ends: [i01_1, i01_4], loc: 5, tilebase: t01_1, name: A5 }
+    - { ends: [r1_h2, r1_v2], loc: 6, tilebase: t01_3, name: A6 }
+    - { ends: [i10_1, i10_4], loc: 7, tilebase: t10_1, name: A7 }
+    - { ends: [r0_h2, r0_v2], loc: 8, tilebase: t00_3, name: A8 }
+    - { ends: [i00_1, i00_4], loc: 9, tilebase: t00_1, name: A9 }
+    - { ends: [r0_h2, r0_v2], loc: 10, tilebase: t00_3, name: A10 }
+    - { ends: [i00_1, i00_4], loc: 11, tilebase: t00_1, name: A11 }
+    - { ends: [r0_h2, Ms], loc: 12, tilebase: BS02, name: A12 }
+    - { ends: [B2s, hp], loc: 13, tilebase: DMs, name: A13, extra: 2h }
 tiles:
   # SET-INDEPENDENT TILES
   # Maintain-size boundary. Double-maintain-north
