@@ -4,6 +4,7 @@ import copy
 import tileutils
 import stickydesign as sd
 import logging
+import warnings
 
 
 # Color dictionary for xgrow colors...
@@ -23,7 +24,10 @@ def fix_paths():
     if 'PEPPERPATH' in os.environ:
         sys.path = [ os.path.abspath( os.path.join( os.environ['PEPPERPATH'], '..' ) ) ] + sys.path
     if 'SPURIOUSPATH' in os.environ:
-        raise Exception("I don't know what to do here yet.")
+        warnings.warn("Setting SPURIOUSPATH currently adds SPURIOUSPATH to the front of your PATH for all children of tilesetdesigner.")
+        if not os.path.isfile( os.path.join( os.environ['SPURIOUSPATH'], 'spuriousSSM') ):
+            raise ValueError("SPURIOUSPATH is set, and spuriousSSM was not found at SPURIOUSPATH.")
+        os.environ['PATH'] = os.environ['SPURIOUSPATH']+':'+os.environ['PATH']
 
 def design_set(tileset, name, includes=[pkg_resources.resource_filename(__name__,'peppercomps')], reorderopts={}, coreopts={}, keeptemp=False):
     """DO EVERYTHING
