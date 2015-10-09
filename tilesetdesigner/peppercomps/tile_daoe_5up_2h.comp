@@ -1,4 +1,4 @@
-declare component tile_daoe_5up: eTL + eBR + eBL -> aTL + aBR + aBL
+declare component tile_daoe_5up_2h: eTL + eBR + eBL -> aTL + aBR + aBL
 
 # Sequences
 

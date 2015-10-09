@@ -20,6 +20,16 @@ tfactory = tiletypes.TileFactory()
 seedtypes = seeds.seedtypes
 
 def fix_paths():
+    """
+    Fix paths to PepperCompiler and SpuriousDesign, so that tilesetdesigner can use them. This is an unfortunate workaround to both
+    of these lacking good installation methods. It works through two environment variables:
+
+    PEPPERPATH should be set to the path of PepperCompiler. Note that in its current method, other directories in the directory above
+    PepperCompiler can potentially clobber library loading for tilesetdesigner, and the directory *must* be named PepperCompiler (FIXME). 
+    It's unclear how to fix this.
+
+    SPURIOUSPATH should be set to the path of SpuriousDesign, or any directory that contains a working spuriousSSM.
+    """
     import os, sys
     if 'PEPPERPATH' in os.environ:
         sys.path = [ os.path.abspath( os.path.join( os.environ['PEPPERPATH'], '..' ) ) ] + sys.path
@@ -167,6 +177,8 @@ def create_sticky_end_sequences( tileset, inputs='complements', *options ):
     return tset
 
 def reorder_sticky_ends( tileset, hightemp=0.1, lowtemp=1e-7, steps=45000, update=1000 ):
+    """Given a tileset dictionary that includes sticky end sequences, reorder these to
+    try to optimize error rates."""
     import endreorder
     import anneal
 
@@ -188,6 +200,7 @@ def reorder_sticky_ends( tileset, hightemp=0.1, lowtemp=1e-7, steps=45000, updat
     return tset
 
 def create_strand_sequences( tileset, basename, includes=None, spurious_pars="verboten_weak=1.5", *options ):
+    """Given a tileset dictionary with sticky ends sequences, create core sequences for tiles."""
     import PepperCompiler.compiler as compiler
     import PepperCompiler.design.spurious_design as spurious_design
     import PepperCompiler.finish as finish
@@ -213,8 +226,14 @@ def create_strand_sequences( tileset, basename, includes=None, spurious_pars="ve
     
 
 def create_pepper_input_files( tileset, basename ):
+    # Are we creating adapters in Pepper?
+    if seeds.seedtypes[tileset['seed']['type']].needspepper:
+        seedclass = seeds.seedtypes[tileset['seed']['type']]
+        createadapts = True
+
     # We first need to create a fixed sequence list/file for pepper.
     with open(basename+'.fix','w') as fixedfile:
+        # Add fixed sticky end and adjacent tile sequences.
         for end in tileset['ends']:
             seq = end['fseq'][1:-1]
             if end['type'] == 'TD': 
@@ -228,8 +247,12 @@ def create_pepper_input_files( tileset, basename ):
             fixedfile.write( "signal e_{0} = {1}\n".format( end['name'], seq.upper() ) ) 
             fixedfile.write( "signal a_{0} = {1}\n".format( end['name'], adj.upper() ) ) 
             fixedfile.write( "signal c_{0} = {1}\n".format( end['name'], cadj.upper() ) )
+        # If we are creating adapter tiles in Pepper, add origami-determined sequences
+        if createadapts:
+            for i,core in enumerate(seedclass.cores, 1):
+                fixedfile.write( "signal origamicore_{0} = {1}\n".format(i,core) )
 
-  # Now we'll create the system file in parts.
+    # Now we'll create the system file in parts.
     importlist = set()
     compstring = ""
     
@@ -251,7 +274,10 @@ def create_pepper_input_files( tileset, basename ):
             tiletype+='_'+tile['extra']
         compstring += "component {} = {}: {} -> {}\n".format(tile['name'],tiletype,s1,s2)
         importlist.add( tiletype )
-    
+   
+    if createadapts:
+        importlist, compstring = seedclass.create_pepper_input_files( tileset['seed'], importlist, compstring )
+
     with open(basename+'.sys','w') as sysfile:
         sysfile.write("declare system {}: ->\n\n".format(basename))
         sysfile.write("import "+", ".join(importlist)+"\n\n")
@@ -260,6 +286,11 @@ def create_pepper_input_files( tileset, basename ):
 
 def load_pepper_output_files( tileset, basename ):
     import re
+    
+    # Are we creating adapters in Pepper?
+    if seeds.seedtypes[tileset['seed']['type']].needspepper:
+        seedclass = seeds.seedtypes[tileset['seed']['type']]
+        createadapts = True
 
     tset = copy.deepcopy(tileset)
 
@@ -272,8 +303,11 @@ def load_pepper_output_files( tileset, basename ):
         pepperstrands = re.compile('strand '+tile['name']+'-([^ ]+) = ([^\n]+)').findall(seqsstring)
         tile['fullseqs'] = tileutils.order_pepper_strands(pepperstrands)
     
-    return tset
+    for adapter in tset['seed']['adapters']:
+        pepperstrands = re.compile('strand '+adapter['name']+'-([^ ]+) = ([^\n]+)').findall(seqsstring)
+        adapter['fullseqs'] = tileutils.order_pepper_strands(pepperstrands)
 
+    return tset
 
 def create_guard_strand_sequences( tileset ):
     tset = copy.deepcopy(tileset)
@@ -330,6 +364,9 @@ def create_sequence_diagrams( tileset, filename, *options ):
 
 def create_adapter_sequences( tileset ):
     seedclass = seedtypes[ tileset['seed']['type'] ]
+    if seedclass.needspepper:
+        raise "This type of seed requires Pepper for its adapters. Adapter strands need to \
+                be created with create_strand_sequences."
     return seedclass.create_adapter_sequences( tileset )
     
 

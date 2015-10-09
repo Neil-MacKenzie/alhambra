@@ -3,6 +3,7 @@ import warnings
 import copy
 
 class seed_tileadapts:
+    needspepper = False
     def create_adapter_sequences( self, tileset ):
         tset = copy.deepcopy( tileset )
 
@@ -70,7 +71,6 @@ class seed_tileadapts:
 
         return base_svg.xpath('/svg:svg/svg:g',namespaces={'svg':'http://www.w3.org/2000/svg'})[0]
 
-
 class longrect(seed_tileadapts):
     cores = ['CAGGAACGGTACGCCATTAAAGGGATTTTAGA',
              'CTACATTTTGACGCTCACGCTCATGGAAATAC',
@@ -88,7 +88,33 @@ class longrect(seed_tileadapts):
              'GCGTCAGACTGTAGCGATCAAGTTTGCCTTTA',
              'GTCAGACGATTGGCCTCAGGAGGTTGAGGCAG',
              'TGAAAGTATTAAGAGGCTATTATTCTGAAACA']
-    
+
+class longrect_old:
+    create_adapter_sequence_diagram = seed_tileadapts.create_adapter_sequence_diagram
+    needspepper = True
+    cores = longrect.cores
+    def create_pepper_input_files( self, seeddef, importlist, compstring ):
+        for adapter in seeddef['adapters']:
+            adaptertype = 'tile_adapter_5up'
+            e = [[],[]]
+            e[0].append('origamicore_{0}'.format(adapter['loc']))
+            for end in adapter['ends']:
+                if (end == 'hp'):
+                    continue # skip hairpins, etc that aren't designed by stickydesign
+                e[0].append( 'e_'+end.replace('/','*') )
+                if end[-1]=='/':
+                    a = 'c_'+end[:-1]+'*'
+                else:
+                    a = 'a_'+end
+                e[1].append( a )
+            s1 = " + ".join(e[0])
+            s2 = " + ".join(e[1])
+            if 'extra' in adapter.keys():
+                adaptertype+='_'+adapter['extra']
+            compstring += "component {} = {}: {} -> {}\n".format(adapter['name'],adaptertype,s1,s2)
+            importlist.add( adaptertype )
+        return (importlist, compstring)
+
 class triangle_side2(seed_tileadapts):
     cores = ['AGAGAGTACCTTTAATCCAACAGGTCAGGATT',
              'TAAGAGGAAGCCCGAAATTGCATCAAAAAGAT',
@@ -107,4 +133,4 @@ class triangle_side2(seed_tileadapts):
              'ATGAAACCATCGATAGGCCGGAAACGTCACCA',
              'ATCACCGTCACCGACTTCATTAAAGGTGAATT']
 
-seedtypes = { 'longrect': longrect(), 'triangle_side2': triangle_side2() }
+seedtypes = { 'longrect': longrect(), 'triangle_side2': triangle_side2(), 'longrect_old': longrect_old() }
