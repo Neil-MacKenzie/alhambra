@@ -39,12 +39,16 @@ def fix_paths():
             raise ValueError("SPURIOUSPATH is set, and spuriousSSM was not found at SPURIOUSPATH.")
         os.environ['PATH'] = os.environ['SPURIOUSPATH']+':'+os.environ['PATH']
 
-def design_set(tileset, name, includes=[pkg_resources.resource_filename(__name__,'peppercomps')], reorderopts={}, coreopts={}, keeptemp=False):
-    """DO EVERYTHING
+def design_set(tileset, name='tsd_temp', includes=[pkg_resources.resource_filename(__name__,'peppercomps')], reorderopts={}, coreopts={}, keeptemp=False):
+    """
+    Helper function to design sets from scratch, calling the numerous parts of tilesetdeisgner. You may want to use the tilesetdesigner
+    shell script instead.
 
-    :tileset: TODO
-    :name: TODO
-    :returns: TODO
+    As with other functions in tilesetdesigner, this should not clobber inputs.
+
+    :tileset: tileset definition dictionary, or an IO object with a read attribute, or a filename.
+    :name: base name for temporary files (default tsd_temp)
+    :returns: tileset definition dictionary, with added sequences
 
     """
     import yaml 
@@ -230,6 +234,8 @@ def create_pepper_input_files( tileset, basename ):
     if seeds.seedtypes[tileset['seed']['type']].needspepper:
         seedclass = seeds.seedtypes[tileset['seed']['type']]
         createadapts = True
+    else:
+        createadapts = False
 
     # We first need to create a fixed sequence list/file for pepper.
     with open(basename+'.fix','w') as fixedfile:
@@ -365,8 +371,8 @@ def create_sequence_diagrams( tileset, filename, *options ):
 def create_adapter_sequences( tileset ):
     seedclass = seedtypes[ tileset['seed']['type'] ]
     if seedclass.needspepper:
-        raise "This type of seed requires Pepper for its adapters. Adapter strands need to \
-                be created with create_strand_sequences."
+        warnings.warn("This set must have adapter sequences created during regular sequence design. You can ignore this if you just created sequences.")
+        return tileset
     return seedclass.create_adapter_sequences( tileset )
     
 

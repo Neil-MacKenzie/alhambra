@@ -18,6 +18,7 @@ def tilesetdesigner():
     parser.add_argument("-f", "--force", help="overwrite output file", default=False, action="store_true")
     parser.add_argument("-d", "--diagrams", help="make diagrams as well", default=False, action="store_true")
     parser.add_argument("-x", "--xgrow", help="make xgrow files as well", default=False, action="store_true")
+    parser.add_argument("--test", help="run quickly for testing, making bad sequences", default=False, action="store_true")
     args = parser.parse_args()
 
     
@@ -34,6 +35,11 @@ def tilesetdesigner():
         base = args.name
     if not args.out:
         args.out = base+'-out.yaml'
+
+    args.reorderargs=eval(args.reorderargs) # FIXME: highly dangerous
+    if args.test:
+        args.reorderargs['steps']=5
+        args.spuriousargs+=" bored=5"
 
     # Check that we're not clobbering something here for the output. FIXME: do
     # this for temp files too.
@@ -55,7 +61,7 @@ def tilesetdesigner():
     sys = design_set( \
             args.inputfile, 
             args.name,
-            reorderopts=eval(args.reorderargs),
+            reorderopts=args.reorderargs,
             coreopts={'spurious_pars': args.spuriousargs})
 
     yaml.dump(sys, open(args.out,'w'))
