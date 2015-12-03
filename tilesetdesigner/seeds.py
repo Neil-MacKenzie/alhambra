@@ -1,4 +1,4 @@
-from tileutils import gettile
+from .tileutils import gettile
 import warnings
 import copy
 

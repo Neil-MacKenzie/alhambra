@@ -1,7 +1,7 @@
 import re
 import numpy as np
 import string
-from StringIO import StringIO
+from io import StringIO
 import pandas as pd
 
 def loadflake(xgrowstring,onlytiles=False):

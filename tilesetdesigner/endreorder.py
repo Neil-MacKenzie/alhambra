@@ -1,7 +1,7 @@
 # End reordering code to optimize placement.
 
-import anneal
-import sensitivity as sens
+from . import anneal
+from . import sensitivity as sens
 import stickydesign as sd
 import stickydesign.energetics as en
 import numpy.random as random

@@ -10,3 +10,16 @@ vim:textwidth=60:ft=pandoc
 * Add both a test suite for testing changes, and checks
   throughout to test consistency and quality of sets during
   design.
+* Add support for controlling adapter tiles and tile
+  presence in xgrow.
+* Possibly add support for running xgrow directly from the
+  file, through some script? Or update xgrow_wrap to do
+  this.
+* Figure out how to do something about the xgrow import file
+  problem.
+* Allow leaving out use_adapters, in which case adapters are
+  just used in order listed.
+* Figure out what to do about the file format. Create
+  functions for dealing with it, and possibly for
+  combining/updating easily.
+* Add a way to handle labels.

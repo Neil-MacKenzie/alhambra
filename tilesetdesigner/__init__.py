@@ -1,1 +1,1 @@
-from designer import *
+from .designer import *

@@ -1,7 +1,7 @@
 # vim: set sw=4 ts=4
 from random import shuffle
 import copy
-import tileutils
+from . import tileutils
 import stickydesign as sd
 import logging
 import warnings
@@ -11,10 +11,10 @@ import warnings
 import pkg_resources
 import os.path
 rgbv = pkg_resources.resource_stream(__name__, os.path.join('data','rgb.txt'))
-xcolors={ " ".join(y[3:]): "rgb({},{},{})".format(y[0],y[1],y[2]) for y in [x.split() for x in rgbv] }
+xcolors={ " ".join(y[3:]): "rgb({},{},{})".format(y[0],y[1],y[2]) for y in [str(x.split()) for x in rgbv] }
 
-import tiletypes
-import seeds
+from . import tiletypes
+from . import seeds
 
 tfactory = tiletypes.TileFactory()
 seedtypes = seeds.seedtypes
@@ -57,7 +57,7 @@ def design_set(tileset, name='tsd_temp', includes=[pkg_resources.resource_filena
 
     if hasattr(tileset,'read'):
         tileset = yaml.load(tileset)
-    elif isinstance(tileset, basestring):
+    elif isinstance(tileset, str):
         with open(tileset,'r') as f:
             tileset = yaml.load(f)
     else:
@@ -134,8 +134,8 @@ def create_sticky_end_sequences( tileset, inputs='complements', *options ):
         import warnings
         warnings.warn("FIXME: IMPLEMENT THIS WARNING MESSAGE (END/COMPLEMENT \
         MISSING")
-        print onetd
-        print onedt
+        print(onetd)
+        print(onedt)
 
     # Make all ends into non-complements, adding the end name if only the
     # complement was used.
@@ -183,8 +183,8 @@ def create_sticky_end_sequences( tileset, inputs='complements', *options ):
 def reorder_sticky_ends( tileset, hightemp=0.1, lowtemp=1e-7, steps=45000, update=1000 ):
     """Given a tileset dictionary that includes sticky end sequences, reorder these to
     try to optimize error rates."""
-    import endreorder
-    import anneal
+    from . import endreorder
+    from . import anneal
 
     tset = copy.deepcopy(tileset)
 
@@ -205,9 +205,9 @@ def reorder_sticky_ends( tileset, hightemp=0.1, lowtemp=1e-7, steps=45000, updat
 
 def create_strand_sequences( tileset, basename, includes=None, spurious_pars="verboten_weak=1.5", *options ):
     """Given a tileset dictionary with sticky ends sequences, create core sequences for tiles."""
-    import PepperCompiler.compiler as compiler
-    import PepperCompiler.design.spurious_design as spurious_design
-    import PepperCompiler.finish as finish
+    from PepperCompiler import compiler as compiler
+    from PepperCompiler.design import spurious_design as spurious_design
+    from PepperCompiler import finish as finish
 
     tileset = copy.deepcopy(tileset)
 
@@ -249,7 +249,7 @@ def create_pepper_input_files( tileset, basename ):
                 adj = end['fseq'][-1]
                 cadj = end['fseq'][1]
             else:
-                print "warning! end {} not recognized".format(end['name'])
+                print("warning! end {} not recognized".format(end['name']))
             fixedfile.write( "signal e_{0} = {1}\n".format( end['name'], seq.upper() ) ) 
             fixedfile.write( "signal a_{0} = {1}\n".format( end['name'], adj.upper() ) ) 
             fixedfile.write( "signal c_{0} = {1}\n".format( end['name'], cadj.upper() ) )
@@ -399,7 +399,7 @@ def create_abstract_diagrams( tileset, filename, *options ):
 
 def create_layout_diagrams( tileset, xgrowarray, filename, scale=1, *options ):
     import svgwrite
-    import stxg
+    from . import stxg
 
     b = svgwrite.Drawing( filename )
 

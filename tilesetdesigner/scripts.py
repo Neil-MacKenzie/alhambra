@@ -1,4 +1,4 @@
-from designer import *
+from .designer import *
 import yaml
 import argparse
 import logging
@@ -73,7 +73,7 @@ def tilesetdesigner():
             create_adapter_sequence_diagrams( sys, base+'-adapters.svg' )
 
     if args.xgrow:
-        import stxg
+        from . import stxg
         yaml.dump( stxg.from_yaml_endadj( sys, perfect=True ), 
                    open(base+'-perfectends.stxg', 'w') )
         yaml.dump( stxg.from_yaml_endadj( sys, perfect=True, rotate=True ), 
