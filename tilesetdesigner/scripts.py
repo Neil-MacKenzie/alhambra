@@ -17,7 +17,8 @@ def tilesetdesigner():
     parser.add_argument("-v", "--verbose", help="increase verbosity", action="store_true", default=False)
     parser.add_argument("-f", "--force", help="overwrite output file", default=False, action="store_true")
     parser.add_argument("-d", "--diagrams", help="make diagrams as well", default=False, action="store_true")
-    parser.add_argument("-x", "--xgrow", help="make xgrow files as well", default=False, action="store_true")
+    parser.add_argument("-x", "--xgrow", help="make xgrow files as well (obsolete, use xgrow_wrap)", default=False, action="store_true")
+    parser.add_argument("-T", help="temperature for energetics model", default=37)
     parser.add_argument("--test", help="run quickly for testing, making bad sequences", default=False, action="store_true")
     args = parser.parse_args()
 
@@ -58,11 +59,15 @@ def tilesetdesigner():
 
     fix_paths()
 
+    from stickydesign.energetics_daoe import energetics_daoe
+    energetics = energetics_daoe(temperature=float(args.T))
+
     sys = design_set( \
             args.inputfile, 
             args.name,
             reorderopts=args.reorderargs,
-            coreopts={'spurious_pars': args.spuriousargs})
+            coreopts={'spurious_pars': args.spuriousargs},
+            stickyopts={'energetics': energetics})
 
     yaml.dump(sys, open(args.out,'w'))
 

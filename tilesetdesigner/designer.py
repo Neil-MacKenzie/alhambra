@@ -39,7 +39,7 @@ def fix_paths():
             raise ValueError("SPURIOUSPATH is set, and spuriousSSM was not found at SPURIOUSPATH.")
         os.environ['PATH'] = os.environ['SPURIOUSPATH']+':'+os.environ['PATH']
 
-def design_set(tileset, name='tsd_temp', includes=[pkg_resources.resource_filename(__name__,'peppercomps')], reorderopts={}, coreopts={}, keeptemp=False):
+def design_set(tileset, name='tsd_temp', includes=[pkg_resources.resource_filename(__name__,'peppercomps')], stickyopts={}, reorderopts={}, coreopts={}, keeptemp=False):
     """
     Helper function to design sets from scratch, calling the numerous parts of tilesetdeisgner. You may want to use the tilesetdesigner
     shell script instead.
@@ -65,7 +65,7 @@ def design_set(tileset, name='tsd_temp', includes=[pkg_resources.resource_filena
 
     # Make some sequences for the sticky ends. But we probably don't need
     # to save the non-reordered version!
-    tileset_with_ends_randomorder = create_sticky_end_sequences( tileset )
+    tileset_with_ends_randomorder = create_sticky_end_sequences( tileset, **stickyopts )
     
     # Now reorder them.
     tileset_with_ends_ordered = reorder_sticky_ends( tileset_with_ends_randomorder, **reorderopts )
@@ -93,7 +93,7 @@ def design_set(tileset, name='tsd_temp', includes=[pkg_resources.resource_filena
     return tileset_with_strands
 
 
-def create_sticky_end_sequences( tileset, inputs='complements', *options ):
+def create_sticky_end_sequences( tileset, inputs='complements', energetics=None, *options ):
     """Given a tileset dictionary in the usual format, without sticky ends, create sticky
     end sequences via stickydesign, and add them *in random order* to the tileset."""
 
@@ -149,8 +149,8 @@ def create_sticky_end_sequences( tileset, inputs='complements', *options ):
 
     # Create the ends with stickydesign.
     ends = {'TD': [], 'DT': []}
-    ends['TD'] = sd.easyends('TD',5,number=numTD).tolist()
-    ends['DT'] = sd.easyends('DT',5,number=numDT).tolist()
+    ends['TD'] = sd.easyends('TD',5,number=numTD, energetics=energetics).tolist()
+    ends['DT'] = sd.easyends('DT',5,number=numDT, energetics=energetics).tolist()
 
     # Check that we found a sufficient number of ends. FIXME: is this necessary,
     # or will stickydesign raise an error?
