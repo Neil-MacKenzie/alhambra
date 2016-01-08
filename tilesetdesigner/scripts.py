@@ -19,6 +19,9 @@ def tilesetdesigner():
     parser.add_argument("-d", "--diagrams", help="make diagrams as well", default=False, action="store_true")
     parser.add_argument("-x", "--xgrow", help="make xgrow files as well (obsolete, use xgrow_wrap)", default=False, action="store_true")
     parser.add_argument("-T", help="temperature for energetics model", default=37)
+    parser.add_argument("-e", "--energetics", help="energetics model (max,dangle,loop,combined)", default="max")
+    parser.add_argument("--singlepair", help="enable single base pairs for combined energetics model" default=False,
+            action="store_true")
     parser.add_argument("--test", help="run quickly for testing, making bad sequences", default=False, action="store_true")
     args = parser.parse_args()
 
@@ -60,7 +63,7 @@ def tilesetdesigner():
     fix_paths()
 
     from stickydesign.energetics_daoe import energetics_daoe
-    energetics = energetics_daoe(temperature=float(args.T))
+    energetics = energetics_daoe(temperature=float(args.T),singlepair=args.singlepair,mismatchtype=args.energetics)
 
     sys = design_set( \
             args.inputfile, 

@@ -3,10 +3,10 @@ from setuptools import setup, find_packages
 
 setup(
     name = "tilesetdesigner",
-    version = "0.0.1",
+    version = "0.1.0",
     packages = ['tilesetdesigner'],
 
-    install_requires = ['numpy','stickydesign','svgwrite','lxml'],
+    install_requires = ['numpy','stickydesign >= 0.4.2','svgwrite','lxml'],
 
     include_package_data=True,
     #cmdclass={'build': build_with_spurious, 'develop': develop_with_spurious},

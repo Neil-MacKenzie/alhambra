@@ -147,10 +147,16 @@ def create_sticky_end_sequences( tileset, inputs='complements', energetics=None,
     numTD = len(endsets['TD'])
     numDT = len(endsets['DT'])
 
+    # The target energies to use. This is necessary because just using easyends can result
+    # in different target energies for DT and TD. We'll use the average of the two.
+    optTD = sd.enhist( 'TD', 5, energetics=energetics)[2]['emedian']
+    optDT = sd.enhist( 'DT', 5, energetics=energetics)[2]['emedian']
+    targetint = 0.5*(optTD+optDT)
+
     # Create the ends with stickydesign.
     ends = {'TD': [], 'DT': []}
-    ends['TD'] = sd.easyends('TD',5,number=numTD, energetics=energetics).tolist()
-    ends['DT'] = sd.easyends('DT',5,number=numDT, energetics=energetics).tolist()
+    ends['TD'] = sd.easyends('TD',5,number=numTD, energetics=energetics, interaction=targetint).tolist()
+    ends['DT'] = sd.easyends('DT',5,number=numDT, energetics=energetics, interaction=targetint).tolist()
 
     # Check that we found a sufficient number of ends. FIXME: is this necessary,
     # or will stickydesign raise an error?
