@@ -8,6 +8,7 @@ import warnings
 
 
 import pkg_resources
+import os
 
 from . import tiletypes
 from . import seeds
