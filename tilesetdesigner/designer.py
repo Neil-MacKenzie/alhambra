@@ -6,6 +6,9 @@ import stickydesign as sd
 import logging
 import warnings
 
+
+import pkg_resources
+
 from . import tiletypes
 from . import seeds
 
