@@ -6,13 +6,6 @@ import stickydesign as sd
 import logging
 import warnings
 
-
-# Color dictionary for xgrow colors...
-import pkg_resources
-import os.path
-rgbv = pkg_resources.resource_stream(__name__, os.path.join('data','rgb.txt'))
-xcolors={ " ".join(y[3:]): "rgb({},{},{})".format(y[0],y[1],y[2]) for y in [x.split() for x in rgbv] }
-
 from . import tiletypes
 from . import seeds
 
