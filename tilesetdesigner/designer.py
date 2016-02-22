@@ -27,14 +27,25 @@ def fix_paths():
 
     SPURIOUSPATH should be set to the path of SpuriousDesign, or any directory that contains a working spuriousSSM.
     """
+    global compiler, spurious_design, finish, wc
     import os, sys
     if 'PEPPERPATH' in os.environ:
         sys.path = [ os.path.abspath( os.path.join( os.environ['PEPPERPATH'], '..' ) ) ] + sys.path
+    try:
+        from PepperCompiler import compiler as compiler
+        from PepperCompiler.design import spurious_design as spurious_design
+        from PepperCompiler import finish as finish
+        from PepperCompiler.DNA_classes import wc
+    except ImportError:
+        warnings.warn("Can't import PepperCompiler. Parts of tilesetdesigner dependent on Pepper will not work.")
+
+    import shutilwhich
     if 'SPURIOUSPATH' in os.environ:
-        warnings.warn("Setting SPURIOUSPATH currently adds SPURIOUSPATH to the front of your PATH for all children of tilesetdesigner.")
         if not os.path.isfile( os.path.join( os.environ['SPURIOUSPATH'], 'spuriousSSM') ):
             raise ValueError("SPURIOUSPATH is set, and spuriousSSM was not found at SPURIOUSPATH.")
         os.environ['PATH'] = os.environ['SPURIOUSPATH']+':'+os.environ['PATH']
+    if not shutilwhich.which('spuriousSSM'):
+        warnings.warn("spuriousSSM is not in PATH. Parts of tilesetdesigner dependent on spuriousSSM will not work.")
 
 def design_set(tileset, name='tsd_temp', includes=[pkg_resources.resource_filename(__name__,'peppercomps')], stickyopts={}, reorderopts={}, coreopts={}, keeptemp=False):
     """
@@ -208,9 +219,6 @@ def reorder_sticky_ends( tileset, hightemp=0.1, lowtemp=1e-7, steps=45000, updat
 
 def create_strand_sequences( tileset, basename, includes=None, spurious_pars="verboten_weak=1.5", *options ):
     """Given a tileset dictionary with sticky ends sequences, create core sequences for tiles."""
-    from PepperCompiler import compiler as compiler
-    from PepperCompiler.design import spurious_design as spurious_design
-    from PepperCompiler import finish as finish
 
     tileset = copy.deepcopy(tileset)
 
@@ -321,7 +329,6 @@ def load_pepper_output_files( tileset, basename ):
 def create_guard_strand_sequences( tileset ):
     tset = copy.deepcopy(tileset)
 
-    from PepperCompiler.DNA_classes import wc
 
     for guard in tset['guards']:
         tile = tileutils.gettile( tset, guard[0] )
@@ -444,3 +451,6 @@ def create_layout_diagrams( tileset, xgrowarray, filename, scale=1, *options ):
     b.add(c)
     b.save()
 
+
+# Force run fix_paths
+fix_paths()

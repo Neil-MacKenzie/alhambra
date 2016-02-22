@@ -313,13 +313,20 @@ def from_yaml_endadj( ts, perfect=False, rotate=False ):
     
     newtiles.append( { 'name': 'origami', 'edges': ['origami','origami','origami','origami'], 'stoic': 0, 'color': 'white'} )
     
-    for tile in ts['seed']['adapters']:
+    atiles = [None]*16
+    for tilename in ts['seed']['use_adapters']:
+        tile = [ x for x in ts['seed']['adapters'] if x['name']==tilename ][0]
         newtile = {}
         newtile['edges'] = [ 'origami' ] +  [ re.sub('/','_c',x) for x in tile['ends'] ] + [ 'origami' ]
-        if 'name' in tile: newtile['name'] = tile['name']
+        newtile['name'] = tile['name']
         newtile['stoic'] = 0
         newtile['color'] = 'white'
-        newtiles.append(newtile)    
+        atiles[tile['loc']-1] = newtile
+    for tile in atiles:
+        if tile:
+            newtiles.append(newtile)
+        else:
+            newtiles.append( { 'name': 'emptyadapt', 'edges': ['origami',0,0,'origami'], 'stoic': 0, 'color': 'white'} )
 
     if rotate:
         rotatedtiles = []

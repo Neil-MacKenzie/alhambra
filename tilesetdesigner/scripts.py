@@ -1,4 +1,3 @@
-from .designer import *
 import yaml
 import argparse
 import logging
@@ -60,12 +59,12 @@ def tilesetdesigner():
         logging.error("Input file does not exist.")
         sys.exit(1)
 
-    fix_paths()
+    from . import designer
 
     from stickydesign.energetics_daoe import energetics_daoe
     energetics = energetics_daoe(temperature=float(args.T),singlepair=args.singlepair,mismatchtype=args.mismatch)
 
-    sys = design_set( \
+    sys = designer.design_set( \
             args.inputfile, 
             args.name,
             reorderopts=args.reorderargs,
@@ -75,10 +74,10 @@ def tilesetdesigner():
     yaml.dump(sys, open(args.out,'w'))
 
     if args.diagrams:
-        create_abstract_diagrams( sys , base+'-abstract.svg' )
-        create_sequence_diagrams( sys, base+'-sequences.svg' )
+        designer.create_abstract_diagrams( sys , base+'-abstract.svg' )
+        designer.create_sequence_diagrams( sys, base+'-sequences.svg' )
         if 'createseqs' in sys['seed'].keys():
-            create_adapter_sequence_diagrams( sys, base+'-adapters.svg' )
+            designer.create_adapter_sequence_diagrams( sys, base+'-adapters.svg' )
 
     if args.xgrow:
         from . import stxg
