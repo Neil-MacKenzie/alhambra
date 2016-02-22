@@ -6,7 +6,7 @@ setup(
     version = "0.1.0",
     packages = ['tilesetdesigner'],
 
-    install_requires = ['numpy','stickydesign >= 0.4.2','svgwrite','lxml'],
+    install_requires = ['numpy','stickydesign >= 0.4.2','svgwrite','lxml','shutilwhich'],
 
     include_package_data=True,
     #cmdclass={'build': build_with_spurious, 'develop': develop_with_spurious},
