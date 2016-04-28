@@ -1,7 +1,6 @@
 # vim: set sw=4 ts=4
 from random import shuffle
 import copy
-from . import tileutils
 import stickydesign as sd
 import logging
 import warnings
@@ -120,13 +119,13 @@ def create_sticky_end_sequences( tileset, inputs='complements', energetics=None,
         for end in ends:
             if end[1] == 'TD':
                 endsets['TD'].add( end[0] )
-                if end[0] in endsets['DT'] or (tileutils.compname(end[0]) in
+                if end[0] in endsets['DT'] or (tiletypes.compname(end[0]) in
                     endsets['DT']):
                     raise ValueError("end {} in {} is TD, but was previously \
                     DT.".format(end[0],tile['name']))
             elif end[1] == 'DT':
                 endsets['DT'].add( end[0] )
-                if (end[0] in endsets['TD']) or (tileutils.compname(end[0]) in
+                if (end[0] in endsets['TD']) or (tiletypes.compname(end[0]) in
                     endsets['TD']):
                     raise ValueError("end {} in {} is DT, but was previously \
                     TD.".format(end[0],tile['name']))
@@ -318,11 +317,11 @@ def load_pepper_output_files( tileset, basename ):
 
     for tile in tset['tiles']:
         pepperstrands = re.compile('strand '+tile['name']+'-([^ ]+) = ([^\n]+)').findall(seqsstring)
-        tile['fullseqs'] = tileutils.order_pepper_strands(pepperstrands)
+        tile['fullseqs'] = tiletypes.order_pepper_strands(pepperstrands)
     
     for adapter in tset['seed']['adapters']:
         pepperstrands = re.compile('strand '+adapter['name']+'-([^ ]+) = ([^\n]+)').findall(seqsstring)
-        adapter['fullseqs'] = tileutils.order_pepper_strands(pepperstrands)
+        adapter['fullseqs'] = tiletypes.order_pepper_strands(pepperstrands)
 
     return tset
 
@@ -331,7 +330,7 @@ def create_guard_strand_sequences( tileset ):
 
 
     for guard in tset['guards']:
-        tile = tileutils.gettile( tset, guard[0] )
+        tile = tiletypes.gettile( tset, guard[0] )
         guard.append(  wc(tile['fullseqs'][guard[1]-1]) )
     
     return tset

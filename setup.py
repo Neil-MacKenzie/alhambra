@@ -3,7 +3,7 @@ from setuptools import setup, find_packages
 
 setup(
     name = "tilesetdesigner",
-    version = "0.1.0",
+    version = "0.2.0",
     packages = ['tilesetdesigner'],
 
     install_requires = ['numpy','stickydesign >= 0.4.2','svgwrite','lxml','shutilwhich'],
@@ -16,6 +16,6 @@ setup(
             ]
         },
     author = "Constantine Evans",
-    author_email = "cge@dna.caltech.edu",
+    author_email = "cgevans@evans.foundation",
     description = "DX Tile Set Designer",
 )
