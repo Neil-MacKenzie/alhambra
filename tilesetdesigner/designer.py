@@ -193,26 +193,33 @@ def create_sticky_end_sequences( tileset, inputs='complements', energetics=None,
 
     return tset
 
-def reorder_sticky_ends( tileset, hightemp=0.1, lowtemp=1e-7, steps=45000, update=1000 ):
+def reorder_sticky_ends( tileset, hightemp=0.1, lowtemp=1e-7, steps=45000, update=1000, energetics=None ):
     """Given a tileset dictionary that includes sticky end sequences, reorder these to
     try to optimize error rates."""
     from . import endreorder
+    from . import endreorder_fast
     from . import anneal
 
     tset = copy.deepcopy(tileset)
 
-    reordersys = endreorder.EndSystemFseq( tset )
+    reordersys = endreorder_fast.EndSystemFseq( tset, energetics=energetics )
+    
+    reordersys_old = endreorder.EndSystemFseq( tset, energetics=energetics )
 
     # FIXME: better parameter control here.
     annealer = anneal.Annealer( reordersys.score, reordersys.mutate )
 
     newstate = annealer.anneal( reordersys.initstate, hightemp, lowtemp, steps, update )
 
+    # Check state with old
+    assert reordersys.score( newstate[0] ) == reordersys_old.score( endreorder.FseqState( reordersys.slowseqs( newstate[0] ) ) ) 
+
     # Now take that new state, and apply it to the new tileset.
+    seqs = reordersys.slowseqs( newstate[0] )
     for end in tset['ends']:
         if end['type'] in ['DT','TD']:
             eloc = reordersys.enlocs[end['name']]
-            end['fseq'] = newstate[0].seqs[eloc[1]].tolist()[eloc[0]]
+            end['fseq'] = seqs[eloc[1]].tolist()[eloc[0]]
 
     return tset
 
