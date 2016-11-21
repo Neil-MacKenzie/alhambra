@@ -66,17 +66,17 @@ class tile_daoe_single(tile_daoe):
         tilediag.add( drawing.rect((0,0),(100,100),stroke="black",fill=fill) )
 
         # End Names
-        tilediag.add( drawing.text( self['ends'][0], insert=(50,10), text_anchor='middle', alignment_baseline="middle", font_size="14pt" ) )
-        tilediag.add( drawing.text( self['ends'][1], insert=(90,50), text_anchor='middle', alignment_baseline="middle", transform="rotate(90,90,50)", font_size="14pt") )
-        tilediag.add( drawing.text( self['ends'][2], insert=(50,90), text_anchor='middle', alignment_baseline="middle", font_size="14pt") )
-        tilediag.add( drawing.text( self['ends'][3], insert=(10,50), text_anchor='middle', alignment_baseline="middle", transform="rotate(-90,10,50)", font_size="14pt") ) 
+        tilediag.add( drawing.text( self['ends'][0], insert=(50,10), text_anchor='middle', dominant_baseline="mathematical", font_size="14pt" ) )
+        tilediag.add( drawing.text( self['ends'][1], insert=(90,50), text_anchor='middle', dominant_baseline="mathematical", transform="rotate(90,90,50)", font_size="14pt") )
+        tilediag.add( drawing.text( self['ends'][2], insert=(50,90), text_anchor='middle', dominant_baseline="mathematical", font_size="14pt") )
+        tilediag.add( drawing.text( self['ends'][3], insert=(10,50), text_anchor='middle', dominant_baseline="mathematical", transform="rotate(-90,10,50)", font_size="14pt") ) 
 
         # Tile Name
-        tilediag.add( drawing.text( self['name'], insert=(50,50), text_anchor='middle', alignment_baseline="middle", font_size="14pt" ) )
+        tilediag.add( drawing.text( self['name'], insert=(50,50), text_anchor='middle', dominant_baseline="mathematical", font_size="14pt" ) )
         
         if self._orient:
-            tilediag.add( drawing.text( self._orient[0], insert=(92,8), text_anchor='middle', alignment_baseline="middle", font_size="9pt"))
-            tilediag.add( drawing.text( self._orient[1], insert=(8,92), text_anchor='middle', alignment_baseline="middle", font_size="9pt"))
+            tilediag.add( drawing.text( self._orient[0], insert=(92,8), text_anchor='middle', dominant_baseline="mathematical", font_size="9pt"))
+            tilediag.add( drawing.text( self._orient[1], insert=(8,92), text_anchor='middle', dominant_baseline="mathematical", font_size="9pt"))
 
         return tilediag 
     @property
@@ -177,22 +177,22 @@ class tile_daoe_doublehoriz(tile_daoe):
         tilediag.add( drawing.rect((0,0),(200,100),stroke="black",fill=fill) )
 
         # End Names
-        tilediag.add( drawing.text( self['ends'][0], insert=(50,10), text_anchor='middle', alignment_baseline="middle", font_size="14pt" ) )
-        tilediag.add( drawing.text( self['ends'][1], insert=(150,10), text_anchor='middle', alignment_baseline="middle", font_size="14pt" ) )
-        tilediag.add( drawing.text( self['ends'][2], insert=(190,50), text_anchor='middle', alignment_baseline="middle", transform="rotate(90,190,50)", font_size="14pt") )
-        tilediag.add( drawing.text( self['ends'][3], insert=(150,90), text_anchor='middle', alignment_baseline="middle", font_size="14pt") )
-        tilediag.add( drawing.text( self['ends'][4], insert=(50,90), text_anchor='middle', alignment_baseline="middle", font_size="14pt") )
-        tilediag.add( drawing.text( self['ends'][5], insert=(10,50), text_anchor='middle', alignment_baseline="middle", transform="rotate(-90,10,50)", font_size="14pt") ) 
+        tilediag.add( drawing.text( self['ends'][0], insert=(50,10), text_anchor='middle', dominant_baseline="mathematical", font_size="14pt" ) )
+        tilediag.add( drawing.text( self['ends'][1], insert=(150,10), text_anchor='middle', dominant_baseline="mathematical", font_size="14pt" ) )
+        tilediag.add( drawing.text( self['ends'][2], insert=(190,50), text_anchor='middle', dominant_baseline="mathematical", transform="rotate(90,190,50)", font_size="14pt") )
+        tilediag.add( drawing.text( self['ends'][3], insert=(150,90), text_anchor='middle', dominant_baseline="mathematical", font_size="14pt") )
+        tilediag.add( drawing.text( self['ends'][4], insert=(50,90), text_anchor='middle', dominant_baseline="mathematical", font_size="14pt") )
+        tilediag.add( drawing.text( self['ends'][5], insert=(10,50), text_anchor='middle', dominant_baseline="mathematical", transform="rotate(-90,10,50)", font_size="14pt") ) 
 
         # Tile Name
-        tilediag.add( drawing.text( self['name'], insert=(100,50), text_anchor='middle', alignment_baseline="middle", font_size="14pt" ) )
+        tilediag.add( drawing.text( self['name'], insert=(100,50), text_anchor='middle', dominant_baseline="mathematical", font_size="14pt" ) )
         
         if self._orient:
             # Orientation
-            tilediag.add( drawing.text( self._orient[0], insert=(92,8), text_anchor='middle', alignment_baseline="middle", font_size="9pt"))
-            tilediag.add( drawing.text( self._orient[1], insert=(192,8), text_anchor='middle', alignment_baseline="middle", font_size="9pt"))
-            tilediag.add( drawing.text( self._orient[1], insert=(8,92), text_anchor='middle', alignment_baseline="middle", font_size="9pt"))
-            tilediag.add( drawing.text( self._orient[0], insert=(108,92), text_anchor='middle', alignment_baseline="middle", font_size="9pt"))
+            tilediag.add( drawing.text( self._orient[0], insert=(92,8), text_anchor='middle', dominant_baseline="mathematical", font_size="9pt"))
+            tilediag.add( drawing.text( self._orient[1], insert=(192,8), text_anchor='middle', dominant_baseline="mathematical", font_size="9pt"))
+            tilediag.add( drawing.text( self._orient[1], insert=(8,92), text_anchor='middle', dominant_baseline="mathematical", font_size="9pt"))
+            tilediag.add( drawing.text( self._orient[0], insert=(108,92), text_anchor='middle', dominant_baseline="mathematical", font_size="9pt"))
 
         return tilediag
 
@@ -214,22 +214,22 @@ class tile_daoe_doublevert(tile_daoe):
         tilediag.add( drawing.rect((0,0),(100,200),stroke="black",fill=fill) )
 
         # End Names
-        tilediag.add( drawing.text( self['ends'][0], insert=(50,10), text_anchor='middle', alignment_baseline="middle", font_size="14pt" ) )
-        tilediag.add( drawing.text( self['ends'][1], insert=(90,50), text_anchor='middle', alignment_baseline="middle", transform="rotate(90,90,50)", font_size="14pt") )
-        tilediag.add( drawing.text( self['ends'][2], insert=(90,150), text_anchor='middle', alignment_baseline="middle", transform="rotate(90,90,150)", font_size="14pt") )
-        tilediag.add( drawing.text( self['ends'][3], insert=(50,190), text_anchor='middle', alignment_baseline="middle", font_size="14pt") )
-        tilediag.add( drawing.text( self['ends'][4], insert=(10,150), text_anchor='middle', alignment_baseline="middle", transform="rotate(-90,10,150)", font_size="14pt") ) 
-        tilediag.add( drawing.text( self['ends'][5], insert=(10,50), text_anchor='middle', alignment_baseline="middle", transform="rotate(-90,10,50)", font_size="14pt") ) 
+        tilediag.add( drawing.text( self['ends'][0], insert=(50,10), text_anchor='middle', dominant_baseline="mathematical", font_size="14pt" ) )
+        tilediag.add( drawing.text( self['ends'][1], insert=(90,50), text_anchor='middle', dominant_baseline="mathematical", transform="rotate(90,90,50)", font_size="14pt") )
+        tilediag.add( drawing.text( self['ends'][2], insert=(90,150), text_anchor='middle', dominant_baseline="mathematical", transform="rotate(90,90,150)", font_size="14pt") )
+        tilediag.add( drawing.text( self['ends'][3], insert=(50,190), text_anchor='middle', dominant_baseline="mathematical", font_size="14pt") )
+        tilediag.add( drawing.text( self['ends'][4], insert=(10,150), text_anchor='middle', dominant_baseline="mathematical", transform="rotate(-90,10,150)", font_size="14pt") ) 
+        tilediag.add( drawing.text( self['ends'][5], insert=(10,50), text_anchor='middle', dominant_baseline="mathematical", transform="rotate(-90,10,50)", font_size="14pt") ) 
         
         # Tile Name
-        tilediag.add( drawing.text( self['name'], insert=(50,100), text_anchor='middle', alignment_baseline="middle", font_size="14pt" ) )
+        tilediag.add( drawing.text( self['name'], insert=(50,100), text_anchor='middle', dominant_baseline="mathematical", font_size="14pt" ) )
  
         if self._orient:
             # Orientation
-            tilediag.add( drawing.text( self._orient[0], insert=(92,8), text_anchor='middle', alignment_baseline="middle", font_size="9pt"))
-            tilediag.add( drawing.text( self._orient[0], insert=(8,192), text_anchor='middle', alignment_baseline="middle", font_size="9pt"))
-            tilediag.add( drawing.text( self._orient[1], insert=(92,108), text_anchor='middle', alignment_baseline="middle", font_size="9pt"))
-            tilediag.add( drawing.text( self._orient[1], insert=(8,92), text_anchor='middle', alignment_baseline="middle", font_size="9pt")) 
+            tilediag.add( drawing.text( self._orient[0], insert=(92,8), text_anchor='middle', dominant_baseline="mathematical", font_size="9pt"))
+            tilediag.add( drawing.text( self._orient[0], insert=(8,192), text_anchor='middle', dominant_baseline="mathematical", font_size="9pt"))
+            tilediag.add( drawing.text( self._orient[1], insert=(92,108), text_anchor='middle', dominant_baseline="mathematical", font_size="9pt"))
+            tilediag.add( drawing.text( self._orient[1], insert=(8,92), text_anchor='middle', dominant_baseline="mathematical", font_size="9pt")) 
         
         return tilediag
 
