@@ -95,7 +95,12 @@ class tallrect_tileadapts(seed_tileadapts):
              'TGAAAGTATTAAGAGGCTATTATTCTGAAACA']
 
 class triangle_side2(seed_tileadapts):
-    cores = ['AGAGAGTACCTTTAATCCAACAGGTCAGGATT',
+    # Note: this list is currently reversed because
+    # the cadnano file for the triangle has 5' ends of
+    # the last staple above 3' ends, while our adapter
+    # scheme has 3' ends above 5' ends. 
+    cores = list(reversed( \
+            ['AGAGAGTACCTTTAATCCAACAGGTCAGGATT',
              'TAAGAGGAAGCCCGAAATTGCATCAAAAAGAT',
              'CCCCCTCAAATGCTTTTAAATATTCATTGAAT',
              'TACCAGACGACGATAATATCATAACCCTCGTT',
@@ -110,7 +115,7 @@ class triangle_side2(seed_tileadapts):
              'ACCAGAGCCGCCGCCACGCCACCAGAACCACC',
              'GCGTTTGCCATCTTTTCATAGCCCCCTTATTA',
              'ATGAAACCATCGATAGGCCGGAAACGTCACCA',
-             'ATCACCGTCACCGACTTCATTAAAGGTGAATT']
+             'ATCACCGTCACCGACTTCATTAAAGGTGAATT']))
 
 class tallrect_endadapts(seed_base):
     needspepper = True
