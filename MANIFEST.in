@@ -1,7 +1,7 @@
-include tilesetdesigner/peppercomps/*.comp
+include alhambra/peppercomps/*.comp
 
-include tilesetdesigner/seqdiagrambases/*.svg
+include alhambra/seqdiagrambases/*.svg
 
-include tilesetdesigner/data/rgb.txt
+include alhambra/data/rgb.txt
 
-include tilesetdesigner/spuriousSSM
+include alhambra/spuriousSSM

@@ -2,9 +2,9 @@
 from setuptools import setup, find_packages
 
 setup(
-    name = "tilesetdesigner",
+    name = "alhambra",
     version = "0.2.0",
-    packages = ['tilesetdesigner'],
+    packages = ['alhambra'],
 
     install_requires = ['numpy','stickydesign >= 0.4.2','svgwrite','lxml','shutilwhich'],
 
@@ -12,7 +12,7 @@ setup(
     #cmdclass={'build': build_with_spurious, 'develop': develop_with_spurious},
     entry_points={
         'console_scripts': [
-            'tilesetdesigner = tilesetdesigner.scripts:tilesetdesigner'
+            'alhambra = alhambra.scripts:alhambra'
             ]
         },
     author = "Constantine Evans",

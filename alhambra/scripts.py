@@ -4,7 +4,7 @@ import logging
 import sys
 import os.path
 
-def tilesetdesigner():
+def alhambra():
     import sys
     
     parser = argparse.ArgumentParser()
