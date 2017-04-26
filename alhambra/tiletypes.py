@@ -7,6 +7,8 @@ rgbv = pkg_resources.resource_stream(__name__, os.path.join('data','rgb.txt'))
 xcolors={ " ".join(y[3:]): "rgb({},{},{})".format(y[0],y[1],y[2]) for y in [x.decode().split() for x in rgbv] }
 del(rgbv)
 
+from .util import *
+
 class tile_daoe(object):
     def __init__(self, defdict):
         self._defdict = defdict
@@ -38,6 +40,48 @@ class tile_daoe(object):
 
     def __getitem__(self, *args):
         return self._defdict.__getitem__(*args)
+
+    def get_end_defs(self):
+        es = list()
+        for (strand,start,end), endtype, endname in \
+                    zip( self._endlocs, self._endtypes,
+                         self['ends'] ):
+           
+            if endtype == 'DT':
+                sl = slice(start-1,end)
+            elif endtype == 'TD':
+                sl = slice(start,end+1)
+            else:
+                sl = None
+                
+
+            if sl and 'fullseqs' in self._defdict.keys():
+                seq = self['fullseqs'][strand][sl]
+
+                if endtype == 'DT': seq = (seq+'n').lower()
+                elif endtype == 'TD': seq = ('n'+seq).lower()
+            else:
+                seq = None
+            
+            if endname[-1] == '/':
+                endname = endname[:-1]
+                # FIXME: this seems wrong. Check.
+                #if endtype == 'DT': seq=util.wc[seq[0]]+seq[1:]
+                #if endtype == 'TD': seq=seq[:-1]+util.wc[seq[-1]]
+                # simple revcomp
+                if seq:
+                    seq = "".join(\
+                              reversed(\
+                                       [wc[x] for x in seq] ))
+            
+            e = { 'name': endname, 'type': endtype }
+
+            if seq:
+                e['fseq'] = seq
+                
+            es.append(e)
+        return es
+                
 
 
 class tile_daoe_single(tile_daoe):
@@ -102,16 +146,21 @@ class tile_daoe_5up(tile_daoe_single):
     def __init__(self, defdict):
         tile_daoe_single.__init__(self, defdict, orient = ('5','3'))
         self._endtypes = ['TD','TD','DT','DT']
+        # endlocs is strand, loc, length
+        self._endlocs = [(0,0,5),(3,0,5),(3,21,None),(0,21,None)]
 
 class tile_daoe_3up(tile_daoe_single):
     def __init__(self, defdict):
         tile_daoe_single.__init__(self, defdict, orient = ('3','5'))
         self._endtypes = ['DT','DT','TD','TD']
+        self._endlocs = [(0,21,None),(3,21,None),(3,0,5),(0,0,5)]
 
 class tile_daoe_5up_2h(tile_daoe_single):
     def __init__(self, defdict):
         tile_daoe_single.__init__(self, defdict, orient = ('5','3'))
         self._endtypes = ['TD','hairpin','DT','DT']
+        self._endlocs = [(0,0,5),(3,0,18),(3,21,None),(0,21,None)]
+
 
     @property
     def _seqdiagseqstrings(self):
@@ -138,6 +187,7 @@ class tile_daoe_3up_2h(tile_daoe_single):
     def __init__(self, defdict):
         tile_daoe_single.__init__(self, defdict, orient = ('3','5'))
         self._endtypes = ['DT','hairpin','TD','TD']
+        self._endlocs = [(0,21,None),(3,21,None),(3,0,5),(0,0,5)]
 
     @property
     def _seqdiagseqstrings(self):
@@ -238,6 +288,8 @@ class tile_daoe_doublehoriz_35up(tile_daoe_doublehoriz):
         tile_daoe_doublehoriz.__init__(self, defdict)
         self._endtypes = ['DT', 'TD', 'TD', 'DT', 'TD', 'TD']
         self._orient = ('3','5')
+        self._endlocs = [(0,-5,None),(2,0,5),(5,0,5),(5,-5,None),(3,0,5),(0,0,5)]
+
     
     @property
     def _seqdiagseqstrings(self):
@@ -271,6 +323,7 @@ class tile_daoe_doublevert_35up(tile_daoe_doublevert):
         tile_daoe_doublevert.__init__(self, defdict)
         self._endtypes = ['DT','DT','TD','DT','DT','TD']
         self._orient = ('3','5')
+        self._endlocs = [(0,-5,None),(3,-5,None),(5,0,5),(5,-5,None),(3,-5,None),(0,0,5)]
 
 
 class tile_daoe_doublehoriz_35up_1h2i(tile_daoe_doublehoriz_35up):
@@ -466,3 +519,47 @@ def gettile(tset,tname):
     foundtiles = [x for x in tset['tiles'] if x['name']==tname]
     assert len(foundtiles)==1
     return foundtiles[0]
+
+# default tilefactory
+tfactory = TileFactory()
+
+def endlist_from_tilelist( tilelist, fail_immediate=True,
+                           tilefactory=tfactory ):
+    """\
+Given a named_list of tiles (or just a list, for now), extract the sticky ends 
+from each tile, and merge these (using merge_ends) into a named_list of sticky
+ends.
+
+Parameters
+----------
+
+tilelist: either a list of tile description dicts, or a list of tile instances.
+    If 
+
+fail_immediate: (default True) if True, immediately fail on a failure,
+    with ValueError( tilename, exception ) from exception  If False, collect 
+    exceptions, then raise ValueError( "message", [(tilename, exception)] , 
+    output ).
+
+tilefactory: (default tiletypes.tfactory) if tilelist is a list of tile 
+    descriptions, use this TileFactory to parse them.
+"""
+    endlist = named_list()
+    errors = []
+    
+    for tile in tilelist:
+        try:
+            if not isinstance(tile,tile_daoe):
+                tile = tilefactory.parse(tile)
+            ends = tile.get_end_defs()
+            endlist = merge_endlists(endlist,ends,in_place=True)
+        except BaseException as e:
+            if fail_immediate:
+                raise ValueError( tile['name'] ) from e
+            else:
+                errors.append( (tile['name'], e) )
+
+    if errors:
+        raise ValueError( "End list generation failed on:", errors, endlist )
+
+    return endlist

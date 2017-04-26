@@ -53,7 +53,7 @@ class FastState:
 
 
 class EndSystemFseq:
-    def __init__(self, tilesys, pairs=None, energetics=None):
+    def __init__(self, tilesys, newends=None, pairs=None, energetics=None):
         # Set up variables, etc.
         if not energetics:
             self.ef = en.energetics_santalucia(mismatchtype='max')
@@ -79,7 +79,15 @@ class EndSystemFseq:
             self.enlocs[endn] = (i,'TD')
         for i, endn in enumerate(self.names['DT']):
             self.enlocs[endn] = (i,'DT')        
-        
+
+        # ends that can be reordered.
+        if newends:
+            self.mutableTD = [ i for i,t in [self.enlocs[x] for x in newends] if t=='TD']
+            self.mutableDT = [ i for i,t in [self.enlocs[x] for x in newends] if t=='DT']
+        else:
+            self.mutableTD = range(0,len(fseqsTD))
+            self.mutableDT = range(0,len(fseqsDT))
+            
         # Get the mean non-spurious interaction
         self.meangse = 0.5*( np.mean(self.ef.matching_uniform( self.seqs['TD'] ))+np.mean(self.ef.matching_uniform( self.seqs['DT'] )) )
         self.mult = {'1NGO': np.exp(-2.0*self.meangse), '2NGO': np.exp(-1.65*self.meangse), '1GO': np.exp(-1.5*self.meangse), '2GO': np.exp(-1.1*self.meangse)}
@@ -105,16 +113,15 @@ class EndSystemFseq:
 
     def mutate(self, state):
         # Start by deciding to swap TD or DT ends.
-        if random.rand() > 1.0*len(state['TD'])/(len(state['DT'])+len(state['TD'])):
-            t = 'DT'
+        if random.rand() > 1.0*len(self.mutableTD)/(len(self.mutableDT)+
+                                                    len(self.mutableTD)):
+            a = random.choice(self.mutableDT)
+            b = random.choice(self.mutableDT)
+            state['DT'][[a,b]] = state['DT'][[b,a]]
         else:
-            t = 'TD'
-        
-        en = len(state[t])
-        
-        a = random.randint( 0, en )
-        b = random.randint( 0, en )
-        state[t][[a,b]] = state[t][[b,a]]
+            a = random.choice(self.mutableTD)
+            b = random.choice(self.mutableTD)
+            state['TD'][[a,b]] = state['TD'][[b,a]]
 
     def score(self, state):
         
