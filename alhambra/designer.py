@@ -373,10 +373,10 @@ def create_pepper_input_files( tileset, basename ):
         seq = end['fseq'][1:-1]
         if end['type'] == 'TD': 
             adj = end['fseq'][-1]
-            cadj = end['fseq'][1] # FIXME: OFF BY ONE!
+            cadj = end['fseq'][0] # FIXME: WAS [1], OFF BY ONE!
         elif end['type'] == 'DT':        
             adj = end['fseq'][-1]
-            cadj = end['fseq'][1] # FIXME: OFF BY ONE!
+            cadj = end['fseq'][0] # FIXME: WAS [1], OFF BY ONE!
         else:
             print("warning! end {} not recognized".format(end['name']))
         fixedfile.write( "signal e_{0} = {1}\n".format( end['name'], seq.upper() ) ) 
