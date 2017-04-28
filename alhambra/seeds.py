@@ -1,4 +1,4 @@
-from .tiletypes import gettile
+from .tiletypes import gettile, check_edotparen_sequence, check_edotparen_consistency
 import warnings
 import copy
 
@@ -51,11 +51,7 @@ class seed_tileadapts(seed_base):
         tset = copy.deepcopy( tileset )
 
         for adapter in tset['seed']['adapters']:
-            try:
-                tile_to_mimic = gettile( tset, adapter['tilebase'] )
-            except KeyError:
-                warnings.warn("tilestrand format is deprecated; strand number will be ignored")
-                tile_to_mimic = gettile( tset, adapter['tilestrand'][0] )
+            tile_to_mimic = self.getmimic( tset, adapter )
             if tile_to_mimic['type'] == 'tile_daoe_5up':
                 # Tile is single. If we have ends, check that they match.
                 if ( 'ends' in adapter.keys() ) and ( adapter['ends'] != tile_to_mimic['ends'][1:3] ):
@@ -67,7 +63,7 @@ class seed_tileadapts(seed_base):
                     or tile_to_mimic['type'] == 'tile_daoe_doublevert_35up':
                 if ( 'ends' in adapter.keys() ) and ( adapter['ends'] != tile_to_mimic['ends'][2:4] ):
                     raise ValueError("adapter {} and tile base {} ends don't match: adapter has {}, tile has {}".format(
-                        adapter['name'], tile_to_mimic['name'], adapter['ends'], tile_to_mimic['ends'][1:3] ))
+                        adapter['name'], tile_to_mimic['name'], adapter['ends'], tile_to_mimic['ends'][2:4] ))
                 adapter_strand_short = tile_to_mimic['fullseqs'][-1]
                 tile_long_strand = tile_to_mimic['fullseqs'][-2]
 
@@ -76,6 +72,88 @@ class seed_tileadapts(seed_base):
 
         return tset
 
+    def getmimic( self, tileset, adapter ):
+        try:
+            mimic = gettile( tileset, adapter['tilebase'] )
+        except KeyError:
+            warnings.warn("tilestrand format is deprecated; strand number will be ignored")
+            mimic = gettile( tileset, adapter['tilestrand'][0] )
+        return mimic
+
+    def getmimic_full( self, tileset, adapter ):
+        import re
+        mimic = self.getmimic( tileset, adapter )
+        out = {}
+        e1 = None
+        e2 = None
+        if mimic['type'] == 'tile_daoe_5up':
+            out['tilestrand'] = mimic['fullseqs'][3]
+            out['tileends'] = mimic['ends'][1:3]
+            if 'extra' in mimic.keys():
+                e1 = re.search(r'2([A-Za-z]+)',mimic['extra'])
+                e2 = re.search(r'3([A-Za-z]+)',mimic['extra'])
+        elif mimic['type'] == 'tile_daoe_doublehoriz_35up' or \
+           mimic['type'] == 'tile_daoe_doublevert_35up':
+            out['tilestrand'] = mimic['fullseqs'][5]
+            out['tileends'] = mimic['ends'][2:4]
+            if 'extra' in mimic.keys():
+                e1 = re.search(r'3([A-Za-z]+)',mimic['extra'])
+                e2 = re.search(r'4([A-Za-z]+)',mimic['extra'])
+        else:
+            raise ValueError("Tile type {} not known for adapter.".format(
+                mimic['type']), adapter, mimic)
+        if e1:
+            if e1[1] == 'h':
+                out['extra']='1h'
+            else:
+                raise ValueError("Tile has unknown extra {}".format(e1),
+                                 adapter, mimic)
+        if e2:
+            if e2[1] == 'h':
+                out['extra']='2h'
+            else:
+                raise ValueError("Tile has unknown extra {}".format(e2),
+                                 adapter, mimic)
+        out['tile'] = mimic
+        return out
+            
+                
+    
+    def check_consistent( self, tileset ):
+        import re
+        for adapt in tileset['seed']['adapters']:
+            mimic = self.getmimic_full( tileset, adapt )
+            assert mimic.get('extra') == adapt.get('extra')
+            assert mimic['tileends'] == adapt['ends']
+            
+
+    edotparen_adapt = "8(32.8(+5.16)5."
+    edotparen_adapt_2h = "8(32.8(+5.16)7(4.7)"
+    edotparen_adapt_1h = "8(32.8(+7(4.7)16)5."
+    
+    def check_sequence( self, tileset ):
+        import re
+        check_edotparen_consistency( self.edotparen_adapt )
+        check_edotparen_consistency( self.edotparen_adapt_1h )
+        check_edotparen_consistency( self.edotparen_adapt_2h )
+        self.check_consistent( tileset )
+        for adapt in tileset['seed']['adapters']:
+            mimic = self.getmimic_full(tileset, adapt)
+            seqs = "+".join(adapt['seqs'])
+            if 'extra' not in adapt.keys():
+                check_edotparen_sequence(
+                    self.edotparen_adapt, seqs )
+            elif adapt['extra'] == '1h':
+                check_edotparen_sequence(
+                    self.edotparen_adapt_1h, seqs )
+            elif adapt['extra'] == '2h':
+                check_edotparen_sequence(
+                    self.edotparen_adapt_2h, seqs )
+            else:
+                raise ValueError("Unknown extra", adapt['extra'])
+            assert adapt['seqs'][0][8:(8+32)] == self.cores[adapt['loc']-1]
+                
+        
 class tallrect_tileadapts(seed_tileadapts):
     cores = ['CAGGAACGGTACGCCATTAAAGGGATTTTAGA',
              'CTACATTTTGACGCTCACGCTCATGGAAATAC',

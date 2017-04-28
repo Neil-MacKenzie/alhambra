@@ -28,6 +28,6 @@ strand longLeft = aTL* stTLarm* stTcore stBcore stBLarm* aBL* : 48
 strand longMidLeft = aTM* stTRarm stTcore* stBcore* sMarm sbBLarm sbBLhairpin "TTTT" sbBLhairpin* : 87
 strand longMidRight = sbBLarm* sbBcore sbTcore* sMarm* stTRarm* aTM eTM : 74
 strand longRight = sbBRarm* sbBcore* sbTcore sbTRarm* aTR* : 48
-strand shortRight = eTR aTR* sbTRarm sbBRarm sbBRhairpin "TTTT" sbBRhairpin* : 39
+strand shortRight = eTR aTR sbTRarm sbBRarm sbBRhairpin "TTTT" sbBRhairpin* : 39
 
 structure [no-opt] tile = shortLeft + longLeft + longMidLeft + longMidRight + longRight + shortRight : 26. + 48. + 87. + 74. + 48. + 39.  

@@ -55,7 +55,7 @@ def fix_paths():
         os.environ['PATH'] = os.environ['SPURIOUSPATH']+':'+os.environ['PATH']
     if not shutilwhich.which('spuriousSSM'):
         warnings.warn("spuriousSSM is not in PATH. Parts of tilesetdesigner dependent on spuriousSSM will not work.")
-
+        
 def design_set(tileset, name='tsd_temp', includes=[pkg_resources.resource_filename(__name__,'peppercomps')], stickyopts={}, reorderopts={}, coreopts={}, keeptemp=False):
     """
     Helper function to design sets from scratch, calling the numerous parts of tilesetdeisgner. You may want to use the tilesetdesigner
@@ -68,7 +68,7 @@ def design_set(tileset, name='tsd_temp', includes=[pkg_resources.resource_filena
     :returns: tileset definition dictionary, with added sequences
 
     """
-    import yaml 
+    import ruamel.yaml as yaml 
     # If tileset is a filename, open and load it. If it's a file, open it.
     # If it's a dict / something else, copy and use it.
 
@@ -109,7 +109,7 @@ def design_set(tileset, name='tsd_temp', includes=[pkg_resources.resource_filena
     # Now do some output.
     return tileset_with_strands
 
-def newcreate_sticky_end_sequences( tileset, energetics=None ):
+def create_sticky_end_sequences( tileset, energetics=None ):
     """\
 Create sticky end sequences for a tileset, using stickydesign.  This new
 version should be more flexible, and should be able to keep old sticky ends,
@@ -154,6 +154,12 @@ were designed.
 
     ends = util.merge_endlists( ends, endlist_from_tiles, in_place=True )
 
+    # Ensure that if there are any resulting completely-undefined ends, they
+    # have their sequences removed.
+    for end in ends:
+        if 'fseq' in end.keys() and end['fseq']=='nnnnnnn':
+            del(end['fseq'])
+    
     # Build inputs suitable for stickydesign: lists of old sequences for TD/DT,
     # and numbers of new sequences needed.
     oldDTseqs = [ end['fseq'] for end in ends \
@@ -204,104 +210,17 @@ were designed.
 
     ends.check_consistent()
 
+    # Ensure that the old and new sets have consistent end definitions,
+    # and that the tile definitions still fit.
+    tiletypes.merge_endlists( tileset['ends'], ends )
+    tiletypes.merge_endlists(
+        tiletypes.endlist_from_tilelist(newtileset['tiles']),
+        ends )
+    
     # Apply new sequences to tile system.
     newtileset['ends'] = ends
 
-    return (newtileset, newTDnames+newDTnames)
-    
-def create_sticky_end_sequences( tileset, inputs='complements', energetics=None, *options ):
-
-    """Given a tileset dictionary in the usual format, without sticky ends, create sticky
-    end sequences via stickydesign, and add them *in random order* to the tileset."""
-
-    # Create a copy of the tileset, so that the original is unchanged.
-    tset = copy.deepcopy(tileset)
-
-    # To start, we'll create two sets to hold ends of each type. For each tile,
-    # we'll then add the ends to the sets.
-    endsets = { 'DT': set(), 'TD': set() }
-
-    # Go through each tile, adding the ends to the sets, and making sure that
-    # the ends were not previously added to the other set.
-    for tile in tset['tiles']:
-        ends = tiletypes.tfactory.parse(tile).tile_ends
-        
-        for end in ends:
-            if end[1] == 'TD':
-                endsets['TD'].add( end[0] )
-                if end[0] in endsets['DT'] or (tiletypes.compname(end[0]) in
-                    endsets['DT']):
-                    raise ValueError("end {} in {} is TD, but was previously \
-                    DT.".format(end[0],tile['name']))
-            elif end[1] == 'DT':
-                endsets['DT'].add( end[0] )
-                if (end[0] in endsets['TD']) or (tiletypes.compname(end[0]) in
-                    endsets['TD']):
-                    raise ValueError("end {} in {} is DT, but was previously \
-                    TD.".format(end[0],tile['name']))
-            else:
-                pass
-                # For now, we don't do anything for other end types, which will
-                # primarily be fake/hairpins
-
-    # Check to ensure that every end is also used as a complement:
-    onetd = set( x[:-1] for x in endsets['TD'] if x[-1]=='/' ) ^ set( x for x in endsets['TD'] if x[-1]!='/' )
-    onedt = set( x[:-1] for x in endsets['DT'] if x[-1]=='/' ) ^ set( x for x in endsets['DT'] if x[-1]!='/' )
-    if onetd or onedt:
-        import warnings
-        warnings.warn("FIXME: IMPLEMENT THIS WARNING MESSAGE (END/COMPLEMENT \
-        MISSING")
-        print(onetd)
-        print(onedt)
-
-    # Make all ends into non-complements, adding the end name if only the
-    # complement was used.
-    endsets['TD'] = set( x[:-1] for x in endsets['TD'] if x[-1]=='/' ) | set( x for x in endsets['TD'] if x[-1]!='/' )
-    endsets['DT'] = set( x[:-1] for x in endsets['DT'] if x[-1]=='/' ) | set( x for x in endsets['DT'] if x[-1]!='/' )
-
-    # The number of ends of each type to design. FIXME: should deal with
-    # preexisting ends in the file.
-    numTD = len(endsets['TD'])
-    numDT = len(endsets['DT'])
-
-    # The target energies to use. This is necessary because just using easyends can result
-    # in different target energies for DT and TD. We'll use the average of the two.
-    optTD = sd.enhist( 'TD', 5, energetics=energetics)[2]['emedian']
-    optDT = sd.enhist( 'DT', 5, energetics=energetics)[2]['emedian']
-    targetint = 0.5*(optTD+optDT)
-
-    # Create the ends with stickydesign.
-    ends = {'TD': [], 'DT': []}
-    ends['TD'] = sd.easyends('TD',5,number=numTD, energetics=energetics, interaction=targetint).tolist()
-    ends['DT'] = sd.easyends('DT',5,number=numDT, energetics=energetics, interaction=targetint).tolist()
-
-    # Check that we found a sufficient number of ends. FIXME: is this necessary,
-    # or will stickydesign raise an error?
-    assert numTD == len(ends['TD'])
-    assert numDT == len(ends['DT'])
-
-    # Shuffle the lists of end sequences, to ensure that they're random order, and that ends
-    # used earlier in the set are not always better than those used later.
-    shuffle(ends['TD'])
-    shuffle(ends['DT'])
-
-    if 'ends' not in tset.keys():
-        tset['ends'] = []
-
-    # Create the list of ends and their sequences. FIXME: deal with preexisting
-    # ends.
-    for endtype in ['TD','DT']:
-        for end in endsets[endtype]:
-            tset['ends'].append( { 'name': end, 'type': endtype, 'fseq': \
-                ends[endtype].pop() } )
-   
-    # If all inputs to tiles are complements, then make the input array for each
-    # tile.
-    if inputs == 'complements':
-        for tile in tset['tiles']:
-            tile['input'] = [ int(x[-1]=='/') for x in tile['ends'] ]
-
-    return tset
+    return (newtileset, newTDnames+newDTnames)    
 
 def reorder_sticky_ends( tileset, newends=None, hightemp=0.1, lowtemp=1e-7, steps=45000, update=1000, energetics=None ):
     """Given a tileset dictionary that includes sticky end sequences, reorder these to
@@ -336,9 +255,9 @@ def reorder_sticky_ends( tileset, newends=None, hightemp=0.1, lowtemp=1e-7, step
 def create_strand_sequences( tileset, basename, includes=None, spurious_pars="verboten_weak=1.5", *options ):
     """Given a tileset dictionary with sticky ends sequences, create core sequences for tiles."""
 
-    tileset = copy.deepcopy(tileset)
+    newtileset = copy.deepcopy(tileset)
 
-    create_pepper_input_files( tileset, basename )
+    create_pepper_input_files( newtileset, basename )
 
     compiler.compiler( basename, [], basename+'.pil', basename+'.save', \
             fixed_file=basename+'.fix', includes=includes, synth=True )
@@ -351,11 +270,21 @@ def create_strand_sequences( tileset, basename, includes=None, spurious_pars="ve
             strandsname=None, run_kin=False, cleanup=False, trials=0, time=0, temp=27, conc=1,
             spurious=False, spurious_time=0 ) #FIXME: shouldn't need so many options.
 
-    tileset_with_strands = load_pepper_output_files( tileset, basename )
+    tileset_with_strands = load_pepper_output_files( newtileset, basename )
 
+    # Ensure:
+    util.merge_endlists( tileset['ends'],
+                         tiletypes.endlist_from_tilelist(tileset_with_strands['tiles']) )  # Ends still fit
+    for tile in tileset_with_strands['tiles']:
+        oldtile = tiletypes.gettile( tileset, tile['name'] )
+        if 'fullseqs' in oldtile.keys():
+            for old,new in zip(oldtile['fullseqs'],tile['fullseqs']):
+                util.merge_seqs(old,new)  # old tile sequences remain
+        assert oldtile['ends'] == tile['ends']
+    util.merge_endlists( tileset['ends'], tileset_with_strands['ends'] ) # old end sequences remain
+    
     return tileset_with_strands
     
-
 def create_pepper_input_files( tileset, basename ):
     # Are we creating adapters in Pepper?
     if seeds.seedtypes[tileset['seed']['type']].needspepper:
@@ -375,8 +304,8 @@ def create_pepper_input_files( tileset, basename ):
             adj = end['fseq'][-1]
             cadj = end['fseq'][0] # FIXME: WAS [1], OFF BY ONE!
         elif end['type'] == 'DT':        
-            adj = end['fseq'][-1]
-            cadj = end['fseq'][0] # FIXME: WAS [1], OFF BY ONE!
+            adj = end['fseq'][0]
+            cadj = end['fseq'][-1] # FIXME: WAS [1], OFF BY ONE!
         else:
             print("warning! end {} not recognized".format(end['name']))
         fixedfile.write( "signal e_{0} = {1}\n".format( end['name'], seq.upper() ) ) 
@@ -412,7 +341,7 @@ def create_pepper_input_files( tileset, basename ):
         if 'fullseqs' in tile.keys():
             fixedfile.write( "structure {}-tile = ".format(tile['name'])+"+".join(
                 [seq.upper() for seq in tile['fullseqs']]) + "\n" )
-        
+
    
     if createadapts:
         importlist, compstring = seedclass.create_pepper_input_files( tileset['seed'], importlist, compstring )
@@ -437,6 +366,7 @@ def load_pepper_output_files( tileset, basename ):
 
     # FIXME: we should do more than just get these sequences. We should also check that our
     # ends, complements, adjacents, etc are still correct. But this is a pretty low priority.
+    # UPDATE for 2017: WOW, LOOK AT ME BEING AN IDIOT IN THE COMMENTS - CGE
 
     for tile in tset['tiles']:
         pepperstrands = re.compile('strand '+tile['name']+'-([^ ]+) = ([^\n]+)').findall(seqsstring)

@@ -7,7 +7,7 @@
 
 version = '0.0.1'
 
-import yaml
+import ruamel.yaml as yaml
 import re
 from io import StringIO
 import datetime

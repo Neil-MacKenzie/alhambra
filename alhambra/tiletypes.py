@@ -8,6 +8,86 @@ xcolors={ " ".join(y[3:]): "rgb({},{},{})".format(y[0],y[1],y[2]) for y in [x.de
 del(rgbv)
 
 from .util import *
+import string
+import re
+
+
+edp_closetoopen={x:y for x,y in zip(string.ascii_lowercase,string.ascii_uppercase)}
+edp_closetoopen.update( {')': '(', ']': '[', '}': '{'} )
+import collections
+
+def check_edotparen_consistency(expr):
+    expr = expand_compact_edotparen(expr)
+    expr = re.sub("\s+","",expr)
+    counts = collections.Counter()
+    strand = 0
+    strandloc = 0
+    for s in expr:
+        if s in edp_closetoopen.values():
+            counts[s]+=1
+        elif s in edp_closetoopen.keys():
+            try:
+                counts[edp_closetoopen[s]]-=1
+            except KeyError:
+                raise ValueError("Opening not found",s,strand,strandloc)
+        elif s == ".":
+            pass
+        elif s == "+":
+            strand+=1
+            strandloc=0
+            continue
+        else:
+            raise ValueError("Unknown char",s,strand,strandloc)
+        strandloc+=1
+    if max(counts.values()) > 0:
+        raise ValueError(counts)
+
+def check_edotparen_sequence(edotparen, sequence):
+    expr = re.sub("\s+","",expand_compact_edotparen(edotparen))
+    seq = re.sub("\s+","",sequence).lower()
+    if len(expr) != len(seq):
+        raise ValueError("Unequal lengths")
+    stacks = {}
+    strand = 0
+    strandloc = 0
+    for s,v in zip(expr,seq):
+        if s in edp_closetoopen.values():
+            if s not in stacks.keys():
+                stacks[s]=[]
+            stacks[s].append(v)
+        elif s in edp_closetoopen.keys():
+            ss = edp_closetoopen[s]
+            if ss not in stacks.keys():
+                raise ValueError("Opening not found",s,strand,strandloc)
+            vv = stacks[ss].pop()
+            if v!=wc[vv]:
+                raise ValueError(
+                    "{} != WC({}) at strand {} loc {} (both from 0)".format(
+                        v,vv,strand,strandloc),v,vv,strand,strandloc)
+        elif s == ".":
+            assert v in wc.keys()
+        elif s == "+":
+            assert v == "+"
+            strand+=1
+            strandloc=0
+            continue
+        else:
+            raise ValueError("Unknown char",s,strand,strandloc)
+        strandloc+=1
+    if max(len(stack) for stack in stacks.values()) > 0:
+        raise ValueError(stacks)    
+
+    
+def expand_compact_edotparen(expr):
+    return re.sub(r"(\d+)([\[\]\(\)\{\}A-Za-z\.])",
+        lambda m: int(m[1])*m[2],
+        expr)
+
+def prettify_edotparen(expr):
+    # This is evil:
+    return re.sub(r"(([\[\]\(\)\{\}A-Za-z\.])\2+)",
+        lambda m: "{}{}".format(len(m[1]),m[2]), expr)
+
 
 class tile_daoe(object):
     def __init__(self, defdict):
@@ -41,6 +121,9 @@ class tile_daoe(object):
     def __getitem__(self, *args):
         return self._defdict.__getitem__(*args)
 
+    def check_sequence(self):
+        check_edotparen_sequence(self.edotparen, "+".join(self['fullseqs']))
+    
     def get_end_defs(self):
         es = list()
         for (strand,start,end), endtype, endname in \
@@ -122,7 +205,8 @@ class tile_daoe_single(tile_daoe):
             tilediag.add( drawing.text( self._orient[0], insert=(92,8), text_anchor='middle', dominant_baseline="mathematical", font_size="9pt"))
             tilediag.add( drawing.text( self._orient[1], insert=(8,92), text_anchor='middle', dominant_baseline="mathematical", font_size="9pt"))
 
-        return tilediag 
+        return tilediag
+    
     @property
     def _seqdiagseqstrings(self):
         s = self['fullseqs']
@@ -148,12 +232,16 @@ class tile_daoe_5up(tile_daoe_single):
         self._endtypes = ['TD','TD','DT','DT']
         # endlocs is strand, loc, length
         self._endlocs = [(0,0,5),(3,0,5),(3,21,None),(0,21,None)]
+    # valid edotparen for both 3up and 5up
+    edotparen = "5.16(5.+8)16[16{8)+8(16]16}8(+5.16)5."
 
 class tile_daoe_3up(tile_daoe_single):
     def __init__(self, defdict):
         tile_daoe_single.__init__(self, defdict, orient = ('3','5'))
         self._endtypes = ['DT','DT','TD','TD']
         self._endlocs = [(0,21,None),(3,21,None),(3,0,5),(0,0,5)]
+    # valid edotparen for both 3up and 5up
+    edotparen = "5.16(5.+8)16[16{8)+8(16]16}8(+5.16)5."
 
 class tile_daoe_5up_2h(tile_daoe_single):
     def __init__(self, defdict):
@@ -161,6 +249,7 @@ class tile_daoe_5up_2h(tile_daoe_single):
         self._endtypes = ['TD','hairpin','DT','DT']
         self._endlocs = [(0,0,5),(3,0,18),(3,21,None),(0,21,None)]
 
+    edotparen = "5.16(5.+8)16[16{8)+8(16]16}8(+5.16)7(4.7)"
 
     @property
     def _seqdiagseqstrings(self):
@@ -398,7 +487,7 @@ class tile_daoe_doublehoriz_35up_2h3h(tile_daoe_doublehoriz_35up):
     def __init__(self, defdict):
         tile_daoe_doublehoriz_35up.__init__(self, defdict)
         self._endtypes[1]='hairpin'; self._endtypes[2]='hairpin'
-
+    edotparen = '5.16(5.+8)16[16{8)+7(4.7)29(16]16}8(+5.29)16[16{8)+8(16]16}8(+7(4.23)5.'
     @property
     def _seqdiagseqstrings(self):
         s = copy.copy(self['fullseqs'])
@@ -436,7 +525,7 @@ class tile_daoe_doublevert_35up_4h5h(tile_daoe_doublevert_35up):
     def __init__(self, defdict):
         tile_daoe_doublevert_35up.__init__(self, defdict)
         self._endtypes[3]='hairpin'; self._endtypes[4]='hairpin'
-
+    edotparen = "5.16(5.+8)16[16{8)+8(16]16}8(5(16(7(4.7)+8)16[16{8)5)16)5.+8(16]16}8(+5.16)7(4.7)"
     @property
     def _seqdiagseqstrings(self):
         s = copy.copy(self['fullseqs'])
