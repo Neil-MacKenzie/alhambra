@@ -15,6 +15,7 @@ import os
 from . import tiletypes
 from . import seeds
 from . import util
+from . import seq
 #from tilesets import *
 
 seedtypes = seeds.seedtypes
@@ -279,7 +280,7 @@ def create_strand_sequences( tileset, basename, includes=None, spurious_pars="ve
         oldtile = tiletypes.gettile( tileset, tile['name'] )
         if 'fullseqs' in oldtile.keys():
             for old,new in zip(oldtile['fullseqs'],tile['fullseqs']):
-                util.merge_seqs(old,new)  # old tile sequences remain
+                seq.merge(old,new)  # old tile sequences remain
         assert oldtile['ends'] == tile['ends']
     util.merge_endlists( tileset['ends'], tileset_with_strands['ends'] ) # old end sequences remain
     

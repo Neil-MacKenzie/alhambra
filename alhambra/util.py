@@ -1,5 +1,6 @@
 import copy
 from . import tiletypes
+from . import seq
 
 class named_list(list):
     """\
@@ -94,7 +95,7 @@ information from each and enforcing that the two input ends consistently make a 
     for i,v in end2.items():
         if i in out.keys() and i=='fseq':
             # we merge sequences    
-            out[i] = merge_seqs(out[i],v)
+            out[i] = seq.merge(out[i],v)
         elif i in out.keys() and out[i]!=v:
             # we insisted all others must be equal
             raise ValueError(\
@@ -173,17 +174,4 @@ ValueError: In the event of a failed merge, when named ends cannot be
         raise ValueError(\
               "Errors merging {}".format(errorstring), exceptions, errors, out)
     
-    return out
-
-def merge_seqs(seq1, seq2):
-    assert len(seq1)==len(seq2)
-    out = ""
-    for i,(n1,n2) in enumerate(zip(seq1.lower(),seq2.lower())):
-        try:
-            out += ntol[ tuple(set.intersection( set(lton[n1]), set(lton[n2]) )) ]
-        except KeyError as e:
-            if e.args[0] == tuple():
-                raise ValueError("{}+{}: {}/{} at {}.".format(seq1,seq2,n1,n2,i),seq1,seq2,n1,n2,i) from None
-            else:
-                raise e
     return out
