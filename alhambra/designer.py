@@ -7,7 +7,7 @@ import warnings
 import numpy as np
 
 from stickydesign.energetics_daoe import energetics_daoe
-default_energetics = energetics_daoe() 
+default_energetics = energetics_daoe(temperature=33, mismatchtype='combined', coaxparams=True) 
 
 import pkg_resources
 import os
@@ -16,48 +16,19 @@ from . import tiletypes
 from . import seeds
 from . import util
 from . import seq
+from . import tilesets
 #from tilesets import *
 
 seedtypes = seeds.seedtypes
 
-def fix_paths():
-    """
-    Fix paths to PepperCompiler and SpuriousDesign, so that tilesetdesigner can use them. This is an unfortunate workaround to both
-    of these lacking good installation methods. It works through two environment variables:
-
-    PEPPERPATH should be set to the path of PepperCompiler. Note that in its current method, other directories in the directory above
-    PepperCompiler can potentially clobber library loading for tilesetdesigner, and the directory *must* be named PepperCompiler (FIXME). 
-    It's unclear how to fix this.
-
-    SPURIOUSPATH should be set to the path of SpuriousDesign, or any directory that contains a working spuriousSSM.
-    """
-    global compiler, spurious_design, finish, wc
-    import os, sys
-    try:
-        from pepper import compiler as compiler
-        from pepper.design import spurious_design as spurious_design
-        from pepper import finish as finish
-        from pepper.DNA_classes import wc
-    except ImportError:
-        if 'PEPPERPATH' in os.environ:
-            sys.path = [ os.path.abspath( os.path.join( os.environ['PEPPERPATH'], '..' ) ) ] + sys.path
-        try:
-            from PepperCompiler import compiler as compiler
-            from PepperCompiler.design import spurious_design as spurious_design
-            from PepperCompiler import finish as finish
-            from PepperCompiler.DNA_classes import wc
-        except ImportError:
-            warnings.warn("Can't import PepperCompiler. Parts of tilesetdesigner dependent on Pepper will not work.")
-
-    import shutilwhich
-    if 'SPURIOUSPATH' in os.environ:
-        if not os.path.isfile( os.path.join( os.environ['SPURIOUSPATH'], 'spuriousSSM') ):
-            raise ValueError("SPURIOUSPATH is set, and spuriousSSM was not found at SPURIOUSPATH.")
-        os.environ['PATH'] = os.environ['SPURIOUSPATH']+':'+os.environ['PATH']
-    if not shutilwhich.which('spuriousSSM'):
-        warnings.warn("spuriousSSM is not in PATH. Parts of tilesetdesigner dependent on spuriousSSM will not work.")
+from peppercompiler import compiler as compiler
+from peppercompiler.design import spurious_design as spurious_design
+from peppercompiler import finish as finish
+from peppercompiler.DNA_classes import wc
+import ruamel.yaml as yaml
+from . import tilesets
         
-def design_set(tileset, name='tsd_temp', includes=[pkg_resources.resource_filename(__name__,'peppercomps')], stickyopts={}, reorderopts={}, coreopts={}, keeptemp=False):
+def design_set(tileset, name='tsd_temp', includes=[pkg_resources.resource_filename(__name__,'peppercomps-j1')], energetics=None, stickyopts={}, reorderopts={}, coreopts={}, keeptemp=False):
     """
     Helper function to design sets from scratch, calling the numerous parts of tilesetdeisgner. You may want to use the tilesetdesigner
     shell script instead.
@@ -69,29 +40,24 @@ def design_set(tileset, name='tsd_temp', includes=[pkg_resources.resource_filena
     :returns: tileset definition dictionary, with added sequences
 
     """
-    import ruamel.yaml as yaml 
-    # If tileset is a filename, open and load it. If it's a file, open it.
-    # If it's a dict / something else, copy and use it.
-
-    if hasattr(tileset,'read'):
-        tileset = yaml.load(tileset)
-    elif isinstance(tileset, str):
-        with open(tileset,'r') as f:
-            tileset = yaml.load(f)
-    else:
-        tileset = copy.deepcopy(tileset)
-
-    # Make some sequences for the sticky ends. But we probably don't need
-    # to save the non-reordered version!
-    tileset_with_ends_randomorder = create_sticky_end_sequences( tileset, **stickyopts )
+    if energetics == None:
+        energetics = default_energetics
     
-    # Now reorder them.
-    tileset_with_ends_ordered = reorder_sticky_ends( tileset_with_ends_randomorder, **reorderopts )
+    if hasattr(tileset,'read'):
+        tileset = tilesets.load_tileset_dict(tileset)
+    else:
+        tileset = tilesets.tileset_dict(tileset)
 
-    # Now create the strands.
-    tileset_with_strands = create_strand_sequences( tileset_with_ends_ordered, name, includes = includes, **coreopts )
+    tileset.check_consistent()
+    tileset_with_ends_randomorder, new_ends = create_sticky_end_sequences(
+        tileset, energetics=energetics, **stickyopts )
+    tileset_with_ends_ordered = reorder_sticky_ends( tileset_with_ends_randomorder,
+                                                     newends=new_ends,
+                                                     energetics=energetics,
+                                                     **reorderopts )
+    tileset_with_strands = create_strand_sequences( tileset_with_ends_ordered, name,
+                                                    includes = includes, **coreopts )
 
-    # Create guards if we need to.
     if 'guards' in tileset_with_strands.keys():
         tileset_with_strands = create_guard_strand_sequences( tileset_with_strands )
 
@@ -107,7 +73,7 @@ def design_set(tileset, name='tsd_temp', includes=[pkg_resources.resource_filena
         os.remove(name+'.seqs')
         os.remove(name+'.sys')
 
-    # Now do some output.
+    tileset_with_strands.check_consistent()       
     return tileset_with_strands
 
 def create_sticky_end_sequences( tileset, energetics=None ):
@@ -223,7 +189,7 @@ were designed.
 
     return (newtileset, newTDnames+newDTnames)    
 
-def reorder_sticky_ends( tileset, newends=None, hightemp=0.1, lowtemp=1e-7, steps=45000, update=1000, energetics=None ):
+def reorder_sticky_ends( tileset, newends=[], hightemp=0.1, lowtemp=1e-7, steps=45000, update=1000, energetics=None ):
     """Given a tileset dictionary that includes sticky end sequences, reorder these to
     try to optimize error rates."""
     from . import endreorder
@@ -241,9 +207,6 @@ def reorder_sticky_ends( tileset, newends=None, hightemp=0.1, lowtemp=1e-7, step
 
     newstate = annealer.anneal( reordersys.initstate, hightemp, lowtemp, steps, update )
 
-    # Check state with old
-    #assert reordersys.score( newstate[0] ) == reordersys_old.score( endreorder.FseqState( reordersys.slowseqs( newstate[0] ) ) ) 
-
     # Now take that new state, and apply it to the new tileset.
     seqs = reordersys.slowseqs( newstate[0] )
     for end in tset['ends']:
@@ -251,6 +214,14 @@ def reorder_sticky_ends( tileset, newends=None, hightemp=0.1, lowtemp=1e-7, step
             eloc = reordersys.enlocs[end['name']]
             end['fseq'] = seqs[eloc[1]].tolist()[eloc[0]]
 
+    # Ensure that only ends in newends moved: that all others remain mergeable:
+    if newends:
+        old_ends_from_new_set = util.named_list( end for end in tset['ends']
+                                                 if end['name'] not in newends )
+        util.merge_endlists(tileset['ends'],old_ends_from_new_set)
+
+    # Ensure system consistency
+    tset.check_consistent()
     return tset
 
 def create_strand_sequences( tileset, basename, includes=None, spurious_pars="verboten_weak=1.5", *options ):
@@ -282,7 +253,9 @@ def create_strand_sequences( tileset, basename, includes=None, spurious_pars="ve
             for old,new in zip(oldtile['fullseqs'],tile['fullseqs']):
                 seq.merge(old,new)  # old tile sequences remain
         assert oldtile['ends'] == tile['ends']
-    util.merge_endlists( tileset['ends'], tileset_with_strands['ends'] ) # old end sequences remain
+    
+    # Check that old end sequences remain
+    util.merge_endlists( tileset['ends'], tileset_with_strands['ends'] ) 
     
     return tileset_with_strands
     
@@ -504,6 +477,3 @@ def create_layout_diagrams( tileset, xgrowarray, filename, scale=1, *options ):
     b.add(c)
     b.save()
 
-
-# Force run fix_paths
-fix_paths()

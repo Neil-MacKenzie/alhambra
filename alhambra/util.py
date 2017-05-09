@@ -1,14 +1,16 @@
 import copy
 from . import tiletypes
 from . import seq
+from ruamel.yaml.comments import CommentedSeq
+from ruamel.yaml.representer import RoundTripRepresenter
 
-class named_list(list):
+class named_list(CommentedSeq):
     """\
 A class for a list of dicts, where some dicts have a 'name' item which should be unique, but others might not.
 Indexing works with either number or name.
 Note that updating dicts may make the list inconsistent."""
     def __init__(self,x=[]):
-        list.__init__(self,x)
+        CommentedSeq.__init__(self,x)
 
     def __getitem__(self, i):
         if isinstance(i,str):
@@ -20,7 +22,7 @@ Note that updating dicts may make the list inconsistent."""
             else:
                 return r[0]
         else:
-            return list.__getitem__(self,i)
+            return CommentedSeq.__getitem__(self,i)
 
     def check_consistent(self):
         """\
@@ -50,12 +52,24 @@ with (message, {failed_name: count}).  Otherwise, return with no output.
             elif len(r)==0:
                 self.append(v)
             else:
-                list.__setitem__(self, r[0][0], v)
+                CommentedSeq.__setitem__(self, r[0][0], v)
         else:
-            list.__setitem__(self,i,v)
+            CommentedSeq.__setitem__(self,i,v)
 
     def keys(self):
         return [ x['name'] for x in self if 'name' in x.keys() ]
+
+    def __deepcopy__(self, memo):
+        # FIXME: this is here waiting on ruamel.yaml bugfix.
+        res = self.__class__()
+        memo[id(self)] = res
+        for k in self:
+            res.append(copy.deepcopy(k))
+            self.copy_attributes(res, deep=True)
+        return res
+
+RoundTripRepresenter.add_representer(named_list,
+                                     RoundTripRepresenter.represent_list)
 
 lton = { 'a': (0,),
          'b': (1, 2, 3),
@@ -140,7 +154,8 @@ ValueError: In the event of a failed merge, when named ends cannot be
     following args: 
     ("message", [exceptions], [failed_name,failed_end1,failed_end2) ...],out)
 """
-    
+    endlist1 = named_list(endlist1)
+
     # Check consistency of each named_list
     endlist1.check_consistent()
     try:

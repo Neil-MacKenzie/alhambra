@@ -10,7 +10,7 @@ del(rgbv)
 from .util import *
 import string
 import re
-
+from ruamel.yaml.comments import CommentedMap
 
 edp_closetoopen={x:y for x,y in zip(string.ascii_lowercase,string.ascii_uppercase)}
 edp_closetoopen.update( {')': '(', ']': '[', '}': '{'} )
@@ -157,7 +157,7 @@ class tile_daoe(object):
                               reversed(\
                                        [wc[x] for x in seq] ))
             
-            e = { 'name': endname, 'type': endtype }
+            e = CommentedMap({ 'name': endname, 'type': endtype })
 
             if seq:
                 e['fseq'] = seq

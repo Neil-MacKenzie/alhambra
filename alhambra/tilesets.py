@@ -1,11 +1,16 @@
 import ruamel.yaml as yaml
+from ruamel.yaml.comments import CommentedMap
+from ruamel.yaml.representer import RoundTripRepresenter
 from collections import Counter 
 from .util import *
 from . import tiletypes
+from functools import reduce
+import operator
 
-class tileset_dict(dict):
-    def __init__( self, val ):
-        dict.__init__(self, val)
+
+class tileset_dict(CommentedMap):
+    def __init__( self, val={} ):
+        CommentedMap.__init__(self, val)
         if 'ends' in self.keys():
             self['ends'] = named_list(self['ends'])
         else:
@@ -62,8 +67,41 @@ class tileset_dict(dict):
         # *** if both tile mimic and ends are specified, they must match
         
     def summary( self ):
-        pass
-        
+        self.check_consistent()
+        info = {'ntiles': len(self['tiles']),
+                'nends':  len(self['ends']),
+                'ntends': len(tiletypes.endlist_from_tilelist(self['tiles'])),
+                'tns':    " ".join(x['name'] for x in self['tiles'] if 'name' in x.keys()),
+                'ens':    " ".join(x['name'] for x in self['ends'] if 'name' in x.keys()),
+                'name':   " {}".format(self['info']['name']) if \
+                                       ('info' in self.keys() and \
+                                        'name' in self['info'].keys()) else ""}
+        tun = sum( 1 for x in self['tiles'] if 'name' not in x.keys() )
+        if tun > 0:
+            info['tns'] += " ({} unnamed)".format(tun)
+        eun = sum( 1 for x in self['ends'] if 'name' not in x.keys() )
+        if eun > 0:
+            info['ens'] += " ({} unnamed)".format(eun)
+        return "TileSet{name}: {ntiles} tiles, {nends} ends, {ntends} ends in tiles.\nTiles: {tns}\nEnds:  {ens}".format(**info)
 
+    def __str__( self ):
+        return self.summary()
+
+    
+    def __deepcopy__(self, memo):
+        # type: (Any) -> Any
+        res = self.__class__()
+        memo[id(self)] = res
+        for k in self:
+            res[k] = copy.deepcopy(self[k])
+            self.copy_attributes(res, deep=True)
+        return res
+
+    def dump(self, stream):
+        return yaml.round_trip_dump(self, stream)
+    
+RoundTripRepresenter.add_representer(tileset_dict,
+                                     RoundTripRepresenter.represent_dict)
+    
 def load_tileset_dict( *args, **kwargs ):
-    return tileset_dict( yaml.load( *args, **kwargs ) )
+    return tileset_dict( yaml.round_trip_load( *args, **kwargs ) )
