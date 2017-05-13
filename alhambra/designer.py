@@ -5,6 +5,7 @@ import stickydesign as sd
 import logging
 import warnings
 import numpy as np
+import re
 
 from stickydesign.energetics_daoe import energetics_daoe
 default_energetics = energetics_daoe(temperature=33, mismatchtype='combined', coaxparams=True) 
@@ -195,9 +196,15 @@ def reorder_sticky_ends( tileset, newends=[], hightemp=0.1, lowtemp=1e-7, steps=
     from . import endreorder
     from . import endreorder_fast
     from . import anneal
+
+    if energetics == None:
+        energetics = default_energetics
     
     tset = copy.deepcopy(tileset)
 
+    if 'info' not in tset.keys():
+        tset['info'] = {}
+    
     reordersys = endreorder_fast.EndSystemFseq( tset, newends, energetics=energetics )
     
     #reordersys_old = endreorder.EndSystemFseq( tset, energetics=energetics )
@@ -214,12 +221,18 @@ def reorder_sticky_ends( tileset, newends=[], hightemp=0.1, lowtemp=1e-7, steps=
             eloc = reordersys.enlocs[end['name']]
             end['fseq'] = seqs[eloc[1]].tolist()[eloc[0]]
 
+    ri = {}
+
+    ri['score'] = reordersys.score(newstate[0])
+    
+    tset['info']['reorder'] = ri
+            
     # Ensure that only ends in newends moved: that all others remain mergeable:
     if newends:
         old_ends_from_new_set = util.named_list( end for end in tset['ends']
                                                  if end['name'] not in newends )
         util.merge_endlists(tileset['ends'],old_ends_from_new_set)
-
+        
     # Ensure system consistency
     tset.check_consistent()
     return tset
@@ -235,9 +248,29 @@ def create_strand_sequences( tileset, basename, includes=None, spurious_pars="ve
             fixed_file=basename+'.fix', includes=includes, synth=True )
 
     spurious_design.design( basename, infilename=basename+'.pil', outfilename=basename+'.mfe',
-            verbose=True, struct_orient=True, tempname=basename+'-temp', extra_pars=spurious_pars,
-            findmfe=False ) 
+                            verbose=True, struct_orient=True, tempname=basename+'-temp',
+                            extra_pars=spurious_pars, findmfe=False, cleanup=False ) 
 
+    if 'info' not in newtileset.keys():
+        newtileset['info'] = {}
+
+    with open(basename+'-temp.sp') as f:
+        a = f.read()
+        cdi = {}
+        cdi['basename'] = basename
+        cdi['score_verboten'] = float(
+            re.findall(r'score_verboten\s+score\s+=\s+([+-]?[\d.,]+)',a)[1])
+        cdi['score_spurious'] = float(
+            re.findall(r'score_spurious\s+score\s+=\s+([+-]?[\d.,]+)',a)[1])
+        cdi['score_bonds'] = float(
+            re.findall(r'score_bonds\s+score\s+=\s+([+-]?[\d.,]+)',a)[1])
+        cdi['score'] = float(
+            re.findall(r'weighted score\s+=\s+([+-]?[\d.,]+)',a)[1])
+        cdi['spurious_output'] = re.search(
+            r"(?<=FINAL\n\n)[\w\W]+weighted.*",a,re.MULTILINE).group(0)
+
+    newtileset['info']['core']=cdi
+        
     finish.finish( basename+'.save', designname=basename+'.mfe', seqsname=basename+'.seqs',
             strandsname=None, run_kin=False, cleanup=False, trials=0, time=0, temp=27, conc=1,
             spurious=False, spurious_time=0 ) #FIXME: shouldn't need so many options.
