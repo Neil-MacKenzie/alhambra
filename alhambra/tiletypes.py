@@ -416,6 +416,7 @@ class tile_daoe_doublevert_35up(tile_daoe_doublevert):
 
 
 class tile_daoe_doublehoriz_35up_1h2i(tile_daoe_doublehoriz_35up):
+    edotparen = '5.16(7(4.7)+8)16[16{8)+5(29(16]16}8(+5.29)16[16{8)5)+8(16]16}8(+5.16)5.'
     def __init__(self, defdict):
         tile_daoe_doublehoriz_35up.__init__(self, defdict)
         self._endtypes[0]='hairpin'
@@ -450,6 +451,7 @@ class tile_daoe_doublehoriz_35up_1h2i(tile_daoe_doublehoriz_35up):
              ] 
 
 class tile_daoe_doublehoriz_35up_4h5i(tile_daoe_doublehoriz_35up):
+    edotparen = '5.16(5.+8)16[16{8)+5.29(16]16}8(5(+5)29)16[16{8)+8(16]16}8(+5.16)7(4.7)'
     def __init__(self, defdict):
         tile_daoe_doublehoriz_35up.__init__(self, defdict)
         self._endtypes[3]='hairpin'
