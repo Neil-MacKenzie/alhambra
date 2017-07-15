@@ -109,7 +109,10 @@ class tile_daoe(object):
         texts = base_svg.findall( "//{http://www.w3.org/2000/svg}text" )
 
         for text, string in zip(texts,strings):
-            text.text = string
+            if text.getchildren():
+                text.getchildren()[0].text = string
+            else:
+                text.text = string
 
         return base_svg.xpath('/svg:svg/svg:g',namespaces={'svg':'http://www.w3.org/2000/svg'})[0]
 

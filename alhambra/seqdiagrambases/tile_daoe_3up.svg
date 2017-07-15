@@ -24,10 +24,10 @@
 	<text transform="matrix(1 0 0 1 171.0637 65.4225)" font-family="'Courier'" font-size="9.8305">34GCTTGT  CCGTTCGC</text>
 	<text transform="matrix(1 0 0 1 230.0499 58.05)" font-family="'Courier'" font-size="9.8305">41CAAGCG  AGTGA</text>
 	<text transform="matrix(1 0 0 1 230.0499 30.0363)" font-family="'Courier'" font-size="9.8305">42TAGAGC  ATCTC</text>
-	<text transform="matrix(1 0 0 1 15.277 15.2731)" font-family="'Courier'" font-size="11.7966">A</text>
-	<text transform="matrix(1 0 0 1 296.6819 15.2731)" font-family="'Courier'" font-size="11.7966">B</text>
-	<text transform="matrix(1 0 0 1 296.6819 76.2285)" font-family="'Courier'" font-size="11.7966">C</text>
-	<text transform="matrix(1 0 0 1 15.277 76.2285)" font-family="'Courier'" font-size="11.7966">D</text>
-	<text transform="matrix(1 0 0 1 136.99 10.8664)" font-family="'Courier'" font-size="13.7628">TC1-A</text>
+	<text transform="matrix(1 0 0 1 14 15.2735)" font-family="'Courier'" font-size="11.7966"><tspan style="text-anchor:middle;text-align:center">A</tspan></text>
+	<text transform="matrix(1 0 0 1 296 15.2735)" font-family="'Courier'" font-size="11.7966"><tspan style="text-anchor:middle;text-align:center">B</tspan></text>
+	<text transform="matrix(1 0 0 1 296 76.2281)" font-family="'Courier'" font-size="11.7966"><tspan style="text-anchor:middle;text-align:center">C</tspan></text>
+	<text transform="matrix(1 0 0 1 14 76.2281)" font-family="'Courier'" font-size="11.7966"><tspan style="text-anchor:middle;text-align:center">D</tspan></text>
+	<text transform="matrix(1 0 0 1 158 10.8645)" font-family="'Courier'" font-size="13.7628"><tspan style="text-anchor:middle;text-align:center">TC1-A</tspan></text>
 </g>
 </svg>
