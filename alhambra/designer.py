@@ -77,7 +77,7 @@ def design_set(tileset, name='tsd_temp', includes=[pkg_resources.resource_filena
     tileset_with_strands.check_consistent()       
     return tileset_with_strands
 
-def create_sticky_end_sequences( tileset, energetics=None ):
+def create_sticky_end_sequences( tileset, energetics=None, sdopts={}, _sdopts_2_function=None ):
     """\
 Create sticky end sequences for a tileset, using stickydesign.  This new
 version should be more flexible, and should be able to keep old sticky ends,
@@ -157,10 +157,14 @@ were designed.
     # Create new sequences.
     newTDseqs = sd.easyends( 'TD', 5, number=len(newTDnames),
                              energetics=energetics,
-                             interaction=targetint).tolist()
+                             interaction=targetint, **sdopts).tolist()
+
+    if _sdopts_2_function:
+        sdopts = _sdopts_2_function(sdopts, newTDseqs, targetint, energetics, 'TD')
+    
     newDTseqs = sd.easyends( 'DT', 5, number=len(newDTnames),
                              energetics=energetics,
-                             interaction=targetint).tolist()
+                             interaction=targetint, **sdopts).tolist()
 
     # FIXME: move to stickydesign
     assert len(newTDseqs) == len(newTDnames)
