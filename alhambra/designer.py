@@ -1,12 +1,7 @@
 # vim: set sw=4 ts=4
-from random import shuffle
 import copy
-import stickydesign as sd
 import warnings
-import numpy as np
 import re
-
-from stickydesign import EnergeticsDAOE
 
 import pkg_resources
 import os
@@ -16,14 +11,13 @@ from . import seeds
 from . import util
 from . import seq
 from . import tilesets
+from . import stickyends
 
 from peppercompiler import compiler as compiler
 from peppercompiler.design import spurious_design as spurious_design
 from peppercompiler import finish as finish
 from peppercompiler.DNA_classes import wc
 
-DEFAULT_ENERGETICS = EnergeticsDAOE(
-    temperature=33, mismatchtype='combined', coaxparams=True)
 
 
 def design_set(
@@ -50,17 +44,17 @@ def design_set(
 
     """
     if energetics is None:
-        energetics = DEFAULT_ENERGETICS
+        energetics = stickyends.DEFAULT_ENERGETICS
 
     if hasattr(tileset, 'read'):
         tileset = tilesets.load_tileset_dict(tileset)
     else:
-        tileset = tilesets.tileset_dict(tileset)
+        tileset = tilesets.TileSet(tileset)
 
     tileset.check_consistent()
-    tileset_with_ends_randomorder, new_ends = create_sticky_end_sequences(
+    tileset_with_ends_randomorder, new_ends = stickyends.create_sequences(
         tileset, energetics=energetics, **stickyopts)
-    tileset_with_ends_ordered = reorder_sticky_ends(
+    tileset_with_ends_ordered = stickyends.reorder(
         tileset_with_ends_randomorder,
         newends=new_ends,
         energetics=energetics,
@@ -86,201 +80,6 @@ def design_set(
 
     tileset_with_strands.check_consistent()
     return tileset_with_strands
-
-
-def create_sticky_end_sequences(tileset,
-                                energetics=None,
-                                sdopts={},
-                                _sdopts_2_function=None):
-    """Create sticky end sequences for a tileset, using stickydesign.  This new
-version should be more flexible, and should be able to keep old sticky ends,
-accounting for them in creating new ones.
-
-Parameters
-----------
-
-tileset: the tileset to create sticky ends sequences for.  This will be copied
-     and returned, not modified.
-
-energetics: the energetics instance to use for the design.  If None (default),
-will use alhambra.designer.DEFAULT_ENERGETICS.
-
-Outputs (tileset, new_ends) where new_ends is a list of new end names that
-were designed.
-"""
-    if not energetics:
-        energetics = DEFAULT_ENERGETICS
-    # Steps for doing this:
-
-    # Create a copy of the tileset.
-    newtileset = copy.deepcopy(tileset)
-
-    # Build a list of ends from the endlist in the tileset.  Do this
-    # by creating a named_list, then merging them into it.
-    ends = util.named_list()
-
-    if 'ends' in newtileset.keys():
-        ends = util.merge_endlists(
-            ends, newtileset['ends'], fail_immediate=False, in_place=True)
-
-    # This is the endlist from the tiles themselves.
-    if 'tiles' in newtileset.keys():  # maybe you just want ends?
-        # this checks for end/complement usage, and whether any
-        # previously-describedends are unused
-        # FIXME: implement
-        # tiletypes.check_end_usage(newtileset['tiles'], ends)
-
-        endlist_from_tiles = tiletypes.endlist_from_tilelist(
-            newtileset['tiles'])
-
-    ends = util.merge_endlists(ends, endlist_from_tiles, in_place=True)
-
-    # Ensure that if there are any resulting completely-undefined ends, they
-    # have their sequences removed.
-    for end in ends:
-        if 'fseq' in end.keys() and end['fseq'] == 'nnnnnnn':
-            del (end['fseq'])
-
-    # Build inputs suitable for stickydesign: lists of old sequences for TD/DT,
-    # and numbers of new sequences needed.
-    oldDTseqs = [
-        end['fseq'] for end in ends
-        if 'fseq' in end.keys() and end['type'] == 'DT'
-    ]
-    oldTDseqs = [
-        end['fseq'] for end in ends
-        if 'fseq' in end.keys() and end['type'] == 'TD'
-    ]
-
-    newTDnames = [
-        end['name'] for end in ends
-        if 'fseq' not in end.keys() and end['type'] == 'TD'
-    ]
-    newDTnames = [
-        end['name'] for end in ends
-        if 'fseq' not in end.keys() and end['type'] == 'DT'
-    ]
-
-    # Deal with energetics, considering potential old sequences.
-    # FIXME: EXPLAIN WHAT THIS ABSTRUSE CODE DOES...
-    # TODO: tests needs to test this
-    targets = []
-    if len(oldDTseqs) == 0 and len(oldTDseqs) == 0:
-        targets.append(sd.enhist('DT', 5, energetics=energetics)[2]['emedian'])
-        targets.append(sd.enhist('TD', 5, energetics=energetics)[2]['emedian'])
-    if len(oldDTseqs) > 0:
-        targets.append(
-            energetics.matching_uniform(sd.endarray(oldDTseqs, 'DT')))
-    if len(oldTDseqs) > 0:
-        targets.append(
-            energetics.matching_uniform(sd.endarray(oldTDseqs, 'TD')))
-    targetint = np.average(targets)
-
-    # Create new sequences.
-    newTDseqs = sd.easyends(
-        'TD',
-        5,
-        number=len(newTDnames),
-        energetics=energetics,
-        interaction=targetint,
-        **sdopts).tolist()
-
-    if _sdopts_2_function:
-        sdopts = _sdopts_2_function(sdopts, newTDseqs, targetint, energetics,
-                                    'TD')
-
-    newDTseqs = sd.easyends(
-        'DT',
-        5,
-        number=len(newDTnames),
-        energetics=energetics,
-        interaction=targetint,
-        **sdopts).tolist()
-
-    # FIXME: move to stickydesign
-    assert len(newTDseqs) == len(newTDnames)
-    assert len(newDTseqs) == len(newDTnames)
-
-    # Shuffle the lists of end sequences, to ensure that they're random order,
-    # and that ends used earlier in the set are not always better than those
-    # used later.
-    shuffle(newTDseqs)
-    shuffle(newDTseqs)
-
-    for name, s in zip(newDTnames, newDTseqs):
-        ends[name]['fseq'] = s
-    for name, s in zip(newTDnames, newTDseqs):
-        ends[name]['fseq'] = s
-
-    ends.check_consistent()
-
-    # Ensure that the old and new sets have consistent end definitions,
-    # and that the tile definitions still fit.
-    tiletypes.merge_endlists(tileset['ends'], ends)
-    tiletypes.merge_endlists(
-        tiletypes.endlist_from_tilelist(newtileset['tiles']), ends)
-
-    # Apply new sequences to tile system.
-    newtileset['ends'] = ends
-
-    return (newtileset, newTDnames + newDTnames)
-
-
-def reorder_sticky_ends(tileset,
-                        newends=[],
-                        hightemp=0.1,
-                        lowtemp=1e-7,
-                        steps=45000,
-                        update=1000,
-                        energetics=None):
-    """Given a tileset dictionary that includes sticky end sequences, reorder these
-    to try to optimize error rates.
-    """
-    # from . import endreorder
-    from . import endreorder_fast
-    from . import anneal
-
-    if energetics is None:
-        energetics = DEFAULT_ENERGETICS
-
-    tset = copy.deepcopy(tileset)
-
-    if 'info' not in tset.keys():
-        tset['info'] = {}
-
-    reordersys = endreorder_fast.EndSystemFseq(
-        tset, newends, energetics=energetics)
-
-    # reordersys_old = endreorder.EndSystemFseq( tset, energetics=energetics )
-
-    # FIXME: better parameter control here.
-    annealer = anneal.Annealer(reordersys.score, reordersys.mutate)
-
-    newstate = annealer.anneal(reordersys.initstate, hightemp, lowtemp, steps,
-                               update)
-
-    # Now take that new state, and apply it to the new tileset.
-    seqs = reordersys.slowseqs(newstate[0])
-    for end in tset['ends']:
-        if end['type'] in ['DT', 'TD']:
-            eloc = reordersys.enlocs[end['name']]
-            end['fseq'] = seqs[eloc[1]].tolist()[eloc[0]]
-
-    ri = {}
-
-    ri['score'] = reordersys.score(newstate[0])
-
-    tset['info']['reorder'] = ri
-
-    # Ensure that only ends in newends moved: that all others remain mergeable:
-    if newends:
-        old_ends_from_new_set = util.named_list(end for end in tset['ends']
-                                                if end['name'] not in newends)
-        util.merge_endlists(tileset['ends'], old_ends_from_new_set)
-
-    # Ensure system consistency
-    tset.check_consistent()
-    return tset
 
 
 def create_strand_sequences(tileset,
@@ -446,9 +245,9 @@ def load_pepper_output_files(tileset, basename):
     import re
 
     # Are we creating adapters in Pepper?
-    if seeds.seedtypes[tileset['seed']['type']].needspepper:
-        seedclass = seeds.seedtypes[tileset['seed']['type']]
-        createadapts = True
+    # if seeds.seedtypes[tileset['seed']['type']].needspepper:
+    #     seedclass = seeds.seedtypes[tileset['seed']['type']]
+    #     createadapts = True
 
     tset = copy.deepcopy(tileset)
 
