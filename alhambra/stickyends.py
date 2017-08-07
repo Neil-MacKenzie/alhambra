@@ -5,10 +5,23 @@ from . import util
 import stickydesign as sd
 import numpy as np
 import collections
+from random import shuffle
 from datetime import datetime, timezone
 
 DEFAULT_ENERGETICS = sd.EnergeticsDAOE(
     temperature=33, mismatchtype='combined', coaxparams=True)
+
+DEFAULT_MULTIMODEL_ENERGETICS = [
+    sd.EnergeticsDAOE(
+        temperature=33, mismatchtype='combined', coaxparams='protozanova'),
+    sd.EnergeticsDAOE(
+        temperature=33, mismatchtype='combined', coaxparams='pyshni'),
+    sd.EnergeticsDAOE(
+        temperature=33, mismatchtype='combined', coaxparams='peyret'),
+    sd.EnergeticsDAOE(
+        temperature=33, mismatchtype='combined', coaxparams=False)]
+
+DEFAULT_MM_ENERGETICS_NAMES = ['Prot', 'Pysh', 'Peyr', 'None']
 
 
 def create_sequences(tileset, method='default', energetics=None,
@@ -37,11 +50,13 @@ were designed.
     info = {}
     info['method'] = method
     info['time'] = datetime.now(tz=timezone.utc).isoformat()
+    info['sd_version'] = sd.version.__version__
     
     if not energetics:
         if method == 'multimodel':
-            raise ValueError("Energetics must be specified for multimodel.")
-        energetics = DEFAULT_ENERGETICS
+            energetics = DEFAULT_MULTIMODEL_ENERGETICS
+        else:
+            energetics = DEFAULT_ENERGETICS
     if method == 'multimodel' and not isinstance(energetics,
                                                  collections.Iterable):
         raise ValueError("Energetics must be an iterable for multimodel.")
@@ -49,9 +64,10 @@ were designed.
         all_energetics = energetics
         energetics = all_energetics[0]
         info['energetics'] = [str(e) for e in all_energetics]
+        info['trails'] = trials
     elif method == 'default':
         info['energetics'] = str(energetics)
-        
+
     # Steps for doing this:
 
     # Create a copy of the tileset.
@@ -142,30 +158,42 @@ were designed.
     elif method == 'multimodel':
         endchooser = sd.multimodel.endchooser(all_energetics)
 
-        newTDseqs = sd.easyends(
+        newTDseqs = [sd.easyends(
             'TD',
             5,
             number=len(newTDnames),
             energetics=energetics,
             interaction=targetint,
-            endchooser=endchooser,
-            **sdopts)
+            echoose=endchooser,
+            **sdopts) for _ in range(0, trials)]
 
-        tvals = [e.matching_uniform(newTDseqs[0:1])
-                 for e in all_energetics]
-        endchooser = sd.multimodel.endchooser(all_energetics,
-                                              target_vals=tvals)
+        tvals = [[e.matching_uniform(x[0:1])
+                 for e in all_energetics] for x in newTDseqs]
+        endchoosers = [sd.multimodel.endchooser(all_energetics,
+                                                target_vals=tval)
+                       for tval in tvals]
 
-        newTDseqs = newDTseqs.tolist()
-        newDTseqs = sd.easyends(
+        newDTseqs = [sd.easyends(
             'DT',
             5,
             number=len(newDTnames),
             energetics=energetics,
             interaction=targetint,
-            endchooser=endchooser,
-            **sdopts).tolist()
-        
+            echoose=echoose,
+            **sdopts)
+            for echoose in endchoosers]
+
+        scores = [sd.multimodel.deviation_score(list(e), all_energetics)
+                  for e in zip(newTDseqs, newDTseqs)]
+
+        sort = np.argsort(scores)
+
+        newTDseqs = newTDseqs[sort[0]].tolist()
+        newDTseqs = newDTseqs[sort[0]].tolist()
+        info['score'] = scores[sort[0]]
+        info['maxscore'] = scores[sort[-1]]
+        info['meanscore'] = np.mean(scores)
+
     # FIXME: move to stickydesign
     assert len(newTDseqs) == len(newTDnames)
     assert len(newDTseqs) == len(newDTnames)
@@ -191,6 +219,9 @@ were designed.
 
     # Apply new sequences to tile system.
     newtileset['ends'] = ends
+    if 'info' not in newtileset.keys():
+        newtileset['info'] = {}
+    newtileset['info']['end_design'] = info
 
     return (newtileset, newTDnames + newDTnames)
 
@@ -212,7 +243,7 @@ def reorder(tileset,
     if energetics is None:
         energetics = DEFAULT_ENERGETICS
 
-    tset = copy.deepcopy(tileset)
+    tset = TileSet(tileset).copy()
 
     if 'info' not in tset.keys():
         tset['info'] = {}

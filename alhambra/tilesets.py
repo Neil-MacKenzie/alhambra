@@ -15,12 +15,11 @@ class TileSet(CommentedMap):
         if 'ends' in self.keys():
             self['ends'] = named_list(self['ends'])
         else:
-            self['tiles'] = named_list()
+            self['ends'] = named_list()
         if 'tiles' in self.keys():
             self['tiles'] = named_list(self['tiles'])
         else:
             self['tiles'] = named_list()
-
 
     def check_consistent(self):
         # * END LIST The end list itself must be consistent.
