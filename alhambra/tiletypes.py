@@ -16,6 +16,7 @@ edp_closetoopen={x:y for x,y in zip(string.ascii_lowercase,string.ascii_uppercas
 edp_closetoopen.update( {')': '(', ']': '[', '}': '{'} )
 import collections
 
+
 def check_edotparen_consistency(expr):
     expr = expand_compact_edotparen(expr)
     expr = re.sub("\s+","",expr)
@@ -41,6 +42,7 @@ def check_edotparen_consistency(expr):
         strandloc+=1
     if max(counts.values()) > 0:
         raise ValueError(counts)
+
 
 def check_edotparen_sequence(edotparen, sequence):
     expr = re.sub("\s+","",expand_compact_edotparen(edotparen))
@@ -228,6 +230,16 @@ class tile_daoe_single(tile_daoe):
              (s[3][:-6:-1]+"--"+s[3][-6:-14:-1])[::-1]         
              ]
 
+    @property
+    def _short_bound_full(self):
+        s = self['fullseqs']
+        return [s[0][5:-5], s[3][5:-5]]
+
+    @property
+    def _side_bound_regions(self):
+        s = self['fullseqs']
+        return [s[0][5:5+8], s[0][-5-8:-5], s[3][5:5+8], s[3][-5-8:-5]]
+
 
 class tile_daoe_5up(tile_daoe_single):
     def __init__(self, defdict):
@@ -255,6 +267,16 @@ class tile_daoe_5up_2h(tile_daoe_single):
     edotparen = "5.16(5.+8)16[16{8)+8(16]16}8(+5.16)7(4.7)"
 
     @property
+    def _short_bound_full(self):
+        s = self['fullseqs']
+        return [s[0][5:-5], s[3][18:-5]]
+
+    @property
+    def _side_bound_regions(self):
+        s = self['fullseqs']
+        return [s[0][5:5+8], s[0][-5-8:-5], s[3][18:18+8], s[3][-5-8:-5]]
+
+    @property
     def _seqdiagseqstrings(self):
         s = copy.copy(self['fullseqs'])
         hp = s[3][0:13]; s[3]=s[3][13:]
@@ -275,7 +297,18 @@ class tile_daoe_5up_2h(tile_daoe_single):
              (s[3][:-6:-1]+"--"+s[3][-6:-14:-1])[::-1]         
              ]
 
+
 class tile_daoe_3up_2h(tile_daoe_single):
+    @property
+    def _short_bound_full(self):
+        s = self['fullseqs']
+        return [s[0][5:-5], s[3][5:-18]]
+
+    @property
+    def _side_bound_regions(self):
+        s = self['fullseqs']
+        return [s[0][5:5+8], s[0][-5-8:-5], s[3][5:5+8], s[3][-18-8:-18]]
+    
     def __init__(self, defdict):
         tile_daoe_single.__init__(self, defdict, orient = ('3','5'))
         self._endtypes = ['DT','hairpin','TD','TD']
@@ -382,7 +415,27 @@ class tile_daoe_doublehoriz_35up(tile_daoe_doublehoriz):
         self._orient = ('3','5')
         self._endlocs = [(0,-5,None),(2,0,5),(5,0,5),(5,-5,None),(3,0,5),(0,0,5)]
 
-    
+    @property
+    def _short_bound_full(self):
+        s = self['fullseqs']
+        el = self._endlocs
+        return [s[0][el[5][2]:el[0][1]], s[5][el[2][2]:el[3][1]]]
+
+    @property
+    def _side_bound_regions(self):
+        s = self['fullseqs']
+        el = self._endlocs
+
+        def g(e):
+            if e[2] is None or e[2] == len(s[e[0]]):
+                return s[e[0]][-8+e[1]:e[1]]
+            elif e[1] == 0:
+                return s[e[0]][e[2]:e[2]+8]
+            else:
+                raise ValueError()
+        return [g(e) for e in el]
+
+                
     @property
     def _seqdiagseqstrings(self):
         s = self['fullseqs']
@@ -411,11 +464,31 @@ class tile_daoe_doublehoriz_35up(tile_daoe_doublehoriz):
              ] 
 
 class tile_daoe_doublevert_35up(tile_daoe_doublevert):
+    @property
+    def _short_bound_full(self):
+        s = self['fullseqs']
+        el = self._endlocs
+        return [s[0][el[5][2]:el[0][1]], s[5][el[2][2]:el[3][1]]]
+
+    @property
+    def _side_bound_regions(self):
+        s = self['fullseqs']
+        el = self._endlocs
+
+        def g(e):
+            if e[2] is None or e[2] == len(s[e[0]]):
+                return s[e[0]][-8+e[1]:e[1]]
+            elif e[1] == 0:
+                return s[e[0]][e[2]:e[2]+8]
+            else:
+                raise ValueError()
+        return [g(e) for e in el]
+
     def __init__(self, defdict):
         tile_daoe_doublevert.__init__(self, defdict)
         self._endtypes = ['DT','DT','TD','DT','DT','TD']
         self._orient = ('3','5')
-        self._endlocs = [(0,-5,None),(3,-5,None),(5,0,5),(5,-5,None),(3,-5,None),(0,0,5)]
+        self._endlocs = [(0,-5,None),(3,-5,None),(5,0,5),(5,-5,None),(2,-5,None),(0,0,5)]
 
 
 class tile_daoe_doublehoriz_35up_1h2i(tile_daoe_doublehoriz_35up):
@@ -492,7 +565,10 @@ class tile_daoe_doublehoriz_35up_2h3h(tile_daoe_doublehoriz_35up):
     def __init__(self, defdict):
         tile_daoe_doublehoriz_35up.__init__(self, defdict)
         self._endtypes[1]='hairpin'; self._endtypes[2]='hairpin'
+        self._endlocs = [(0,-5,None),(2,0,18),(5,0,18),(5,-5,None),(3,0,5),(0,0,5)]
+
     edotparen = '5.16(5.+8)16[16{8)+7(4.7)29(16]16}8(+5.29)16[16{8)+8(16]16}8(+7(4.23)5.'
+    
     @property
     def _seqdiagseqstrings(self):
         s = copy.copy(self['fullseqs'])
@@ -530,6 +606,8 @@ class tile_daoe_doublevert_35up_4h5h(tile_daoe_doublevert_35up):
     def __init__(self, defdict):
         tile_daoe_doublevert_35up.__init__(self, defdict)
         self._endtypes[3]='hairpin'; self._endtypes[4]='hairpin'
+        self._endlocs = [(0,-5,None),(3,-5,None),(5,0,5),(5,-18,None),(2,-18,None),(0,0,5)]
+
     edotparen = "5.16(5.+8)16[16{8)+8(16]16}8(5(16(7(4.7)+8)16[16{8)5)16)5.+8(16]16}8(+5.16)7(4.7)"
     @property
     def _seqdiagseqstrings(self):
