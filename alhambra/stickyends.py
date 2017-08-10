@@ -165,10 +165,10 @@ were designed.
             "of TD ends for {} DT and {} TD ends, {} trials.".format(
                 len(newDTnames), len(newTDnames), trials))
 
-        endchooser = sd.multimodel.endchooser(all_energetics,**ecpars)
+        endchooser = sd.multimodel.endchooser(all_energetics, **ecpars)
 
         newTDseqs = []
-        pl = util.ProgressLogger(SELOGGER,trials*2)
+        pl = util.ProgressLogger(SELOGGER, trials*2)
         for i in range(0, trials):
             newTDseqs.append(
                 sd.easyends(
@@ -184,12 +184,13 @@ were designed.
         tvals = [[e.matching_uniform(x[0:1])
                  for e in all_energetics] for x in newTDseqs]
         endchoosers = [sd.multimodel.endchooser(all_energetics,
-                                                target_vals=tval,**ecpars)
+                                                target_vals=tval,
+                                                **ecpars)
                        for tval in tvals]
 
         SELOGGER.info("generating corresponding DT ends")
         newDTseqs = []
-        for echoose in endchoosers:
+        for i, echoose in enumerate(endchoosers):
             newDTseqs.append(
                 sd.easyends(
                     'DT',
@@ -199,7 +200,7 @@ were designed.
                     interaction=targetint,
                     echoose=echoose,
                     **sdopts))
-            pl.update(i)
+            pl.update(i+trials)
 
         scores = [sd.multimodel.deviation_score(list(e), all_energetics)
                   for e in zip(newTDseqs, newDTseqs)]
