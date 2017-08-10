@@ -8,6 +8,8 @@ import collections
 from random import shuffle
 from datetime import datetime, timezone
 
+import logging
+
 DEFAULT_ENERGETICS = sd.EnergeticsDAOE(
     temperature=33, mismatchtype='combined', coaxparams=True)
 
@@ -22,6 +24,8 @@ DEFAULT_MULTIMODEL_ENERGETICS = [
         temperature=33, mismatchtype='combined', coaxparams=False)]
 
 DEFAULT_MM_ENERGETICS_NAMES = ['Prot', 'Pysh', 'Peyr', 'None']
+
+SELOGGER = logging.getLogger(__name__)
 
 
 def create_sequences(tileset, method='default', energetics=None,
@@ -51,7 +55,7 @@ were designed.
     info['method'] = method
     info['time'] = datetime.now(tz=timezone.utc).isoformat()
     info['sd_version'] = sd.version.__version__
-    
+
     if not energetics:
         if method == 'multimodel':
             energetics = DEFAULT_MULTIMODEL_ENERGETICS
@@ -156,17 +160,27 @@ were designed.
             **sdopts).tolist()
 
     elif method == 'multimodel':
+        SELOGGER.info(
+            "starting multimodel sticky end generation " +
+            "for {} DT and {} TD ends, {} trials.".format(
+                len(newDTnames), len(newTDnames), trials))
+
         endchooser = sd.multimodel.endchooser(all_energetics)
 
-        newTDseqs = [sd.easyends(
-            'TD',
-            5,
-            number=len(newTDnames),
-            energetics=energetics,
-            interaction=targetint,
-            echoose=endchooser,
-            **sdopts) for _ in range(0, trials)]
-
+        newTDseqs = []
+        for i in range(0, trials):
+            newTDseqs.append(
+                sd.easyends(
+                    'TD',
+                    5,
+                    number=len(newTDnames),
+                    energetics=energetics,
+                    interaction=targetint,
+                    echoose=endchooser,
+                    **sdopts))
+            if trials > 100 and i % 100 == 0:
+                SELOGGER.info("finished {}/{} trials".format(i, trials))
+            
         tvals = [[e.matching_uniform(x[0:1])
                  for e in all_energetics] for x in newTDseqs]
         endchoosers = [sd.multimodel.endchooser(all_energetics,
