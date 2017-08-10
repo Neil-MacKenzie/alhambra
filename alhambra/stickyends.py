@@ -29,7 +29,7 @@ SELOGGER = logging.getLogger(__name__)
 
 
 def create_sequences(tileset, method='default', energetics=None,
-                     trials=100, sdopts={}):
+                     trials=100, sdopts={}, ecpars={}):
     """Create sticky end sequences for a tileset, using stickydesign.  This new
 version should be more flexible, and should be able to keep old sticky ends,
 accounting for them in creating new ones.
@@ -165,7 +165,7 @@ were designed.
             "of TD ends for {} DT and {} TD ends, {} trials.".format(
                 len(newDTnames), len(newTDnames), trials))
 
-        endchooser = sd.multimodel.endchooser(all_energetics)
+        endchooser = sd.multimodel.endchooser(all_energetics,**ecpars)
 
         newTDseqs = []
         pl = util.ProgressLogger(SELOGGER,trials*2)
@@ -184,7 +184,7 @@ were designed.
         tvals = [[e.matching_uniform(x[0:1])
                  for e in all_energetics] for x in newTDseqs]
         endchoosers = [sd.multimodel.endchooser(all_energetics,
-                                                target_vals=tval)
+                                                target_vals=tval,**ecpars)
                        for tval in tvals]
 
         SELOGGER.info("generating corresponding DT ends")
