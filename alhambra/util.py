@@ -1,5 +1,4 @@
 import copy
-from . import tiletypes
 from . import seq
 from ruamel.yaml.comments import CommentedSeq
 from ruamel.yaml.representer import RoundTripRepresenter
@@ -190,3 +189,32 @@ ValueError: In the event of a failed merge, when named ends cannot be
               "Errors merging {}".format(errorstring), exceptions, errors, out)
     
     return out
+
+import time
+
+
+class ProgressLogger(object):
+    def __init__(
+            self,
+            logger,
+            N,
+            seconds_interval=60):
+        self.logger = logger
+        stime = time.perf_counter()
+        self.stime = stime
+        self.ltime = stime
+        self.li = 0
+        self
+        self.seconds_interval = seconds_interval
+        self.N = N
+        self.logger.info("starting {} tasks".format(self.N))
+        
+    def update(self, i):
+        ctime = time.perf_counter()
+        if ctime - self.ltime > self.seconds_interval:
+            self.logger.info(
+                "finished {}/{}, {} s elapsed, {} s est remaining".format(
+                    i, self.N, int(ctime - self.stime),
+                    int((self.N-i)*(ctime-self.stime)/i)))
+            self.ltime = ctime
+            self.li = i

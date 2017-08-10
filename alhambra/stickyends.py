@@ -162,12 +162,13 @@ were designed.
     elif method == 'multimodel':
         SELOGGER.info(
             "starting multimodel sticky end generation " +
-            "for {} DT and {} TD ends, {} trials.".format(
+            "of TD ends for {} DT and {} TD ends, {} trials.".format(
                 len(newDTnames), len(newTDnames), trials))
 
         endchooser = sd.multimodel.endchooser(all_energetics)
 
         newTDseqs = []
+        pl = util.ProgressLogger(SELOGGER,trials*2)
         for i in range(0, trials):
             newTDseqs.append(
                 sd.easyends(
@@ -178,24 +179,27 @@ were designed.
                     interaction=targetint,
                     echoose=endchooser,
                     **sdopts))
-            if trials > 100 and i % 100 == 0:
-                SELOGGER.info("finished {}/{} trials".format(i, trials))
-            
+            pl.update(i)
+
         tvals = [[e.matching_uniform(x[0:1])
                  for e in all_energetics] for x in newTDseqs]
         endchoosers = [sd.multimodel.endchooser(all_energetics,
                                                 target_vals=tval)
                        for tval in tvals]
 
-        newDTseqs = [sd.easyends(
-            'DT',
-            5,
-            number=len(newDTnames),
-            energetics=energetics,
-            interaction=targetint,
-            echoose=echoose,
-            **sdopts)
-            for echoose in endchoosers]
+        SELOGGER.info("generating corresponding DT ends")
+        newDTseqs = []
+        for echoose in endchoosers:
+            newDTseqs.append(
+                sd.easyends(
+                    'DT',
+                    5,
+                    number=len(newDTnames),
+                    energetics=energetics,
+                    interaction=targetint,
+                    echoose=echoose,
+                    **sdopts))
+            pl.update(i)
 
         scores = [sd.multimodel.deviation_score(list(e), all_energetics)
                   for e in zip(newTDseqs, newDTseqs)]
