@@ -64,10 +64,10 @@ def plot_adjacent_regions(tileset,
     pylab.xlabel('# of G/C pairs')
     pylab.subplot(122)
     pylab.hist(ens)
-    pylab.title('dG, T=33, no coaxparams/danglecorr')
-    pylab.ylabel('# of 16 nt arms')
-    pylab.xlabel('stickydesign dG')
-    pylab.suptitle('16 nt arm region strengths')
+    pylab.title('ΔG, T=33, no coaxparams/danglecorr')
+    pylab.ylabel('# of 8 nt regions')
+    pylab.xlabel('stickydesign ΔG')
+    pylab.suptitle('8 nt end-adjacent region strengths')
 
 
 def plot_side_strands(tileset,
@@ -95,7 +95,7 @@ def plot_side_strands(tileset,
     pylab.xlabel('# of G/C pairs')
     pylab.subplot(122)
     pylab.hist(ens)
-    pylab.title('dG, T=33, no coaxparams/danglecorr')
-    pylab.ylabel('# of 16 nt arms')
-    pylab.xlabel('stickydesign dG')
-    pylab.suptitle('8 nt end-adjacent region strengths')
+    pylab.title('ΔG, T=33, no coaxparams/danglecorr')
+    pylab.ylabel('# of 16 nt regions')
+    pylab.xlabel('stickydesign ΔG')
+    pylab.suptitle('16 nt arm region strengths')
