@@ -86,14 +86,14 @@ def check_edotparen_sequence(edotparen, sequence):
 
 
 def expand_compact_edotparen(expr):
-    return re.sub(r"(\d+)([\[\]\(\)\{\}A-Za-z\.])", lambda m: int(m[1]) * m[2],
+    return re.sub(r"(\d+)([\[\]\(\)\{\}A-Za-z\.])", lambda m: int(m.group(1)) * m.group(2),
                   expr)
 
 
 def prettify_edotparen(expr):
     # This is evil:
     return re.sub(r"(([\[\]\(\)\{\}A-Za-z\.])\2+)",
-                  lambda m: "{}{}".format(len(m[1]), m[2]), expr)
+                  lambda m: "{}{}".format(len(m.group(1)), m.group(2)), expr)
 
 
 class tile_daoe(object):
