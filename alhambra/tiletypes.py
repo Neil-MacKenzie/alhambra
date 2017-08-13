@@ -177,6 +177,13 @@ class tile_daoe(object):
             es.append(e)
         return es
 
+    @property
+    def orderableseqs(self):
+        seqs = copy.deepcopy(self['fullseqs'])
+        assert ('label' not in self._defdict.keys())
+        return [("{}-{}".format(self['name'], i+1), seq)
+                for i, seq in enumerate(seqs)]
+    
 
 class tile_daoe_single(tile_daoe):
     """Base class for single DAO-E tiles."""
@@ -285,6 +292,19 @@ class tile_daoe_5up(tile_daoe_single):
     # valid edotparen for both 3up and 5up
     edotparen = "5.16(5.+8)16[16{8)+8(16]16}8(+5.16)5."
 
+    @property
+    def orderableseqs(self):
+        seqs = copy.deepcopy(self['fullseqs'])
+        if 'label' in self._defdict.keys() and self['label'] == 'both':
+            assert seqs[1][16] == 'T'
+            assert seqs[2][16] == 'T'
+            seqs[1] = seqs[1][:16]+'/iBiodT/'+seqs[1][17:]
+            seqs[2] = seqs[2][:16]+'/iBiodT/'+seqs[2][17:]
+            assert re.sub('/iBiodT/', 'T', seqs[1]) == self['fullseqs'][1]
+            assert re.sub('/iBiodT/', 'T', seqs[2]) == self['fullseqs'][2]
+        return [("{}-{}".format(self['name'], i+1), seq)
+                for i, seq in enumerate(seqs)]
+
 
 class tile_daoe_3up(tile_daoe_single):
     def __init__(self, defdict):
@@ -293,6 +313,19 @@ class tile_daoe_3up(tile_daoe_single):
         self._endlocs = [(0, 21, None), (3, 21, None), (3, 0, 5), (0, 0, 5)]
     # valid edotparen for both 3up and 5up
     edotparen = "5.16(5.+8)16[16{8)+8(16]16}8(+5.16)5."
+
+    @property
+    def orderableseqs(self):
+        seqs = copy.deepcopy(self['fullseqs'])
+        if 'label' in self._defdict.keys() and self['label'] == 'both':
+            assert seqs[1][31] == 'T'
+            assert seqs[2][31] == 'T'
+            seqs[1] = seqs[1][:31]+'/iBiodT/'+seqs[1][32:]
+            seqs[2] = seqs[2][:31]+'/iBiodT/'+seqs[2][32:]
+            assert re.sub('/iBiodT/', 'T', seqs[1]) == self['fullseqs'][1]
+            assert re.sub('/iBiodT/', 'T', seqs[2]) == self['fullseqs'][2]
+        return [("{}-{}".format(self['name'], i+1), seq)
+                for i, seq in enumerate(seqs)]
 
 
 class tile_daoe_5up_2h(tile_daoe_single):

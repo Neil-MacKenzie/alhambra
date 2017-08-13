@@ -19,7 +19,6 @@ from peppercompiler import finish as finish
 from peppercompiler.DNA_classes import wc
 
 
-
 def design_set(
         tileset,
         name='tsd_temp',
@@ -357,6 +356,11 @@ def create_abstract_diagrams(tileset, filename, *options):
         pos += 1
 
     drawing.save()
+
+
+def create_strand_order_list(tileset):
+    tf = [tiletypes.tfactory.parse(t) for t in tileset['tiles']]
+    return sum((x.orderableseqs for x in tf), [])
 
 
 def create_layout_diagrams(tileset, xgrowarray, filename, scale=1, *options):
