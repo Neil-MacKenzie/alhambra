@@ -1,15 +1,15 @@
 #!/usr/bin/env python
-from setuptools import setup, find_packages
+from setuptools import setup
 
 setup(
     name = "alhambra",
-    version = "0.2.0",
+    version = "0.4.0",
     packages = ['alhambra'],
 
-    install_requires = ['numpy','stickydesign >= 0.4.2','svgwrite','lxml','shutilwhich','peppercompiler', 'ruamel.yaml'],
+    install_requires = ['numpy','stickydesign >= 0.5.0','svgwrite','lxml','shutilwhich','peppercompiler', 'ruamel.yaml'],
 
     include_package_data=True,
-    #cmdclass={'build': build_with_spurious, 'develop': develop_with_spurious},
+
     entry_points={
         'console_scripts': [
             'alhambra = alhambra.scripts:alhambra'
