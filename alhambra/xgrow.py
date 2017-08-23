@@ -13,13 +13,15 @@ def generate_xgrow_dict(ts,
     # Combine ends and tile-specified adjacents
     newtiles = []
     newends = []
-    endslist = set()
     doubleends = []
     doubles = []
     vdoubleends = []
     vdoubles = []
     ts = copy.deepcopy(ts)
-    newtiles.append( { 'name': 'origami', 'edges': ['origami','origami','origami','origami'], 'stoic': 0, 'color': 'white'} )
+    newtiles.append({'name': 'origami',
+                     'edges': ['origami', 'origami', 'origami', 'origami'],
+                     'stoic': 0,
+                     'color': 'white'})
 
     atiles = [None]*16
     for tilename in ts['seed']['use_adapters']:

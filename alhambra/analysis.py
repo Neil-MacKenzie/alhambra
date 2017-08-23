@@ -15,7 +15,7 @@ DEFAULT_REGION_ENERGETICS = EnergeticsDAOE(temperature=33,
 def plot_se_hists(tileset,
                   all_energetics=None,
                   energetics_names=None,
-                  title=None):
+                  title=None, **kwargs):
 
     if all_energetics is None:
         all_energetics = stickyends.DEFAULT_MULTIMODEL_ENERGETICS
@@ -23,20 +23,25 @@ def plot_se_hists(tileset,
     if energetics_names is None:
         energetics_names = stickyends.DEFAULT_MM_ENERGETICS_NAMES
 
+    if 'ends' in tileset.keys():
+        ends = tileset['ends']
+    else:
+        ends = tileset
+        
     if title is None:
         # FIXME
         title = 'Title'
 
-    td = sd.endarray([x['fseq'] for x in tileset['ends']
+    td = sd.endarray([x['fseq'] for x in ends
                       if x['type'] == 'TD'], 'TD')
 
-    dt = sd.endarray([x['fseq'] for x in tileset['ends']
+    dt = sd.endarray([x['fseq'] for x in ends
                       if x['type'] == 'DT'], 'DT')
 
     sdplots.hist_multi([td, dt],
                        all_energetics,
                        energetics_names,
-                       title)
+                       title, **kwargs)
 
 
 def plot_adjacent_regions(tileset,

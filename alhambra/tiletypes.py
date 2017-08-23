@@ -136,7 +136,12 @@ class tile_daoe(object):
         return self._defdict.__getitem__(*args)
 
     def check_sequence(self):
-        check_edotparen_sequence(self.edotparen, "+".join(self['fullseqs']))
+        try:
+            check_edotparen_sequence(self.edotparen,
+                                     "+".join(self['fullseqs']))
+        except ValueError as e:
+            raise ValueError("{} core is inconsistent.".format(self['name']),
+                             self['name']) from e
 
     def get_end_defs(self):
         es = list()
