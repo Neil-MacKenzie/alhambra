@@ -4,6 +4,7 @@ from ruamel.yaml.representer import RoundTripRepresenter
 from collections import Counter 
 from .util import named_list, merge_endlists
 from . import tiletypes
+from . import seeds
 from functools import reduce
 import operator
 import copy
@@ -57,14 +58,21 @@ class TileSet(CommentedMap):
         # ** WARN if merge is not equal to the endlist
         # ** WARN if endlist has ends not used in tilelist
         # * ADAPTERS / SEEDS
-        # ** seeds must be of understood type
-        # ** adapter locations must be valid
-        # ** each adapter must have no sequence or a consistent sequence
-        # *** the RH strand must match the associated tile
-        # *** the ends in the sequence must match the ends in the endlist
-        # *** the LH sequence must be validly binding to both RH and origami
-        # ** each adapter must have valid definition, which means for us:
-        # *** if both tile mimic and ends are specified, they must match
+        if 'seed' in self.keys():
+            # ** seeds must be of understood type
+            assert self['seed']['type'] in seeds.seedtypes.keys()
+            # ** adapter locations must be valid
+            sclass = seeds.seedtypes[self['seed']['type']]
+
+            sclass.check_consistent(self)
+
+            sclass.check_sequence(self)
+            # ** each adapter must have no sequence or a consistent sequence
+            # *** the RH strand must match the associated tile
+            # *** the ends in the sequence must match the ends in the endlist
+            # *** the LH sequence must be validly binding to both RH and origami
+            # ** each adapter must have valid definition, which means for us:
+            # *** if both tile mimic and ends are specified, they must match
     
     def summary(self):
         self.check_consistent()

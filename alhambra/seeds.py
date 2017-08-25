@@ -139,6 +139,8 @@ class seed_tileadapts(seed_base):
         check_edotparen_consistency( self.edotparen_adapt_2h )
         self.check_consistent( tileset )
         for adapt in tileset['seed']['adapters']:
+            if 'seqs' not in adapt.keys():
+                continue
             mimic = self.getmimic_full(tileset, adapt)
             seqs = "+".join(adapt['seqs'])
             if 'extra' not in adapt.keys():
