@@ -51,25 +51,26 @@ class seed_tileadapts(seed_base):
         tset = copy.deepcopy( tileset )
 
         for adapter in tset['seed']['adapters']:
-            tile_to_mimic = self.getmimic( tset, adapter )
-            if tile_to_mimic['type'] == 'tile_daoe_5up':
+            mimic = self.getmimic_full( tset, adapter )
+            if mimic['tile']['type'] == 'tile_daoe_5up':
                 # Tile is single. If we have ends, check that they match.
-                if ( 'ends' in adapter.keys() ) and ( adapter['ends'] != tile_to_mimic['ends'][1:3] ):
+                if (('ends' in adapter.keys()) and (adapter['ends'] != mimic['tile']['ends'][1:3])):
                     raise ValueError("adapter {} and tile base {} ends don't match: adapter has {}, tile has {}".format(
-                        adapter['name'], tile_to_mimic['name'], adapter['ends'], tile_to_mimic['ends'][1:3] ))
-                adapter_strand_short = tile_to_mimic['fullseqs'][-1]
-                tile_long_strand = tile_to_mimic['fullseqs'][-2]
-            elif tile_to_mimic['type'] == 'tile_daoe_doublehoriz_35up' \
-                    or tile_to_mimic['type'] == 'tile_daoe_doublevert_35up':
-                if ( 'ends' in adapter.keys() ) and ( adapter['ends'] != tile_to_mimic['ends'][2:4] ):
+                        adapter['name'], mimic['tile']['name'], adapter['ends'], mimic['tile']['ends'][1:3] ))
+                adapter_strand_short = mimic['tile']['fullseqs'][-1]
+                tile_long_strand = mimic['tile']['fullseqs'][-2]
+            elif mimic['tile']['type'] == 'tile_daoe_doublehoriz_35up' \
+                    or mimic['tile']['type'] == 'tile_daoe_doublevert_35up':
+                if ( 'ends' in adapter.keys() ) and ( adapter['ends'] != mimic['tile']['ends'][2:4] ):
                     raise ValueError("adapter {} and tile base {} ends don't match: adapter has {}, tile has {}".format(
-                        adapter['name'], tile_to_mimic['name'], adapter['ends'], tile_to_mimic['ends'][2:4] ))
-                adapter_strand_short = tile_to_mimic['fullseqs'][-1]
-                tile_long_strand = tile_to_mimic['fullseqs'][-2]
+                        adapter['name'], mimic['tile']['name'], adapter['ends'], mimic['tile']['ends'][2:4] ))
+                adapter_strand_short = mimic['tile']['fullseqs'][-1]
+                tile_long_strand = mimic['tile']['fullseqs'][-2]
 
             adapter['seqs'] = [ tile_long_strand[0:8]+self.cores[adapter['loc']-1]+tile_long_strand[40:48], 
                                 adapter_strand_short ]
-
+            if 'extra' in mimic.keys():
+                adapter['extra'] = mimic['extra']
         return tset
 
     def getmimic( self, tileset, adapter ):
