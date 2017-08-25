@@ -3,7 +3,7 @@ from setuptools import setup
 
 setup(
     name = "alhambra",
-    version = "0.4.0",
+    version = "0.4.1",
     packages = ['alhambra'],
 
     install_requires = ['numpy','stickydesign >= 0.5.0','svgwrite','lxml','shutilwhich','peppercompiler', 'ruamel.yaml'],
