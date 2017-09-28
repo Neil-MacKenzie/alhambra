@@ -22,6 +22,15 @@ class TileSet(CommentedMap):
         else:
             self['tiles'] = named_list()
 
+    @classmethod
+    def load(cls, name_or_stream, *args, **kwargs):
+        # Assume a stream:
+        if getattr(name_or_stream, 'read', None) is None:
+            return cls(yaml.round_trip_load(open(name_or_stream, 'r'),
+                                            *args, **kwargs))
+        else:
+            return cls(yaml.round_trip_load(name_or_stream, *args, **kwargs))
+
     def check_consistent(self):
         # * END LIST The end list itself must be consistent.
         # ** Each end must be of understood type
@@ -70,7 +79,8 @@ class TileSet(CommentedMap):
             # ** each adapter must have no sequence or a consistent sequence
             # *** the RH strand must match the associated tile
             # *** the ends in the sequence must match the ends in the endlist
-            # *** the LH sequence must be validly binding to both RH and origami
+            # *** the LH sequence must be validly binding to both RH and
+            #     origami
             # ** each adapter must have valid definition, which means for us:
             # *** if both tile mimic and ends are specified, they must match
     
@@ -113,6 +123,3 @@ class TileSet(CommentedMap):
 RoundTripRepresenter.add_representer(TileSet,
                                      RoundTripRepresenter.represent_dict)
 
-
-def load_tileset_dict(*args, **kwargs):
-    return TileSet(yaml.round_trip_load(*args, **kwargs))

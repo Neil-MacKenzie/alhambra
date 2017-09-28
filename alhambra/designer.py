@@ -10,7 +10,7 @@ from . import tiletypes
 from . import seeds
 from . import util
 from . import seq
-from . import tilesets
+from .tilesets import TileSet
 from . import stickyends
 
 from peppercompiler import compiler as compiler
@@ -46,9 +46,9 @@ def design_set(
         energetics = stickyends.DEFAULT_ENERGETICS
 
     if hasattr(tileset, 'read'):
-        tileset = tilesets.load_tileset_dict(tileset)
+        tileset = TileSet.load(tileset)
     else:
-        tileset = tilesets.TileSet(tileset)
+        tileset = TileSet(tileset)
 
     tileset.check_consistent()
     tileset_with_ends_randomorder, new_ends = stickyends.create_sequences(
