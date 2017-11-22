@@ -24,14 +24,22 @@ def generate_xgrow_dict(ts,
                      'color': 'white'})
 
     atiles = [None]*16
-    for tilename in ts['seed']['use_adapters']:
-        try:
-            tile = [ x for x in ts['seed']['adapters'] if x['name']==tilename ][0]
-        except IndexError:
-            raise Exception("Can't find {}".format(tilename))
+    to_use = []
+    # If we have use_adapters, use that, otherwise use every adapter:
+    if 'use_adapters' in ts['seed']:
+        for tilename in ts['seed']['use_adapters']:
+            try:
+                tile = [x for x in ts['seed']['adapters']
+                        if x.get('name') == tilename][0]
+            except IndexError as e:
+                raise Exception("Can't find {}".format(tilename)) from e
+    else:
+        to_use = ts['seed']['adapters']
+            
+    for tile in to_use:
         newtile = {}
         newtile['edges'] = [ 'origami' ] +  [ re.sub('/','_c',x) for x in tile['ends'] ] + [ 'origami' ]
-        newtile['name'] = tile['name']
+        newtile['name'] = tile.get('name','')
         newtile['stoic'] = 0
         newtile['color'] = 'white'
         atiles[tile['loc']-1] = newtile

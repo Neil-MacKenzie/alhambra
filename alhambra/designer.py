@@ -336,26 +336,25 @@ def create_adapter_sequences(tileset):
 
 
 def create_abstract_diagrams(tileset, filename, *options):
-    import svgwrite
-
-    drawing = svgwrite.Drawing(filename)
-
+    from lxml import etree
+    base = etree.parse(
+        pkg_resources.resource_stream(
+            __name__, os.path.join('seqdiagrambases', 'blank.svg')))
+    baseroot = base.getroot()
+    
     pos = 0
-    lim = 10000
-
     for tiledef in tileset['tiles']:
         tile = tiletypes.tfactory.parse(tiledef)
 
-        group = tile.abstract_diagram(drawing)
+        group, n = tile.abstract_diagram(tileset)
 
-        group['transform'] = "translate({},{})".format((pos % lim) * 150,
-                                                       pos / lim * 150)
-        pos += 1
+        group.attrib['transform'] = "translate({},{})".format(
+            (pos % 12) * 22, (pos // 12) * 22)
+        pos += n
 
-        drawing.add(group)
-        pos += 1
+        baseroot.append(group)
 
-    drawing.save()
+    base.write(filename)
 
 
 def create_strand_order_list(tileset):
@@ -364,26 +363,26 @@ def create_strand_order_list(tileset):
 
 
 def create_layout_diagrams(tileset, xgrowarray, filename, scale=1, *options):
-    import svgwrite
-    from . import stxg
-
-    b = svgwrite.Drawing(filename)
-
-    c = b.g()
+    from lxml import etree
+    base = etree.parse(
+        pkg_resources.resource_stream(
+            __name__, os.path.join('seqdiagrambases', 'blank.svg')))
+    baseroot = base.getroot()
 
     svgtiles = {}
 
     for tiledef in tileset['tiles']:
         tile = tiletypes.tfactory.parse(tiledef)
 
-        group = tile.abstract_diagram(b)
+        group, n = tile.abstract_diagram(tileset)
         svgtiles[tile['name']] = group
 
-    tilelist = stxg.from_yaml_endadj(tileset)['tiles']
+    from . import xgrow
+    tilelist = xgrow.generate_xgrow_dict(tileset, perfect=True)['tiles']
     tilen = [None] + [x['name'] for x in tilelist]
     firstxi = 10000
     firstyi = 10000
-
+    import copy
     for yi in range(0, xgrowarray.shape[0]):
         for xi in range(0, xgrowarray.shape[1]):
             tn = tilen[xgrowarray[yi, xi]]
@@ -397,12 +396,9 @@ def create_layout_diagrams(tileset, xgrowarray, filename, scale=1, *options):
                 firstxi = xi
             if yi < firstyi:
                 firstyi = yi
-            st = svgtiles[tn].copy()
-            st['transform'] = 'translate({},{})'.format(xi * 100, yi * 100)
-            c.add(st)
+            st = copy.deepcopy(svgtiles[tn])
+            st.attrib['transform'] = 'translate({},{})'.format(
+                xi * 10, yi * 10)
+            baseroot.append(st)
 
-    c['transform'] = "translate({},{}) scale({})".format(
-        -firstxi * 100 * scale, -firstyi * 100 * scale, scale)
-
-    b.add(c)
-    b.save()
+    base.write(filename)

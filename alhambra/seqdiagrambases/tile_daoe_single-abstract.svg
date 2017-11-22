@@ -1,0 +1,178 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<!-- Created with Inkscape (http://www.inkscape.org/) -->
+
+<svg
+   xmlns:dc="http://purl.org/dc/elements/1.1/"
+   xmlns:cc="http://creativecommons.org/ns#"
+   xmlns:rdf="http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+   xmlns:svg="http://www.w3.org/2000/svg"
+   xmlns="http://www.w3.org/2000/svg"
+   xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
+   xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
+   width="10mm"
+   height="10mm"
+   viewBox="0 0 10 10"
+   version="1.1"
+   id="svg6114"
+   inkscape:version="0.92.2 5c3e80d, 2017-08-06"
+   sodipodi:docname="tile_daoe_single-abstract.svg">
+  <defs
+     id="defs6108" />
+  <sodipodi:namedview
+     id="base"
+     pagecolor="#ffffff"
+     bordercolor="#666666"
+     borderopacity="1.0"
+     inkscape:pageopacity="0.0"
+     inkscape:pageshadow="2"
+     inkscape:zoom="29.739167"
+     inkscape:cx="11.079665"
+     inkscape:cy="18.897638"
+     inkscape:document-units="mm"
+     inkscape:current-layer="g33009"
+     showgrid="false"
+     inkscape:measure-start="0,0"
+     inkscape:measure-end="0,0"
+     inkscape:window-width="2552"
+     inkscape:window-height="1368"
+     inkscape:window-x="0"
+     inkscape:window-y="30"
+     inkscape:window-maximized="0"
+     inkscape:snap-intersection-paths="true"
+     inkscape:snap-smooth-nodes="true"
+     inkscape:object-paths="true" />
+  <metadata
+     id="metadata6111">
+    <rdf:RDF>
+      <cc:Work
+         rdf:about="">
+        <dc:format>image/svg+xml</dc:format>
+        <dc:type
+           rdf:resource="http://purl.org/dc/dcmitype/StillImage" />
+        <dc:title />
+      </cc:Work>
+    </rdf:RDF>
+  </metadata>
+  <g
+     class="tile"
+     id="g33009">
+    <rect
+       style="fill:#8ebaff;stroke:#000000;stroke-width:0.09951472;stroke-miterlimit:4;stroke-dasharray:none;fill-opacity:1"
+       class="tilerect"
+       y="0.049757361"
+       x="0.049757361"
+       width="9.900485"
+       height="9.900485"
+       id="rect32985" />
+    <path
+       d="M 6.8290845,0.04975736 A 1.8290817,1.8290817 0 0 1 5.9145437,1.6337886 1.8290817,1.8290817 0 0 1 4.085462,1.6337885 1.8290817,1.8290817 0 0 1 3.1709212,0.04975728 l 1.8290817,8e-8 z"
+       sodipodi:end="3.1415927"
+       sodipodi:start="0"
+       sodipodi:ry="1.8290817"
+       sodipodi:rx="1.8290817"
+       sodipodi:cy="0.049757361"
+       sodipodi:cx="5.0000029"
+       sodipodi:type="arc"
+       class="endcolor_north"
+       style="fill:#a0a0a0;fill-opacity:1;stroke:none;stroke-width:0.19902945;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:0;paint-order:fill markers stroke"
+       id="path32987" />
+    <text
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:1.05833328px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:center;writing-mode:lr-tb;dominant-baseline:mathematical;text-anchor:middle;stroke-width:0.09900485"
+       class="endname_north"
+       y="0.68873441"
+       x="5.0000029"
+       dominant-baseline="mathematical"
+       id="text32989">north</text>
+    <path
+       transform="matrix(0,-1,-1,0,0,0)"
+       d="m -3.1709169,-9.950242 a 1.8290817,1.8290817 0 0 1 -0.9145409,1.5840312 1.8290817,1.8290817 0 0 1 -1.8290816,-1e-7 1.8290817,1.8290817 0 0 1 -0.9145408,-1.5840312 l 1.8290816,1e-7 z"
+       sodipodi:end="3.1415927"
+       sodipodi:start="0"
+       sodipodi:ry="1.8290817"
+       sodipodi:rx="1.8290817"
+       sodipodi:cy="-9.950242"
+       sodipodi:cx="-4.9999986"
+       sodipodi:type="arc"
+       class="endcolor_east"
+       style="fill:#a0a0a0;fill-opacity:1;stroke:none;stroke-width:0.19902945;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:0;paint-order:fill markers stroke"
+       id="path32991" />
+    <text
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:1.05833328px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:center;writing-mode:lr-tb;dominant-baseline:mathematical;text-anchor:middle;stroke-width:0.09900485"
+       class="endname_east"
+       y="-9.3112583"
+       x="4.9999986"
+       transform="rotate(90)"
+       dominant-baseline="mathematical"
+       id="text32993">east</text>
+    <path
+       style="fill:#a0a0a0;fill-opacity:1;stroke:none;stroke-width:0.19902945;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:0;paint-order:fill markers stroke"
+       class="endcolor_south"
+       sodipodi:type="arc"
+       sodipodi:cx="5.0000029"
+       sodipodi:cy="-9.950242"
+       sodipodi:rx="1.8290817"
+       sodipodi:ry="1.8290817"
+       sodipodi:start="0"
+       sodipodi:end="3.1415927"
+       d="m 6.8290845,-9.950242 a 1.8290817,1.8290817 0 0 1 -0.9145408,1.5840312 1.8290817,1.8290817 0 0 1 -1.8290817,-1e-7 1.8290817,1.8290817 0 0 1 -0.9145408,-1.5840312 l 1.8290817,1e-7 z"
+       transform="scale(1,-1)"
+       id="path32995" />
+    <text
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:1.05833328px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:center;writing-mode:lr-tb;dominant-baseline:mathematical;text-anchor:middle;stroke-width:0.09900485"
+       class="endname_south"
+       y="9.3516426"
+       x="5.0000029"
+       dominant-baseline="mathematical"
+       id="text32997">south</text>
+    <path
+       style="fill:#a0a0a0;fill-opacity:1;stroke:none;stroke-width:0.19902945;stroke-miterlimit:4;stroke-dasharray:none;stroke-opacity:0;paint-order:fill markers stroke"
+       class="endcolor_west"
+       sodipodi:type="arc"
+       sodipodi:cx="-4.9999986"
+       sodipodi:cy="0.049757361"
+       sodipodi:rx="1.8290817"
+       sodipodi:ry="1.8290817"
+       sodipodi:start="0"
+       sodipodi:end="3.1415927"
+       d="m -3.1709169,0.04975736 a 1.8290817,1.8290817 0 0 1 -0.9145409,1.58403124 1.8290817,1.8290817 0 0 1 -1.8290816,-10e-8 1.8290817,1.8290817 0 0 1 -0.9145408,-1.58403122 l 1.8290816,8e-8 z"
+       transform="rotate(-90)"
+       id="path32999" />
+    <text
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:1.05833328px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:center;writing-mode:lr-tb;dominant-baseline:mathematical;text-anchor:middle;stroke-width:0.09900485"
+       class="endname_west"
+       y="-0.62414652"
+       x="4.9813952"
+       transform="rotate(90)"
+       dominant-baseline="mathematical"
+       id="text33001">west</text>
+    <text
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:2.11666656px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:center;writing-mode:lr-tb;dominant-baseline:mathematical;text-anchor:middle;stroke-width:0.09900485"
+       class="tilename"
+       y="4.9999986"
+       x="5.0000029"
+       dominant-baseline="mathematical"
+       id="text33003">name</text>
+    <text
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:1.05833328px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:center;writing-mode:lr-tb;dominant-baseline:mathematical;text-anchor:middle;stroke-width:0.09900485"
+       class="type_ne"
+       y="0.60158187"
+       x="9.0069599"
+       dominant-baseline="mathematical"
+       id="text33005">ne</text>
+    <text
+       style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:1.05833328px;font-family:sans-serif;-inkscape-font-specification:'sans-serif, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-feature-settings:normal;text-align:center;writing-mode:lr-tb;dominant-baseline:mathematical;text-anchor:middle;stroke-width:0.09900485"
+       class="type_se"
+       y="9.2560663"
+       x="0.91297364"
+       dominant-baseline="mathematical"
+       id="text33007">sw</text>
+    <rect
+       id="rect33064"
+       height="9.900485"
+       width="9.900485"
+       x="0.049757361"
+       y="0.049757361"
+       class="tilerect"
+       style="fill:none;stroke:#000000;stroke-width:0.09951472;stroke-miterlimit:4;stroke-dasharray:none;fill-opacity:1" />
+  </g>
+</svg>

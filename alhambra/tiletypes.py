@@ -5,7 +5,8 @@ import string
 import re
 from ruamel.yaml.comments import CommentedMap
 import collections
-
+import cssutils
+from lxml import etree
 # Color dictionary for xgrow colors...
 import pkg_resources
 import os.path
@@ -188,6 +189,42 @@ class tile_daoe(object):
         assert ('label' not in self._defdict.keys())
         return [("{}-{}".format(self['name'], i+1), seq)
                 for i, seq in enumerate(seqs)]
+
+    def abstract_diagram(self, tileset):
+        tilediagfile = etree.parse(
+            pkg_resources.resource_stream(__name__, os.path.join(
+                'seqdiagrambases', '{}-abstract.svg'.format(self._abase))))
+
+        tilediag = tilediagfile.getroot().find("./*[@class='tile']")
+
+        if 'color' in self._defdict.keys():
+            fill = xcolors[self['color']]
+        else:
+            fill = None
+
+        tilediag.find("./*[@class='tilename']").text = self._defdict['name']
+        for endn, loc in zip(self._defdict['ends'],
+                             self._a_endlocs):
+            if endn in tileset['ends'].keys():
+                end = tileset['ends'][endn]
+            elif endn[:-1] in tileset['ends'].keys() and endn[-1] == '/':
+                end = tileset['ends'][endn[:-1]]
+            else:
+                end = None
+            tilediag.find(
+                "./*[@class='endname_{}']".format(loc)).text = endn
+            if end and ('color' in end.keys()):
+                ec = tilediag.find("./*[@class='endcolor_{}']".format(loc))
+                s = cssutils.parseStyle(ec.attrib['style'])
+                s['fill'] = xcolors[end['color']]
+                ec.attrib['style'] = s.getCssText('')
+        if fill:
+            s = cssutils.parseStyle(
+                tilediag.find("./*[@class='tilerect']").attrib['style'])
+            s['fill'] = fill
+            tilediag.find("./*[@class='tilerect']").attrib['style'] = s.cssText
+
+        return (tilediag, 1)
     
 
 class tile_daoe_single(tile_daoe):
@@ -203,66 +240,9 @@ class tile_daoe_single(tile_daoe):
         self._orient = orient
         self._endtypes = None
 
-    def abstract_diagram(self, drawing):
-        tilediag = drawing.g()
-
-        if 'color' in self._defdict.keys():
-            fill = xcolors[self['color']]
-        else:
-            fill = "rgb(255,255,255)"
-
-        # Tile Box
-        tilediag.add(
-            drawing.rect(
-                (0, 0), (100, 100), stroke="black", fill=fill))
-
-        # End Names
-        tilediag.add(
-            drawing.text(
-                self['ends'][0], insert=(50, 10), text_anchor='middle',
-                dominant_baseline="mathematical", font_size="14pt"))
-        tilediag.add(
-            drawing.text(
-                self['ends'][1], insert=(90, 50), text_anchor='middle',
-                dominant_baseline="mathematical", transform="rotate(90,90,50)",
-                font_size="14pt"))
-        tilediag.add(
-            drawing.text(
-                self['ends'][2], insert=(50, 90), text_anchor='middle',
-                dominant_baseline="mathematical", font_size="14pt"))
-        tilediag.add(
-            drawing.text(
-                self['ends'][3], insert=(10, 50), text_anchor='middle',
-                dominant_baseline="mathematical",
-                transform="rotate(-90,10,50)", font_size="14pt"))
-
-        # Tile Name
-        tilediag.add(
-            drawing.text(
-                self['name'],
-                insert=(50, 50),
-                text_anchor='middle',
-                dominant_baseline="mathematical",
-                font_size="14pt"))
-
-        if self._orient:
-            tilediag.add(
-                drawing.text(
-                    self._orient[0],
-                    insert=(92, 8),
-                    text_anchor='middle',
-                    dominant_baseline="mathematical",
-                    font_size="9pt"))
-            tilediag.add(
-                drawing.text(
-                    self._orient[1],
-                    insert=(8, 92),
-                    text_anchor='middle',
-                    dominant_baseline="mathematical",
-                    font_size="9pt"))
-
-        return tilediag
-
+    _abase = 'tile_daoe_single'
+    _a_endlocs = ['north','east','south','west']
+        
     @property
     def _seqdiagseqstrings(self):
         s = self['fullseqs']
@@ -296,7 +276,7 @@ class tile_daoe_5up(tile_daoe_single):
         self._endlocs = [(0, 0, 5), (3, 0, 5), (3, 21, None), (0, 21, None)]
     # valid edotparen for both 3up and 5up
     edotparen = "5.16(5.+8)16[16{8)+8(16]16}8(+5.16)5."
-
+    
     @property
     def orderableseqs(self):
         seqs = copy.deepcopy(self['fullseqs'])
@@ -412,88 +392,10 @@ class tile_daoe_doublehoriz(tile_daoe):
         tile_daoe.__init__(self, defdict)
         self._orient = None
 
-    def abstract_diagram(self, drawing):
-        tilediag = drawing.g()
-
-        if 'color' in self._defdict.keys():
-            fill = xcolors[self['color']]
-        else:
-            fill = "rgb(255,255,255)"
-
-        # Tile Box
-        tilediag.add(
-            drawing.rect(
-                (0, 0), (200, 100), stroke="black", fill=fill))
-
-        # End Names
-        tilediag.add(
-            drawing.text(
-                self['ends'][0], insert=(50, 10), text_anchor='middle',
-                dominant_baseline="mathematical", font_size="14pt"))
-        tilediag.add(
-            drawing.text(
-                self['ends'][1], insert=(150, 10), text_anchor='middle',
-                dominant_baseline="mathematical", font_size="14pt"))
-        tilediag.add(
-            drawing.text(
-                self['ends'][2], insert=(190, 50), text_anchor='middle',
-                dominant_baseline="mathematical",
-                transform="rotate(90,190,50)", font_size="14pt"))
-        tilediag.add(
-            drawing.text(
-                self['ends'][3], insert=(150, 90), text_anchor='middle',
-                dominant_baseline="mathematical", font_size="14pt"))
-        tilediag.add(
-            drawing.text(
-                self['ends'][4], insert=(50, 90), text_anchor='middle',
-                dominant_baseline="mathematical", font_size="14pt"))
-        tilediag.add(
-            drawing.text(
-                self['ends'][5], insert=(10, 50), text_anchor='middle',
-                dominant_baseline="mathematical",
-                transform="rotate(-90,10,50)", font_size="14pt"))
-
-        # Tile Name
-        tilediag.add(
-            drawing.text(
-                self['name'],
-                insert=(100, 50),
-                text_anchor='middle',
-                dominant_baseline="mathematical",
-                font_size="14pt"))
-
-        if self._orient:
-            # Orientation
-            tilediag.add(
-                drawing.text(
-                    self._orient[0],
-                    insert=(92, 8),
-                    text_anchor='middle',
-                    dominant_baseline="mathematical",
-                    font_size="9pt"))
-            tilediag.add(
-                drawing.text(
-                    self._orient[1],
-                    insert=(192, 8),
-                    text_anchor='middle',
-                    dominant_baseline="mathematical",
-                    font_size="9pt"))
-            tilediag.add(
-                drawing.text(
-                    self._orient[1],
-                    insert=(8, 92),
-                    text_anchor='middle',
-                    dominant_baseline="mathematical",
-                    font_size="9pt"))
-            tilediag.add(
-                drawing.text(
-                    self._orient[0],
-                    insert=(108, 92),
-                    text_anchor='middle',
-                    dominant_baseline="mathematical",
-                    font_size="9pt"))
-
-        return tilediag
+    _abase = 'tile_daoe_doublehoriz'
+    _a_endlocs = ['northwest', 'northeast', 'east', 'southeast',
+                  'southwest', 'west']
+        
 
 
 class tile_daoe_doublevert(tile_daoe):
@@ -501,90 +403,9 @@ class tile_daoe_doublevert(tile_daoe):
         tile_daoe.__init__(self, defdict)
         self._orient = None
 
-    def abstract_diagram(self, drawing):
-        tilediag = drawing.g()
-
-        if 'color' in self._defdict.keys():
-            fill = xcolors[self['color']]
-        else:
-            fill = "rgb(255,255,255)"
-
-        # Tile Box
-        tilediag.add(
-            drawing.rect(
-                (0, 0), (100, 200), stroke="black", fill=fill))
-
-        # End Names
-        tilediag.add(
-            drawing.text(
-                self['ends'][0], insert=(50, 10), text_anchor='middle',
-                dominant_baseline="mathematical", font_size="14pt"))
-        tilediag.add(
-            drawing.text(
-                self['ends'][1], insert=(90, 50), text_anchor='middle',
-                dominant_baseline="mathematical", transform="rotate(90,90,50)",
-                font_size="14pt"))
-        tilediag.add(
-            drawing.text(
-                self['ends'][2], insert=(90, 150), text_anchor='middle',
-                dominant_baseline="mathematical",
-                transform="rotate(90,90,150)", font_size="14pt"))
-        tilediag.add(
-            drawing.text(
-                self['ends'][3], insert=(50, 190), text_anchor='middle',
-                dominant_baseline="mathematical", font_size="14pt"))
-        tilediag.add(
-            drawing.text(
-                self['ends'][4], insert=(10, 150), text_anchor='middle',
-                dominant_baseline="mathematical",
-                transform="rotate(-90,10,150)", font_size="14pt"))
-        tilediag.add(
-            drawing.text(
-                self['ends'][5], insert=(10, 50), text_anchor='middle',
-                dominant_baseline="mathematical",
-                transform="rotate(-90,10,50)", font_size="14pt"))
-
-        # Tile Name
-        tilediag.add(
-            drawing.text(
-                self['name'],
-                insert=(50, 100),
-                text_anchor='middle',
-                dominant_baseline="mathematical",
-                font_size="14pt"))
-
-        if self._orient:
-            # Orientation
-            tilediag.add(
-                drawing.text(
-                    self._orient[0],
-                    insert=(92, 8),
-                    text_anchor='middle',
-                    dominant_baseline="mathematical",
-                    font_size="9pt"))
-            tilediag.add(
-                drawing.text(
-                    self._orient[0],
-                    insert=(8, 192),
-                    text_anchor='middle',
-                    dominant_baseline="mathematical",
-                    font_size="9pt"))
-            tilediag.add(
-                drawing.text(
-                    self._orient[1],
-                    insert=(92, 108),
-                    text_anchor='middle',
-                    dominant_baseline="mathematical",
-                    font_size="9pt"))
-            tilediag.add(
-                drawing.text(
-                    self._orient[1],
-                    insert=(8, 92),
-                    text_anchor='middle',
-                    dominant_baseline="mathematical",
-                    font_size="9pt"))
-
-        return tilediag
+    _abase = 'tile_daoe_doublevert'
+    _a_endlocs = ['north', 'northeast', 'southeast',
+                  'south', 'southwest', 'northwest']
 
 
 class tile_daoe_doublehoriz_35up(tile_daoe_doublehoriz):
