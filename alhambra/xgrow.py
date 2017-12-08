@@ -31,6 +31,7 @@ def generate_xgrow_dict(ts,
             try:
                 tile = [x for x in ts['seed']['adapters']
                         if x.get('name') == tilename][0]
+                to_use.append(tile)
             except IndexError as e:
                 raise Exception("Can't find {}".format(tilename)) from e
     else:

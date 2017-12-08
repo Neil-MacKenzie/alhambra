@@ -388,8 +388,8 @@ def create_layout_diagrams(tileset, xgrowarray, filename, scale=1, *options):
             tn = tilen[xgrowarray[yi, xi]]
             if tn and tn[-5:] == '_left':
                 tn = tn[:-5]
-            if tn and tn[-4:] == '_top':
-                tn = tn[:-4]
+            if tn and tn[-7:] == '_bottom':
+                tn = tn[:-7]
             if not (tn in svgtiles.keys()):
                 continue
             if xi < firstxi:
