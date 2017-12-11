@@ -1,4 +1,4 @@
-from .tiletypes import gettile, check_edotparen_sequence, check_edotparen_consistency
+from .tilestructures import gettile, check_edotparen_sequence, check_edotparen_consistency
 import warnings
 import copy
 
@@ -52,15 +52,15 @@ class seed_tileadapts(seed_base):
 
         for adapter in tset['seed']['adapters']:
             mimic = self.getmimic_full( tset, adapter )
-            if mimic['tile']['type'] == 'tile_daoe_5up':
+            if mimic['tile']['structure'] == 'tile_daoe_5up':
                 # Tile is single. If we have ends, check that they match.
                 if (('ends' in adapter.keys()) and (adapter['ends'] != mimic['tile']['ends'][1:3])):
                     raise ValueError("adapter {} and tile base {} ends don't match: adapter has {}, tile has {}".format(
                         adapter['name'], mimic['tile']['name'], adapter['ends'], mimic['tile']['ends'][1:3] ))
                 adapter_strand_short = mimic['tile']['fullseqs'][-1]
                 tile_long_strand = mimic['tile']['fullseqs'][-2]
-            elif mimic['tile']['type'] == 'tile_daoe_doublehoriz_35up' \
-                    or mimic['tile']['type'] == 'tile_daoe_doublevert_35up':
+            elif mimic['tile']['structure'] == 'tile_daoe_doublehoriz_35up' \
+                    or mimic['tile']['structure'] == 'tile_daoe_doublevert_35up':
                 if ( 'ends' in adapter.keys() ) and ( adapter['ends'] != mimic['tile']['ends'][2:4] ):
                     raise ValueError("adapter {} and tile base {} ends don't match: adapter has {}, tile has {}".format(
                         adapter['name'], mimic['tile']['name'], adapter['ends'], mimic['tile']['ends'][2:4] ))
@@ -87,14 +87,14 @@ class seed_tileadapts(seed_base):
         out = {}
         e1 = None
         e2 = None
-        if mimic['type'] == 'tile_daoe_5up':
+        if mimic['structure'] == 'tile_daoe_5up':
             out['tilestrand'] = mimic['fullseqs'][3]
             out['tileends'] = mimic['ends'][1:3]
             if 'extra' in mimic.keys():
                 e1 = re.search(r'2([A-Za-z]+)',mimic['extra'])
                 e2 = re.search(r'3([A-Za-z]+)',mimic['extra'])
-        elif mimic['type'] == 'tile_daoe_doublehoriz_35up' or \
-           mimic['type'] == 'tile_daoe_doublevert_35up':
+        elif mimic['structure'] == 'tile_daoe_doublehoriz_35up' or \
+           mimic['structure'] == 'tile_daoe_doublevert_35up':
             out['tilestrand'] = mimic['fullseqs'][5]
             out['tileends'] = mimic['ends'][2:4]
             if 'extra' in mimic.keys():
@@ -102,7 +102,7 @@ class seed_tileadapts(seed_base):
                 e2 = re.search(r'4([A-Za-z]+)',mimic['extra'])
         else:
             raise ValueError("Tile type {} not known for adapter.".format(
-                mimic['type']), adapter, mimic)
+                mimic['structure']), adapter, mimic)
         if e1:
             if e1[1] == 'h':
                 out['extra']='1h'

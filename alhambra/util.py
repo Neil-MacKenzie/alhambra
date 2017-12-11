@@ -3,14 +3,14 @@ from . import seq
 from ruamel.yaml.comments import CommentedSeq
 from ruamel.yaml.representer import RoundTripRepresenter
 
-class named_list(CommentedSeq):
+class NamedList(CommentedSeq):
     """\
 A class for a list of dicts, where some dicts have a 'name' item which should be unique, but others might not.
 Indexing works with either number or name.
 Note that updating dicts may make the list inconsistent."""
     def __init__(self,x=[]):
         CommentedSeq.__init__(self,x)
-
+        
     def __getitem__(self, i):
         if isinstance(i,str):
             r = [ x for x in self if x.get('name',None)==i ]
@@ -40,7 +40,7 @@ with (message, {failed_name: count}).  Otherwise, return with no output.
        
         if max(namecounts.values()) > 1:
             badcounts = { n:v for n,v in namecounts.items() if v>1 }
-            raise ValueError("Inconsistent named_list.", badcounts)
+            raise ValueError("Inconsistent NamedList.", badcounts)
         
         
     def __setitem__(self, i, v):
@@ -67,7 +67,7 @@ with (message, {failed_name: count}).  Otherwise, return with no output.
             self.copy_attributes(res, deep=True)
         return res
 
-RoundTripRepresenter.add_representer(named_list,
+RoundTripRepresenter.add_representer(NamedList,
                                      RoundTripRepresenter.represent_list)
 
 lton = { 'a': (0,),
@@ -117,78 +117,6 @@ information from each and enforcing that the two input ends consistently make a 
             out[i] = copy.deepcopy(v)
     return out
 
-
-def merge_endlists(endlist1, endlist2, fail_immediate=False, 
-                   in_place=False ):
-    """\
-Given end lists `endlist1` and `endlist2`, merge the two lists, using
-`merge_ends` to merge any named ends that are present in both.
-
-Parameters
-----------
-
-endlist1: named_list of sticky ends.
-
-endlist2: named_list OR just a list of sticky ends.  If it just a list,
-    which may have multiple copies of the same named sticky end, each
-    sticky end in order is merged.
-
-fail_immediate: (default False) if True, fail immediately on a failed
-merge, passing through the ValueError from merge_ends.  If False, finish
-merging the two lists, then raise a ValueError listing *all* ends that
-failed to merge.
-
-in_place: (default False) if True, do merging in place in endlist1.  Note
-   the merged and added ends from endlist2 will be copies regardless.
-
-output: a merged named_list of sticky ends.
-
-
-Exceptions
-----------
-
-ValueError: In the event of a failed merge, when named ends cannot be
-    merged.  If fail_immediate is True, then this is passed through from
-    merge_ends.  If fail_immediate is False, then the ValueError has the
-    following args: 
-    ("message", [exceptions], [failed_name,failed_end1,failed_end2) ...],out)
-"""
-    endlist1 = named_list(endlist1)
-
-    # Check consistency of each named_list
-    endlist1.check_consistent()
-    try:
-        endlist2.check_consistent()
-    except AttributeError:
-        pass
-    
-    if not in_place:
-        out = copy.deepcopy(endlist1)
-    else:
-        out = endlist1
-    
-    exceptions = []
-    errors = []
-    
-    for end in endlist2:
-        if end['name'] in out.keys():
-            try:
-                out[end['name']] = merge_ends( out[end['name']], end)
-            except ValueError as e:
-                if fail_immediate:
-                    raise e
-                else:
-                    exceptions.append(e)
-                    errors.append((end['name'],out[end['name']],end))
-        else:
-            out.append(copy.deepcopy(end))
-    
-    if errors:
-        errorstring = " ".join( [e[0] for e in errors] )
-        raise ValueError(\
-              "Errors merging {}".format(errorstring), exceptions, errors, out)
-    
-    return out
 
 import time
 

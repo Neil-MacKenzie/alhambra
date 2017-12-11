@@ -1,5 +1,5 @@
 from . import stickyends
-from . import tiletypes
+from . import tilestructures
 import stickydesign.plots as sdplots
 import stickydesign as sd
 from collections import Counter
@@ -50,7 +50,7 @@ def plot_adjacent_regions(tileset,
     if energetics is None:
         energetics = DEFAULT_REGION_ENERGETICS
 
-    regions = [tiletypes.tfactory.parse(t)._side_bound_regions
+    regions = [tilestructures.tfactory.parse(t)._side_bound_regions
                for t in tileset['tiles']]
     regions = [[x.lower() for x in y] for y in regions]
     allregions = sum(regions, [])
@@ -81,7 +81,7 @@ def plot_side_strands(tileset,
     if energetics is None:
         energetics = DEFAULT_REGION_ENERGETICS
 
-    regions = [tiletypes.tfactory.parse(t)._short_bound_full
+    regions = [tilestructures.tfactory.parse(t)._short_bound_full
                for t in tileset['tiles']]
     regions = [[x.lower() for x in y] for y in regions]
     allregions = sum(regions, [])

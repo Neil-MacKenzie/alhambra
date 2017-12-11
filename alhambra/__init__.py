@@ -1,3 +1,6 @@
-__version__ = '0.4.2.dev1'
+__version__ = '1.0.0dev1'
 
-from .designer import *
+from .tilesets import TileSet
+from .tiles import Tile, TileList
+from .ends import End, EndList
+from .tilestructures import TileStructure

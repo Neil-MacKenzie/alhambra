@@ -3,13 +3,13 @@ import copy
 from .util import *
 import string
 import re
-from ruamel.yaml.comments import CommentedMap
 import collections
 import cssutils
 from lxml import etree
 # Color dictionary for xgrow colors...
 import pkg_resources
 import os.path
+from .ends import End, EndList
 
 rgbv = pkg_resources.resource_stream(__name__, os.path.join('data', 'rgb.txt'))
 xcolors = {" ".join(y[3:]): "rgb({},{},{})".format(y[0], y[1], y[2])
@@ -87,7 +87,8 @@ def check_edotparen_sequence(edotparen, sequence):
 
 
 def expand_compact_edotparen(expr):
-    return re.sub(r"(\d+)([\[\]\(\)\{\}A-Za-z\.])", lambda m: int(m.group(1)) * m.group(2),
+    return re.sub(r"(\d+)([\[\]\(\)\{\}A-Za-z\.])",
+                  lambda m: int(m.group(1)) * m.group(2),
                   expr)
 
 
@@ -97,58 +98,72 @@ def prettify_edotparen(expr):
                   lambda m: "{}{}".format(len(m.group(1)), m.group(2)), expr)
 
 
-class tile_daoe(object):
-    def __init__(self, defdict):
-        self._defdict = defdict
-        pass
-
-    def sequence_diagram(self):
-        if 'extra' in self._defdict:
-            ttype = self['type'] + '_' + self['extra']
+class TileStructure(object):
+    def check_consistent(self):
+        if self.edotparen:
+            check_edotparen_consistency(self.edotparen)
         else:
-            ttype = self['type']
+            warnings.warn("No edotparen")  #FIXME
+
+    @property
+    def numends(self):
+        return len(self._endlocs)
+
+    def check_strands(self, tile):
+        check_edotparen_sequence(self.edotparen, "+".join(tile.strands))
+
+    @property
+    def name(self):  # FIXME: bad!
+        return self.__class__.__name__
+
+
+class tile_daoe(TileStructure):
+    def sequence_diagram(self, tile):
+        if 'extra' in tile:
+            ttype = tile['type'] + '_' + tile['extra']
+        else:
+            ttype = tile['type']
         from lxml import etree
         base_svg = etree.parse(
             pkg_resources.resource_stream(__name__, os.path.join(
                 'seqdiagrambases', ttype + '.svg')))
 
         strings = self._seqdiagseqstrings + [
-            e for e, t in self.tile_ends
+            e for e, t in self.tile_ends(tile)
             if not (t in ('hairpin', 'blunt', 'inert'))
-        ] + [self['name']]
+        ] + [tile['name']]
 
         texts = base_svg.findall("//{http://www.w3.org/2000/svg}text")
 
-        for text, string in zip(texts, strings):
+        for text, s in zip(texts, strings):
             if text.getchildren():
-                text.getchildren()[0].text = string
+                text.getchildren()[0].text = s
             else:
-                text.text = string
+                text.text = s
 
         return base_svg.xpath(
             '/svg:svg/svg:g',
             namespaces={'svg': 'http://www.w3.org/2000/svg'})[0]
 
-    @property
-    def tile_ends(self):
-        return zip(self['ends'], self._endtypes)
+    def tile_ends(self, tile):
+        return zip(tile['ends'], self._endtypes)
 
-    def __getitem__(self, *args):
-        return self._defdict.__getitem__(*args)
-
-    def check_sequence(self):
+    def check_sequence(self, tile):
         try:
             check_edotparen_sequence(self.edotparen,
-                                     "+".join(self['fullseqs']))
+                                     "+".join(tile.strands))
         except ValueError as e:
-            raise ValueError("{} core is inconsistent.".format(self['name']),
-                             self['name']) from e
+            raise ValueError("{} core is inconsistent.".format(tile['name']),
+                             tile['name']) from e
 
-    def get_end_defs(self):
-        es = list()
+    def get_endlist(self, tile):
+        es = EndList()
         for (strand, start, end), endtype, endname in zip(
-                self._endlocs, self._endtypes, self['ends']):
+                self._endlocs, self._endtypes, tile['ends']):
 
+            if endtype in ('blunt', 'inert', 'hairpin'):
+                continue
+            
             if endtype == 'DT':
                 sl = slice(start - 1, end)
             elif endtype == 'TD':
@@ -156,9 +171,8 @@ class tile_daoe(object):
             else:
                 sl = None
 
-            if sl and 'fullseqs' in self._defdict.keys():
-                seq = self['fullseqs'][strand][sl]
-
+            if sl and tile.strands:
+                seq = tile.strands[strand][sl]
                 if endtype == 'DT':
                     seq = (seq + 'n').lower()
                 elif endtype == 'TD':
@@ -175,38 +189,46 @@ class tile_daoe(object):
                 if seq:
                     seq = "".join(reversed([wc[x] for x in seq]))
 
-            e = CommentedMap({'name': endname, 'type': endtype})
+            e = End({'name': endname, 'type': endtype})
 
             if seq:
-                e['fseq'] = seq
+                e.fseq = seq
 
             es.append(e)
         return es
 
-    @property
-    def orderableseqs(self):
-        seqs = copy.deepcopy(self['fullseqs'])
-        assert ('label' not in self._defdict.keys())
-        return [("{}-{}".format(self['name'], i+1), seq)
+    def orderableseqs(self, tile):
+        seqs = copy.deepcopy(tile.strands)
+        assert ('label' not in tile.keys())
+        return [("{}-{}".format(tile.name, i+1), seq)
                 for i, seq in enumerate(seqs)]
 
-    def abstract_diagram(self, tileset):
+    def abstract_diagram(self, tile, tileset=None):
         tilediagfile = etree.parse(
             pkg_resources.resource_stream(__name__, os.path.join(
                 'seqdiagrambases', '{}-abstract.svg'.format(self._abase))))
 
         tilediag = tilediagfile.getroot().find("./*[@class='tile']")
 
-        if 'color' in self._defdict.keys():
-            fill = xcolors[self['color']]
-        else:
-            fill = None
+        fill = xcolors.get(tile.get('color', None), None)
 
-        tilediag.find("./*[@class='tilename']").text = self._defdict['name']
-        for endn, loc in zip(self._defdict['ends'],
+        tilediag.find("./*[@class='tilename']").text = self.name
+        if fill:
+            s = cssutils.parseStyle(
+                tilediag.find("./*[@class='tilerect']").attrib['style'])
+            s['fill'] = fill
+            tilediag.find("./*[@class='tilerect']").attrib['style'] = s.cssText
+        if self._orient:
+            tilediag.find("./*[@class='type_sw']").text = self._orient[0]
+            tilediag.find("./*[@class='type_ne']").text = self._orient[1]
+
+        if not tileset:
+            return (tilediag, 1)
+        
+        for endn, loc in zip(self.ends,
                              self._a_endlocs):
-            if endn in tileset['ends'].keys():
-                end = tileset['ends'][endn]
+            if endn in tileset.ends.keys():
+                end = tileset.ends[endn]
             elif endn[:-1] in tileset['ends'].keys() and endn[-1] == '/':
                 end = tileset['ends'][endn[:-1]]
             else:
@@ -218,37 +240,18 @@ class tile_daoe(object):
                 s = cssutils.parseStyle(ec.attrib['style'])
                 s['fill'] = xcolors[end['color']]
                 ec.attrib['style'] = s.getCssText('')
-        if fill:
-            s = cssutils.parseStyle(
-                tilediag.find("./*[@class='tilerect']").attrib['style'])
-            s['fill'] = fill
-            tilediag.find("./*[@class='tilerect']").attrib['style'] = s.cssText
-        if self._orient:
-            tilediag.find("./*[@class='type_sw']").text = self._orient[0]
-            tilediag.find("./*[@class='type_ne']").text = self._orient[1]
 
         return (tilediag, 1)
-    
+
 
 class tile_daoe_single(tile_daoe):
     """Base class for single DAO-E tiles."""
 
-    def __init__(self, defdict, orient=None):
-        """TODO: to be defined1.
-
-        :defdict: TODO
-
-        """
-        tile_daoe.__init__(self, defdict)
-        self._orient = orient
-        self._endtypes = None
-
     _abase = 'tile_daoe_single'
-    _a_endlocs = ['north','east','south','west']
+    _a_endlocs = ['north', 'east', 'south', 'west']
         
-    @property
-    def _seqdiagseqstrings(self):
-        s = self['fullseqs']
+    def _seqdiagseqstrings(self, tile):
+        s = tile.strands
         return [
             s[0][:5] + "--" + s[0][5:13],
             s[0][:-6:-1] + "--" + s[0][-6:-14:-1],
@@ -260,84 +263,78 @@ class tile_daoe_single(tile_daoe):
             (s[3][:-6:-1] + "--" + s[3][-6:-14:-1])[::-1]
         ]
 
-    @property
-    def _short_bound_full(self):
-        s = self['fullseqs']
+    def _short_bound_full(self, tile):
+        s = tile.strands
         return [s[0][5:-5], s[3][5:-5]]
 
-    @property
-    def _side_bound_regions(self):
-        s = self['fullseqs']
+    def _side_bound_regions(self, tile):
+        s = tile.strands
         return [s[0][5:5 + 8], s[0][-5 - 8:-5], s[3][5:5 + 8], s[3][-5 - 8:-5]]
 
 
 class tile_daoe_5up(tile_daoe_single):
-    def __init__(self, defdict):
-        tile_daoe_single.__init__(self, defdict, orient=('5', '3'))
-        self._endtypes = ['TD', 'TD', 'DT', 'DT']
-        # endlocs is strand, loc, length
-        self._endlocs = [(0, 0, 5), (3, 0, 5), (3, 21, None), (0, 21, None)]
+    _orient = ('5', '3')
+    _endtypes = ['TD', 'TD', 'DT', 'DT']
+    # endlocs is strand, loc, length
+    _endlocs = [(0, 0, 5), (3, 0, 5), (3, 21, None), (0, 21, None)]
     # valid edotparen for both 3up and 5up
     edotparen = "5.16(5.+8)16[16{8)+8(16]16}8(+5.16)5."
     
-    @property
-    def orderableseqs(self):
-        seqs = copy.deepcopy(self['fullseqs'])
-        if 'label' in self._defdict.keys() and self['label'] == 'both':
+    def orderableseqs(self, tile):
+        seqs = copy.deepcopy(tile.strands)
+        if tile.get('label', None) == 'both':
             assert seqs[1][16] == 'T'
             assert seqs[2][16] == 'T'
             seqs[1] = seqs[1][:16]+'/iBiodT/'+seqs[1][17:]
             seqs[2] = seqs[2][:16]+'/iBiodT/'+seqs[2][17:]
-            assert re.sub('/iBiodT/', 'T', seqs[1]) == self['fullseqs'][1]
-            assert re.sub('/iBiodT/', 'T', seqs[2]) == self['fullseqs'][2]
-        return [("{}-{}".format(self['name'], i+1), seq)
+            assert re.sub('/iBiodT/', 'T', seqs[1]) == tile.strands[1]
+            assert re.sub('/iBiodT/', 'T', seqs[2]) == tile.strands[2]
+        elif 'label' in tile.keys():
+            raise NotImplementedError
+        return [("{}-{}".format(tile.name, i+1), seq)
                 for i, seq in enumerate(seqs)]
 
 
 class tile_daoe_3up(tile_daoe_single):
-    def __init__(self, defdict):
-        tile_daoe_single.__init__(self, defdict, orient=('3', '5'))
-        self._endtypes = ['DT', 'DT', 'TD', 'TD']
-        self._endlocs = [(0, 21, None), (3, 21, None), (3, 0, 5), (0, 0, 5)]
+    _orient = ('3', '5')
+    _endtypes = ['DT', 'DT', 'TD', 'TD']
+    _endlocs = [(0, 21, None), (3, 21, None), (3, 0, 5), (0, 0, 5)]
     # valid edotparen for both 3up and 5up
     edotparen = "5.16(5.+8)16[16{8)+8(16]16}8(+5.16)5."
 
-    @property
-    def orderableseqs(self):
-        seqs = copy.deepcopy(self['fullseqs'])
-        if 'label' in self._defdict.keys() and self['label'] == 'both':
+    def orderableseqs(self, tile):
+        seqs = copy.deepcopy(tile.strands)
+        if tile.get('label', None) == 'both':
             assert seqs[1][31] == 'T'
             assert seqs[2][31] == 'T'
             seqs[1] = seqs[1][:31]+'/iBiodT/'+seqs[1][32:]
             seqs[2] = seqs[2][:31]+'/iBiodT/'+seqs[2][32:]
-            assert re.sub('/iBiodT/', 'T', seqs[1]) == self['fullseqs'][1]
-            assert re.sub('/iBiodT/', 'T', seqs[2]) == self['fullseqs'][2]
-        return [("{}-{}".format(self['name'], i+1), seq)
+            assert re.sub('/iBiodT/', 'T', seqs[1]) == tile.strands[1]
+            assert re.sub('/iBiodT/', 'T', seqs[2]) == tile.strands[2]
+        elif 'label' in tile.keys():
+            raise NotImplementedError
+        return [("{}-{}".format(tile.name, i+1), seq)
                 for i, seq in enumerate(seqs)]
 
 
 class tile_daoe_5up_2h(tile_daoe_single):
-    def __init__(self, defdict):
-        tile_daoe_single.__init__(self, defdict, orient=('5', '3'))
-        self._endtypes = ['TD', 'hairpin', 'DT', 'DT']
-        self._endlocs = [(0, 0, 5), (3, 0, 18), (3, 21, None), (0, 21, None)]
+    _orient = ('5', '3')
+    _endtypes = ['TD', 'hairpin', 'DT', 'DT']
+    _endlocs = [(0, 0, 5), (3, 0, 18), (3, 21, None), (0, 21, None)]
 
     edotparen = "5.16(5.+8)16[16{8)+8(16]16}8(+5.16)7(4.7)"
 
-    @property
-    def _short_bound_full(self):
-        s = self['fullseqs']
+    def _short_bound_full(self, tile):
+        s = tile.strands
         return [s[0][5:-5], s[3][18:-5]]
 
-    @property
-    def _side_bound_regions(self):
-        s = self['fullseqs']
+    def _side_bound_regions(self, tile):
+        s = tile.strands
         return [s[0][5:5 + 8], s[0][-5 - 8:-5], s[3][18:18 + 8],
                 s[3][-5 - 8:-5]]
 
-    @property
-    def _seqdiagseqstrings(self):
-        s = copy.copy(self['fullseqs'])
+    def _seqdiagseqstrings(self, tile):
+        s = copy.copy(tile.strands)
         hp = s[3][0:13]
         s[3] = s[3][13:]
         return [
@@ -355,25 +352,20 @@ class tile_daoe_5up_2h(tile_daoe_single):
 
 
 class tile_daoe_3up_2h(tile_daoe_single):
-    @property
-    def _short_bound_full(self):
-        s = self['fullseqs']
+    def _short_bound_full(self, tile):
+        s = tile.strands
         return [s[0][5:-5], s[3][5:-18]]
 
-    @property
-    def _side_bound_regions(self):
-        s = self['fullseqs']
+    def _side_bound_regions(self, tile):
+        s = tile.strands
         return [s[0][5:5 + 8], s[0][-5 - 8:-5], s[3][5:5 + 8],
                 s[3][-18 - 8:-18]]
 
-    def __init__(self, defdict):
-        tile_daoe_single.__init__(self, defdict, orient=('3', '5'))
-        self._endtypes = ['DT', 'hairpin', 'TD', 'TD']
-        self._endlocs = [(0, 21, None), (3, 21, None), (3, 0, 5), (0, 0, 5)]
+    _endtypes = ['DT', 'hairpin', 'TD', 'TD']
+    _endlocs = [(0, 21, None), (3, 21, None), (3, 0, 5), (0, 0, 5)]
 
-    @property
-    def _seqdiagseqstrings(self):
-        s = copy.copy(self['fullseqs'])
+    def _seqdiagseqstrings(self, tile):
+        s = copy.copy(tile.strands)
         hp = s[3][26:]
         s[3] = s[3][:26]
         return [
@@ -391,20 +383,13 @@ class tile_daoe_3up_2h(tile_daoe_single):
 
 
 class tile_daoe_doublehoriz(tile_daoe):
-    def __init__(self, defdict):
-        tile_daoe.__init__(self, defdict)
-        self._orient = None
 
     _abase = 'tile_daoe_doublehoriz'
     _a_endlocs = ['northwest', 'northeast', 'east', 'southeast',
                   'southwest', 'west']
         
 
-
 class tile_daoe_doublevert(tile_daoe):
-    def __init__(self, defdict):
-        tile_daoe.__init__(self, defdict)
-        self._orient = None
 
     _abase = 'tile_daoe_doublevert'
     _a_endlocs = ['north', 'northeast', 'southeast',
@@ -412,22 +397,18 @@ class tile_daoe_doublevert(tile_daoe):
 
 
 class tile_daoe_doublehoriz_35up(tile_daoe_doublehoriz):
-    def __init__(self, defdict):
-        tile_daoe_doublehoriz.__init__(self, defdict)
-        self._endtypes = ['DT', 'TD', 'TD', 'DT', 'TD', 'TD']
-        self._orient = ('3', '5')
-        self._endlocs = [(0, -5, None), (2, 0, 5), (5, 0, 5), (5, -5, None),
-                         (3, 0, 5), (0, 0, 5)]
+    _endtypes = ['DT', 'TD', 'TD', 'DT', 'TD', 'TD']
+    _orient = ('3', '5')
+    _endlocs = [(0, -5, None), (2, 0, 5), (5, 0, 5), (5, -5, None),
+                (3, 0, 5), (0, 0, 5)]
 
-    @property
-    def _short_bound_full(self):
-        s = self['fullseqs']
+    def _short_bound_full(self, tile):
+        s = tile.strands
         el = self._endlocs
         return [s[0][el[5][2]:el[0][1]], s[5][el[2][2]:el[3][1]]]
 
-    @property
-    def _side_bound_regions(self):
-        s = self['fullseqs']
+    def _side_bound_regions(self, tile):
+        s = tile.strands
         el = self._endlocs
 
         def g(e):
@@ -440,9 +421,8 @@ class tile_daoe_doublehoriz_35up(tile_daoe_doublehoriz):
 
         return [g(e) for e in el]
 
-    @property
-    def _seqdiagseqstrings(self):
-        s = self['fullseqs']
+    def _seqdiagseqstrings(self, tile):
+        s = tile.strands
         return [s[0][:5] + "--" + s[0][5:13],
                 s[0][:-6:-1] + "--" + s[0][-6:-14:-1],
                 s[1][:8] + "--" + s[1][8:16], s[1][16:24], s[1][24:32][::-1],
@@ -462,22 +442,19 @@ class tile_daoe_doublehoriz_35up(tile_daoe_doublehoriz):
 
 
 class tile_daoe_doublehoriz_53up(tile_daoe_doublehoriz):
-    def __init__(self, defdict):
-        tile_daoe_doublehoriz.__init__(self, defdict)
-        self._endtypes = ['TD', 'DT', 'DT', 'TD', 'DT', 'DT']
-        self._orient = ('5', '3')
-        self._endlocs = [(0, -5, None), (2, 0, 5), (5, 0, 5), (5, -5, None),
-                         (3, 0, 5), (0, 0, 5)]
 
-    @property
-    def _short_bound_full(self):
-        s = self['fullseqs']
+    _endtypes = ['TD', 'DT', 'DT', 'TD', 'DT', 'DT']
+    _orient = ('5', '3')
+    _endlocs = [(0, -5, None), (2, 0, 5), (5, 0, 5), (5, -5, None),
+                (3, 0, 5), (0, 0, 5)]
+
+    def _short_bound_full(self, tile):
+        s = tile.strands
         el = self._endlocs
         return [s[0][el[5][2]:el[0][1]], s[5][el[2][2]:el[3][1]]]
 
-    @property
-    def _side_bound_regions(self):
-        s = self['fullseqs']
+    def _side_bound_regions(self, tile):
+        s = tile.strands
         el = self._endlocs
 
         def g(e):
@@ -490,9 +467,8 @@ class tile_daoe_doublehoriz_53up(tile_daoe_doublehoriz):
 
         return [g(e) for e in el]
 
-    @property
-    def _seqdiagseqstrings(self):
-        s = self['fullseqs']
+    def _seqdiagseqstrings(self, tile):
+        s = tile.strands
         return [s[0][:5] + "--" + s[0][5:13],
                 s[0][:-6:-1] + "--" + s[0][-6:-14:-1],
                 s[1][:8] + "--" + s[1][8:16], s[1][16:24], s[1][24:32][::-1],
@@ -512,15 +488,13 @@ class tile_daoe_doublehoriz_53up(tile_daoe_doublehoriz):
 
 
 class tile_daoe_doublevert_35up(tile_daoe_doublevert):
-    @property
-    def _short_bound_full(self):
-        s = self['fullseqs']
+    def _short_bound_full(self, tile):
+        s = tile.strands
         el = self._endlocs
         return [s[0][el[5][2]:el[0][1]], s[5][el[2][2]:el[3][1]]]
 
-    @property
-    def _side_bound_regions(self):
-        s = self['fullseqs']
+    def _side_bound_regions(self, tile):
+        s = tile.strands
         el = self._endlocs
 
         def g(e):
@@ -533,25 +507,21 @@ class tile_daoe_doublevert_35up(tile_daoe_doublevert):
 
         return [g(e) for e in el]
 
-    def __init__(self, defdict):
-        tile_daoe_doublevert.__init__(self, defdict)
-        self._endtypes = ['DT', 'DT', 'TD', 'DT', 'DT', 'TD']
-        self._orient = ('3', '5')
-        self._endlocs = [(0, -5, None), (3, -5, None), (5, 0, 5),
-                         (5, -5, None), (2, -5, None), (0, 0, 5)]
+    _endtypes = ['DT', 'DT', 'TD', 'DT', 'DT', 'TD']
+    _orient = ('3', '5')
+    _endlocs = [(0, -5, None), (3, -5, None), (5, 0, 5),
+                (5, -5, None), (2, -5, None), (0, 0, 5)]
 
 
 class tile_daoe_doublehoriz_35up_1h2i(tile_daoe_doublehoriz_35up):
     edotparen = '5.16(7(4.7)+8)16[16{8)+5(29(16]16}8(+5.29)16[16{8)5)+8(16]16}8(+5.16)5.'
 
-    def __init__(self, defdict):
-        tile_daoe_doublehoriz_35up.__init__(self, defdict)
+    def __init__(self):
         self._endtypes[0] = 'hairpin'
         self._endtypes[1] = 'blunt'
 
-    @property
-    def _seqdiagseqstrings(self):
-        s = self['fullseqs']
+    def _seqdiagseqstrings(self, tile):
+        s = tile.strands
         return [s[0][:5] + "--" + s[0][5:13],
                 (s[0][13:21] + "--" + s[0][21:26] + "-" + s[0][26:28] + "-" +
                  s[0][28:30])[::-1], s[1][:8] + "--" + s[1][8:16], s[1][16:24],
@@ -574,14 +544,12 @@ class tile_daoe_doublehoriz_35up_1h2i(tile_daoe_doublehoriz_35up):
 class tile_daoe_doublehoriz_35up_4h5i(tile_daoe_doublehoriz_35up):
     edotparen = '5.16(5.+8)16[16{8)+5.29(16]16}8(5(+5)29)16[16{8)+8(16]16}8(+5.16)7(4.7)'
 
-    def __init__(self, defdict):
-        tile_daoe_doublehoriz_35up.__init__(self, defdict)
+    def __init__(self):
         self._endtypes[3] = 'hairpin'
         self._endtypes[4] = 'blunt'
 
-    @property
-    def _seqdiagseqstrings(self):
-        s = self['fullseqs']
+    def _seqdiagseqstrings(self, tile):
+        s = tile.strands
         return [s[0][:5] + "--" + s[0][5:13],
                 s[0][:-6:-1] + "--" + s[0][-6:-14:-1],
                 s[1][:8] + "--" + s[1][8:16], s[1][16:24], s[1][24:32][::-1],
@@ -602,18 +570,17 @@ class tile_daoe_doublehoriz_35up_4h5i(tile_daoe_doublehoriz_35up):
 
 
 class tile_daoe_doublehoriz_35up_2h3h(tile_daoe_doublehoriz_35up):
-    def __init__(self, defdict):
-        tile_daoe_doublehoriz_35up.__init__(self, defdict)
+    def __init__(self):
         self._endtypes[1] = 'hairpin'
         self._endtypes[2] = 'hairpin'
-        self._endlocs = [(0, -5, None), (2, 0, 18), (5, 0, 18), (5, -5, None),
-                         (3, 0, 5), (0, 0, 5)]
+
+    _endlocs = [(0, -5, None), (2, 0, 18), (5, 0, 18), (5, -5, None),
+                (3, 0, 5), (0, 0, 5)]
 
     edotparen = '5.16(5.+8)16[16{8)+7(4.7)29(16]16}8(+5.29)16[16{8)+8(16]16}8(+7(4.23)5.'
 
-    @property
-    def _seqdiagseqstrings(self):
-        s = copy.copy(self['fullseqs'])
+    def _seqdiagseqstrings(self, tile):
+        s = copy.copy(tile.strands)
         hp2 = s[2][0:13]
         s[2] = s[2][13:]
         hp3 = s[5][0:13]
@@ -640,18 +607,17 @@ class tile_daoe_doublehoriz_35up_2h3h(tile_daoe_doublehoriz_35up):
         ]
 
 class tile_daoe_doublehoriz_53up_2h3h(tile_daoe_doublehoriz_35up):
-    def __init__(self, defdict):
-        tile_daoe_doublehoriz_53up.__init__(self, defdict)
+    def __init__(self):
         self._endtypes[1] = 'hairpin'
         self._endtypes[2] = 'hairpin'
-        self._endlocs = [(0, -5, None), (2, 0, 18), (5, 0, 18), (5, -5, None),
-                         (3, 0, 5), (0, 0, 5)]
+
+    _endlocs = [(0, -5, None), (2, 0, 18), (5, 0, 18), (5, -5, None),
+                (3, 0, 5), (0, 0, 5)]
 
     edotparen = '5.16(5.+8)16[16{8)+7(4.7)29(16]16}8(+5.29)16[16{8)+8(16]16}8(+7(4.23)5.'
 
-    @property
-    def _seqdiagseqstrings(self):
-        s = copy.copy(self['fullseqs'])
+    def _seqdiagseqstrings(self, tile):
+        s = copy.copy(tile.strands)
         hp2 = s[2][0:13]
         s[2] = s[2][13:]
         hp3 = s[5][0:13]
@@ -679,18 +645,17 @@ class tile_daoe_doublehoriz_53up_2h3h(tile_daoe_doublehoriz_35up):
 
 
 class tile_daoe_doublevert_35up_4h5h(tile_daoe_doublevert_35up):
-    def __init__(self, defdict):
-        tile_daoe_doublevert_35up.__init__(self, defdict)
+    def __init__(self):
         self._endtypes[3] = 'hairpin'
         self._endtypes[4] = 'hairpin'
-        self._endlocs = [(0, -5, None), (3, -5, None), (5, 0, 5),
-                         (5, -18, None), (2, -18, None), (0, 0, 5)]
+
+    _endlocs = [(0, -5, None), (3, -5, None), (5, 0, 5),
+                (5, -18, None), (2, -18, None), (0, 0, 5)]
 
     edotparen = "5.16(5.+8)16[16{8)+8(16]16}8(5(16(7(4.7)+8)16[16{8)5)16)5.+8(16]16}8(+5.16)7(4.7)"
 
-    @property
-    def _seqdiagseqstrings(self):
-        s = copy.copy(self['fullseqs'])
+    def _seqdiagseqstrings(self, tile):
+        s = copy.copy(tile.strands)
         return [
             s[0][:5] + "--" + s[0][5:13],
             s[0][:-6:-1] + "--" + s[0][-6:-14:-1],
@@ -723,7 +688,7 @@ class tile_daoe_doublevert_35up_4h5h(tile_daoe_doublevert_35up):
         ]
 
 
-_tiletypes = {
+tilestructures = {
     'tile_daoe_5up': tile_daoe_5up,
     'tile_daoe_3up': tile_daoe_3up,
     'tile_daoe_5up_2h': tile_daoe_5up_2h,
@@ -738,27 +703,12 @@ _tiletypes = {
 }
 
 
-class TileFactory(object):
-    def __init__(self, tiletypes=_tiletypes):
-        self.tiletypes = tiletypes
-
-    def parse(self, defdict):
-        if 'extra' in defdict:
-            ttype = defdict['type'] + '_' + defdict['extra']
-        else:
-            ttype = defdict['type']
-        return self.tiletypes[ttype](defdict)
-
-    # Utility Functions
-
-
-def get_tile_ends(tile):
-    r = list()
-    for x in zip(tile['ends'], tileendtypes[tile['type']]):
-        if x[0] == 'hp':
-            x = (x[0], 'hairpin')
-        r.append(x)
-    return r
+def getstructure(name, extra=None):
+    if not name:
+        return None
+    if extra:
+        name += '_'+extra
+    return tilestructures[name]()
 
 
 def compname(endname):
@@ -779,46 +729,4 @@ def gettile(tset, tname):
     assert len(foundtiles) == 1
     return foundtiles[0]
 
-# default tilefactory
-tfactory = TileFactory()
 
-
-def endlist_from_tilelist(tilelist, fail_immediate=True, tilefactory=tfactory):
-    """\
-Given a named_list of tiles (or just a list, for now), extract the sticky ends 
-from each tile, and merge these (using merge_ends) into a named_list of sticky
-ends.
-
-Parameters
-----------
-
-tilelist: either a list of tile description dicts, or a list of tile instances.
-    If 
-
-fail_immediate: (default True) if True, immediately fail on a failure,
-    with ValueError( tilename, exception ) from exception  If False, collect 
-    exceptions, then raise ValueError( "message", [(tilename, exception)] , 
-    output ).
-
-tilefactory: (default tiletypes.tfactory) if tilelist is a list of tile 
-    descriptions, use this TileFactory to parse them.
-"""
-    endlist = named_list()
-    errors = []
-
-    for tile in tilelist:
-        try:
-            if not isinstance(tile, tile_daoe):
-                tile = tilefactory.parse(tile)
-            ends = tile.get_end_defs()
-            endlist = merge_endlists(endlist, ends, in_place=True)
-        except BaseException as e:
-            if fail_immediate:
-                raise ValueError(tile['name']) from e
-            else:
-                errors.append((tile['name'], e))
-
-    if errors:
-        raise ValueError("End list generation failed on:", errors, endlist)
-
-    return endlist

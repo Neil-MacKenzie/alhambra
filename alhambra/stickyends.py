@@ -1,5 +1,4 @@
-from .tilesets import TileSet
-from . import tiletypes
+from . import tilestructures
 from . import util
 
 import stickydesign as sd
@@ -78,8 +77,8 @@ were designed.
     newtileset = TileSet(tileset).copy()
 
     # Build a list of ends from the endlist in the tileset.  Do this
-    # by creating a named_list, then merging them into it.
-    ends = util.named_list()
+    # by creating a NamedList, then merging them into it.
+    ends = util.NamedList()
 
     if 'ends' in newtileset.keys():
         ends = util.merge_endlists(
@@ -90,9 +89,9 @@ were designed.
         # this checks for end/complement usage, and whether any
         # previously-describedends are unused
         # FIXME: implement
-        # tiletypes.check_end_usage(newtileset['tiles'], ends)
+        # tilestructures.check_end_usage(newtileset['tiles'], ends)
 
-        endlist_from_tiles = tiletypes.endlist_from_tilelist(
+        endlist_from_tiles = tilestructures.endlist_from_tilelist(
             newtileset['tiles'])
 
     ends = util.merge_endlists(ends, endlist_from_tiles, in_place=True)
@@ -232,9 +231,9 @@ were designed.
 
     # Ensure that the old and new sets have consistent end definitions,
     # and that the tile definitions still fit.
-    tiletypes.merge_endlists(tileset['ends'], ends)
-    tiletypes.merge_endlists(
-        tiletypes.endlist_from_tilelist(newtileset['tiles']), ends)
+    tilestructures.merge_endlists(tileset['ends'], ends)
+    tilestructures.merge_endlists(
+        tilestructures.endlist_from_tilelist(newtileset['tiles']), ends)
 
     # Apply new sequences to tile system.
     newtileset['ends'] = ends
@@ -262,7 +261,7 @@ def reorder(tileset,
     if energetics is None:
         energetics = DEFAULT_ENERGETICS
 
-    tset = TileSet(tileset).copy()
+    tset = tileset.copy()
 
     if 'info' not in tset.keys():
         tset['info'] = {}
@@ -293,7 +292,7 @@ def reorder(tileset,
 
     # Ensure that only ends in newends moved: that all others remain mergeable:
     if newends:
-        old_ends_from_new_set = util.named_list(end for end in tset['ends']
+        old_ends_from_new_set = util.NamedList(end for end in tset['ends']
                                                 if end['name'] not in newends)
         util.merge_endlists(tileset['ends'], old_ends_from_new_set)
 
