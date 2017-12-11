@@ -1,4 +1,3 @@
-from . import tilestructures
 from . import util
 
 import stickydesign as sd
@@ -6,6 +5,8 @@ import numpy as np
 import collections
 from random import shuffle
 from datetime import datetime, timezone
+
+from .ends import EndList
 
 import logging
 
@@ -74,52 +75,51 @@ were designed.
     # Steps for doing this:
 
     # Create a copy of the tileset.
-    newtileset = TileSet(tileset).copy()
+    newtileset = tileset.copy()
 
     # Build a list of ends from the endlist in the tileset.  Do this
     # by creating a NamedList, then merging them into it.
-    ends = util.NamedList()
+    ends = EndList()
 
-    if 'ends' in newtileset.keys():
-        ends = util.merge_endlists(
-            ends, newtileset['ends'], fail_immediate=False, in_place=True)
+    if newtileset.ends:
+        ends.merge(newtileset['ends'],
+                   fail_immediate=False, in_place=True)
 
     # This is the endlist from the tiles themselves.
-    if 'tiles' in newtileset.keys():  # maybe you just want ends?
+    if newtileset.tiles:  # maybe you just want ends?
         # this checks for end/complement usage, and whether any
         # previously-describedends are unused
         # FIXME: implement
         # tilestructures.check_end_usage(newtileset['tiles'], ends)
 
-        endlist_from_tiles = tilestructures.endlist_from_tilelist(
-            newtileset['tiles'])
+        endlist_from_tiles = newtileset.tiles.endlist()
 
-    ends = util.merge_endlists(ends, endlist_from_tiles, in_place=True)
+    ends.merg(endlist_from_tiles, in_place=True)
 
     # Ensure that if there are any resulting completely-undefined ends, they
     # have their sequences removed.
     for end in ends:
-        if 'fseq' in end.keys() and end['fseq'] == 'nnnnnnn':
-            del (end['fseq'])
+        if end.fseq and set(end.fseq) == {'n'}:
+            del(end.fseq)
 
     # Build inputs suitable for stickydesign: lists of old sequences for TD/DT,
     # and numbers of new sequences needed.
     oldDTseqs = [
-        end['fseq'] for end in ends
-        if 'fseq' in end.keys() and end['type'] == 'DT'
+        end.fseq for end in ends
+        if end.fseq and end.etype == 'DT'
     ]
     oldTDseqs = [
-        end['fseq'] for end in ends
-        if 'fseq' in end.keys() and end['type'] == 'TD'
+        end.fseq for end in ends
+        if end.fseq and end.etype == 'TD'
     ]
 
     newTDnames = [
         end['name'] for end in ends
-        if 'fseq' not in end.keys() and end['type'] == 'TD'
+        if not end.fseq and end.etype == 'TD'
     ]
     newDTnames = [
         end['name'] for end in ends
-        if 'fseq' not in end.keys() and end['type'] == 'DT'
+        if not end.fseq and end.etype == 'DT'
     ]
 
     # Deal with energetics, considering potential old sequences.
@@ -223,20 +223,19 @@ were designed.
     shuffle(newDTseqs)
 
     for name, s in zip(newDTnames, newDTseqs):
-        ends[name]['fseq'] = s
+        ends[name].fseq = s
     for name, s in zip(newTDnames, newTDseqs):
-        ends[name]['fseq'] = s
+        ends[name].fseq = s
 
     ends.check_consistent()
 
     # Ensure that the old and new sets have consistent end definitions,
     # and that the tile definitions still fit.
-    tilestructures.merge_endlists(tileset['ends'], ends)
-    tilestructures.merge_endlists(
-        tilestructures.endlist_from_tilelist(newtileset['tiles']), ends)
+    tileset.ends.merge(ends)
+    newtileset.tiles.endlist().merge(ends)
 
     # Apply new sequences to tile system.
-    newtileset['ends'] = ends
+    newtileset.ends = ends
     if 'info' not in newtileset.keys():
         newtileset['info'] = {}
     newtileset['info']['end_design'] = info
@@ -279,10 +278,10 @@ def reorder(tileset,
 
     # Now take that new state, and apply it to the new tileset.
     seqs = reordersys.slowseqs(newstate[0])
-    for end in tset['ends']:
-        if end['type'] in ['DT', 'TD']:
+    for end in tset.ends:
+        if end.etype in ['DT', 'TD']:
             eloc = reordersys.enlocs[end['name']]
-            end['fseq'] = seqs[eloc[1]].tolist()[eloc[0]]
+            end.fseq = seqs[eloc[1]].tolist()[eloc[0]]
 
     ri = {}
 
@@ -292,9 +291,9 @@ def reorder(tileset,
 
     # Ensure that only ends in newends moved: that all others remain mergeable:
     if newends:
-        old_ends_from_new_set = util.NamedList(end for end in tset['ends']
-                                                if end['name'] not in newends)
-        util.merge_endlists(tileset['ends'], old_ends_from_new_set)
+        old_ends_from_new_set = EndList(end for end in tset['ends']
+                                        if end['name'] not in newends)
+        tileset.ends.merge(old_ends_from_new_set)
 
     # Ensure system consistency
     tset.check_consistent()
