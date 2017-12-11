@@ -1,8 +1,10 @@
 import warnings
 from ruamel.yaml.comments import CommentedMap
-from .util import NamedList, merge_ends
+from .util import NamedList
 import copy
 from peppercompiler.DNA_classes import wc
+from . import seq
+
 
 class End(CommentedMap):
     def __str__(self):
@@ -66,6 +68,28 @@ class End(CommentedMap):
     def etype(self):
         return self['type']
 
+    def merge(end1, end2):
+        """Given ends end1 and end2, assuming they describe the same sticky
+    end, merge them into a single end, combining information from each and
+    enforcing that the two input ends consistently make a single output
+    end.
+        """
+        # Of things in the ends: fseq might need special care, everything
+        # else just needs to match.
+        out = copy.deepcopy(end1)
+        for i, v in end2.items():
+            if i in out.keys() and i == 'fseq':
+                # we merge sequences
+                out[i] = seq.merge(out[i], v)
+            elif i in out.keys() and out[i] != v:
+                # we insisted all others must be equal
+                raise ValueError(
+                    "end1 has {}={}, end2 has {}={}".format(i, out[i], i, v))
+            elif i not in out.keys():
+                out[i] = copy.deepcopy(v)
+        return out
+
+    
 
 class EndList(NamedList):
     def __init__(self, val=[]):
@@ -89,7 +113,7 @@ class EndList(NamedList):
             sticky end in order is merged.
 
         fail_immediate: (default False) if True, fail immediately on a
-        failed merge, passing through the ValueError from merge_ends.
+        failed merge, passing through the ValueError from the end merge.
         If False, finish merging the two lists, then raise a
         ValueError listing *all* ends that failed to merge.
 
@@ -125,15 +149,15 @@ class EndList(NamedList):
         errors = []
 
         for end in endlist2:
-            if end['name'] in out.keys():
+            if end.name in out.keys():
                 try:
-                    out[end['name']] = merge_ends(out[end['name']], end)
+                    out[end.name] = out[end.name].merge(end)
                 except ValueError as e:
                     if fail_immediate:
                         raise e
                     else:
                         exceptions.append(e)
-                        errors.append((end['name'], out[end['name']], end))
+                        errors.append((end.name, out[end.name], end))
             else:
                 out.append(copy.deepcopy(end))
 

@@ -2,6 +2,7 @@ from ruamel.yaml.comments import CommentedMap
 from .util import NamedList
 from .ends import EndList
 from .tilestructures import TileStructure, getstructure
+import copy
 
 
 class Tile(CommentedMap):
@@ -37,9 +38,23 @@ class Tile(CommentedMap):
         return locals()
     structure = property(**structure())
 
-    @property
-    def strands(self):
-        return self.get('fullseqs', None)
+    def strands():
+        doc = """Doc string"""
+        
+        def fget(self):
+            return self.get('fullseqs', None)
+    
+        def fset(self, value):
+            # Make sure there are the right number of ends.
+            # FIXME: do a better job checking, raise a better error
+            #if self.structure:
+            #    assert len(self.structure._endlocs) == len(value)
+            self['fullseqs'] = value
+    
+        def fdel(self):
+            del self['fullseqs']
+        return locals()
+    strands = property(**strands())
 
     def check_strands(self):
         self.structure.check_strands(self)
@@ -72,7 +87,7 @@ class Tile(CommentedMap):
             # FIXME: do a better job checking, raise a better error
             if self.structure:
                 assert len(self.structure._endlocs) == len(value)
-            self._ends = value
+            self['ends'] = value
     
         def fdel(self):
             del self['ends']
@@ -98,6 +113,12 @@ class Tile(CommentedMap):
     def check_sequences(self):
         self.structure.check_strands(self.strands)
 
+    def __deepcopy__(self, memo):
+        c = CommentedMap.__deepcopy__(self, memo)
+        if self.structure:
+            c.structure = copy.deepcopy(self.structure)
+        return c
+
 
 class TileList(NamedList):
     def __init__(self, val=[]):
@@ -111,10 +132,7 @@ class TileList(NamedList):
             tile.check_consistent()
 
     def endlist(self, fail_immediate=True):
-        """\
-    Given a NamedList of tiles (or just a list, for now), extract the sticky ends 
-    from each tile, and merge these (using merge_ends) into a NamedList of sticky
-    ends.
+        """Extract sticky ends from the list of tiles.
 
     Parameters
     ----------

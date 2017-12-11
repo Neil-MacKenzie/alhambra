@@ -20,7 +20,15 @@ _L_TO_N = { 'a': frozenset((0,)),
 
 _N_TO_L = { v: i for i,v in _L_TO_N.items() }
 
+_WC = {k: _N_TO_L[frozenset(3-v for v in s)] for k, s in _L_TO_N.items()}
+_WC_WITH_PUNC = {**_WC, **{'-': '-', '+': '+', ' ': ' '}}
+
 _AMBBASES = frozenset( _L_TO_N.keys() - {'a','c','g','t'} )
+
+validnts = _L_TO_N.keys()
+
+def revcomp(s):
+    return "".join(_WC_WITH_PUNC[l] for l in reversed(s))
 
 def is_null(seq):
     """Return True if a sequence consists only of Ns, or is empty. 

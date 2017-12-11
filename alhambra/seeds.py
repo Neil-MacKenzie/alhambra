@@ -93,8 +93,9 @@ class seed_tileadapts(seed_base):
             if 'extra' in mimic.keys():
                 e1 = re.search(r'2([A-Za-z]+)',mimic['extra'])
                 e2 = re.search(r'3([A-Za-z]+)',mimic['extra'])
-        elif mimic['structure'] == 'tile_daoe_doublehoriz_35up' or \
-           mimic['structure'] == 'tile_daoe_doublevert_35up':
+        # FIXME
+        elif re.match(r'tile_daoe_doublehoriz_35up_.*', mimic['structure']) or \
+             re.match(r'tile_daoe_doublevert_35up.*', mimic['structure']):
             out['tilestrand'] = mimic['fullseqs'][5]
             out['tileends'] = mimic['ends'][2:4]
             if 'extra' in mimic.keys():

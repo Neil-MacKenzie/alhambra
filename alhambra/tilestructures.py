@@ -1,6 +1,5 @@
 import copy
 
-from .util import *
 import string
 import re
 import collections
@@ -10,6 +9,8 @@ from lxml import etree
 import pkg_resources
 import os.path
 from .ends import End, EndList
+import warnings
+from .seq import validnts, revcomp
 
 rgbv = pkg_resources.resource_stream(__name__, os.path.join('data', 'rgb.txt'))
 xcolors = {" ".join(y[3:]): "rgb({},{},{})".format(y[0], y[1], y[2])
@@ -68,12 +69,12 @@ def check_edotparen_sequence(edotparen, sequence):
             if ss not in stacks.keys():
                 raise ValueError("Opening not found", s, strand, strandloc)
             vv = stacks[ss].pop()
-            if v != wc[vv]:
+            if v != revcomp(vv):
                 raise ValueError(
                     "{} != WC({}) at strand {} loc {} (both from 0)".format(
                         v, vv, strand, strandloc), v, vv, strand, strandloc)
         elif s == ".":
-            assert v in wc.keys()
+            assert v in validnts
         elif s == "+":
             assert v == "+"
             strand += 1
@@ -103,7 +104,7 @@ class TileStructure(object):
         if self.edotparen:
             check_edotparen_consistency(self.edotparen)
         else:
-            warnings.warn("No edotparen")  #FIXME
+            warnings.warn("No edotparen")  # FIXME
 
     @property
     def numends(self):
@@ -182,19 +183,15 @@ class tile_daoe(TileStructure):
 
             if endname[-1] == '/':
                 endname = endname[:-1]
-                # FIXME: this seems wrong. Check.
-                # if endtype == 'DT': seq=util.wc[seq[0]]+seq[1:]
-                # if endtype == 'TD': seq=seq[:-1]+util.wc[seq[-1]]
-                # simple revcomp
                 if seq:
-                    seq = "".join(reversed([wc[x] for x in seq]))
+                    seq = revcomp(seq)
 
             e = End({'name': endname, 'type': endtype})
 
             if seq:
                 e.fseq = seq
 
-            es.append(e)
+            es.merge(EndList([e]), in_place=True)  # FIXME
         return es
 
     def orderableseqs(self, tile):
