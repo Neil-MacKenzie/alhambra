@@ -1,5 +1,4 @@
-from .tilestructures import gettile, check_edotparen_sequence, check_edotparen_consistency
-import warnings
+from .tilestructures import check_edotparen_sequence, check_edotparen_consistency
 import copy
 
 
@@ -34,10 +33,13 @@ class seed_base:
         elif adapterdef['extra'] == '1h':
             hp = s[0:13]
             s = s[13:]
-            strings = [hp[0:5]+'-'+hp[5:7]+'-'+hp[7:9], \
-                      (hp[9:11]+'-'+hp[11:13]+'-'+s[0:5]+'--'+s[5:13])[::-1],s[13:21]+'--'+s[21:26],
-                      (l[0:8]+'--'+l[8:16])[::-1],l[16:24][::-1],l[24:32],l[32:40]+'--'+l[40:48],
-                      adapterdef['ends'][1],name]
+            strings = [
+                hp[0:5] + '-' + hp[5:7] + '-' + hp[7:9],
+                (hp[9:11] + '-' + hp[11:13] + '-' + s[0:5] + '--' +
+                 s[5:13])[::-1], s[13:21] + '--' + s[21:26],
+                (l[0:8] + '--' + l[8:16])[::-1], l[16:24][::-1], l[24:32],
+                l[32:40] + '--' + l[40:48], adapterdef['ends'][1], name
+            ]
         elif adapterdef['extra'] == '2h':
             strings = [
                 (s[0:5] + '--' + s[5:13])[::-1],
@@ -60,118 +62,83 @@ class seed_base:
 class seed_tileadapts(seed_base):
     needspepper = False
 
+    _mimicadapt = {
+        'tile_daoe_3up': {
+            'strand': 3,
+            'ends': slice(1, 3),
+            'structure': 'tile_adapter_3up'
+        },
+        'tile_daoe_5up': {
+            'strand': 3,
+            'ends': slice(1, 3),
+            'structure': 'tile_adapter_5up'
+        },
+        'tile_daoe_5up_2h': {
+            'strand': 3,
+            'ends': slice(1, 3),
+            'structure': 'tile_adapter_5up_2h'
+        },
+        'tile_daoe_doublehoriz_35up_2h3h': {
+            'strand': 5,
+            'ends': slice(2, 4),
+            'structure': 'tile_adapter_5up_1h'
+        },
+        'tile_daoe_doublevert_35up_4h5h': {
+            'strand': 5,
+            'ends': slice(2, 4),
+            'structure': 'tile_adapter_5up_2h'
+        }
+    }
+
     def create_adapter_sequences(self, tileset):
         tset = copy.deepcopy(tileset)
 
         for adapter in tset['seed']['adapters']:
-            mimic = self.getmimic_full(tset, adapter)
-            if mimic['tile']['structure'] == 'tile_daoe_5up':
-                # Tile is single. If we have ends, check that they match.
-                if (('ends' in adapter.keys())
-                        and (adapter['ends'] != mimic['tile']['ends'][1:3])):
-                    raise ValueError(
-                        "adapter {} and tile base {} ends don't match: adapter has {}, tile has {}".
-                        format(adapter['name'], mimic['tile']['name'], adapter[
-                            'ends'], mimic['tile']['ends'][1:3]))
-                adapter_strand_short = mimic['tile']['fullseqs'][-1]
-                tile_long_strand = mimic['tile']['fullseqs'][-2]
-            elif mimic['tile']['structure'] == 'tile_daoe_doublehoriz_35up' \
-                    or mimic['tile']['structure'] == 'tile_daoe_doublevert_35up':
-                if ('ends' in adapter.keys()) and (adapter['ends'] !=
-                                                   mimic['tile']['ends'][2:4]):
-                    raise ValueError(
-                        "adapter {} and tile base {} ends don't match: adapter has {}, tile has {}".
-                        format(adapter['name'], mimic['tile']['name'], adapter[
-                            'ends'], mimic['tile']['ends'][2:4]))
-                adapter_strand_short = mimic['tile']['fullseqs'][-1]
-                tile_long_strand = mimic['tile']['fullseqs'][-2]
+            # It's not a tile, it's a...
+            mimic = tileset.tiles[adapter['tilebase']]
 
-            adapter['seqs'] = [
+            structinfo = self._mimicadapt[mimic['structure']]
+
+            if (('ends' in adapter.keys())
+                    and (adapter['ends'] != mimic.ends[structinfo['ends']])):
+                raise ValueError(
+                    "adapter {} and tile base {} ends don't match: adapter has {}, tile has {}".
+                    format(adapter['name'], mimic.name, adapter['ends'],
+                           mimic.ends[structinfo['ends']]))
+            adapter_strand_short = mimic.strands[-1]
+            tile_long_strand = mimic.strands[-2]
+
+            adapter['seqs'] = [  # FIXME: better to use short strand here
                 tile_long_strand[0:8] + self.cores[adapter['loc'] - 1] +
                 tile_long_strand[40:48], adapter_strand_short
             ]
-            if 'extra' in mimic.keys():
-                adapter['extra'] = mimic['extra']
+
+            adapter['structure'] = structinfo['structure']
         return tset
 
-    def getmimic(self, tileset, adapter):
-        try:
-            mimic = gettile(tileset, adapter['tilebase'])
-        except KeyError:
-            warnings.warn(
-                "tilestrand format is deprecated; strand number will be ignored"
-            )
-            mimic = gettile(tileset, adapter['tilestrand'][0])
-        return mimic
-
-    def getmimic_full(self, tileset, adapter):
-        import re
-        mimic = self.getmimic(tileset, adapter)
-        out = {}
-        e1 = None
-        e2 = None
-        if mimic['structure'] == 'tile_daoe_5up':
-            out['tilestrand'] = mimic['fullseqs'][3]
-            out['tileends'] = mimic['ends'][1:3]
-            if 'extra' in mimic.keys():
-                e1 = re.search(r'2([A-Za-z]+)', mimic['extra'])
-                e2 = re.search(r'3([A-Za-z]+)', mimic['extra'])
-        # FIXME
-        elif (re.match(r'tile_daoe_doublehoriz_35up_.*', mimic['structure'])
-              or re.match(r'tile_daoe_doublevert_35up.*', mimic['structure'])):
-            out['tilestrand'] = mimic['fullseqs'][5]
-            out['tileends'] = mimic['ends'][2:4]
-            if 'extra' in mimic.keys():
-                e1 = re.search(r'3([A-Za-z]+)', mimic['extra'])
-                e2 = re.search(r'4([A-Za-z]+)', mimic['extra'])
-        else:
-            raise ValueError("Tile type {} not known for adapter.".format(
-                mimic['structure']), adapter, mimic)
-        if e1:
-            if e1[1] == 'h':
-                out['extra'] = '1h'
-            else:
-                raise ValueError("Tile has unknown extra {}".format(e1),
-                                 adapter, mimic)
-        if e2:
-            if e2[1] == 'h':
-                out['extra'] = '2h'
-            else:
-                raise ValueError("Tile has unknown extra {}".format(e2),
-                                 adapter, mimic)
-        out['tile'] = mimic
-        return out
-
     def check_consistent(self, tileset):
-        import re
         for adapt in tileset['seed']['adapters']:
-            mimic = self.getmimic_full(tileset, adapt)
-            assert mimic.get('extra') == adapt.get('extra')
-            assert mimic['tileends'] == adapt['ends']
+            mimic = tileset.tiles[adapt['tilebase']]
+            structinfo = self._mimicadapt[mimic['structure']]
+            if adapt.get('structure'):
+                assert adapt.get('structure') == structinfo['structure']
+            assert adapt['ends'] == mimic.ends[structinfo['ends']]
 
-    edotparen_adapt = "8(32.8(+5.16)5."
-    edotparen_adapt_2h = "8(32.8(+5.16)7(4.7)"
-    edotparen_adapt_1h = "8(32.8(+7(4.7)16)5."
+    edotparens = {
+        'tile_adapter_5up': "8(32.8(+5.16)5.",
+        'tile_adapter_5up_2h': "8(32.8(+5.16)7(4.7)",
+        'tile_adapter_5up_1h': "8(32.8(+7(4.7)16)5."
+    }
 
     def check_sequence(self, tileset):
-        import re
-        check_edotparen_consistency(self.edotparen_adapt)
-        check_edotparen_consistency(self.edotparen_adapt_1h)
-        check_edotparen_consistency(self.edotparen_adapt_2h)
+        for p in self.edotparens.values():
+            check_edotparen_consistency(p)
         self.check_consistent(tileset)
         for adapt in tileset['seed']['adapters']:
             if 'seqs' not in adapt.keys():
                 continue
-            mimic = self.getmimic_full(tileset, adapt)
             seqs = "+".join(adapt['seqs'])
-            if 'extra' not in adapt.keys():
-                check_edotparen_sequence(self.edotparen_adapt, seqs)
-            elif adapt['extra'] == '1h':
-                check_edotparen_sequence(self.edotparen_adapt_1h, seqs)
-            elif adapt['extra'] == '2h':
-                check_edotparen_sequence(self.edotparen_adapt_2h, seqs)
-            else:
-                raise ValueError("Unknown extra", adapt['extra'])
+            check_edotparen_sequence(self.edotparens[adapt['structure']], seqs)
             assert adapt['seqs'][0][8:(8 + 32)] == self.cores[adapt['loc'] - 1]
 
 

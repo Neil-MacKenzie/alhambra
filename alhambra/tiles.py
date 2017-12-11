@@ -15,7 +15,9 @@ class Tile(CommentedMap):
 
         self._structure = getstructure(self.get('structure', None),
                                        extra=self.get('extra', None))
-
+        if self.get('extra'):
+            del(self['extra'])
+        
     def structure():
         doc = """Doc string"""
         
@@ -27,8 +29,7 @@ class Tile(CommentedMap):
                 self._structure = value
                 self['structure'] = value.name
             else:
-                self._structure = getstructure(self.get('structure', None),
-                                               extra=self.get('extra', None))
+                self._structure = getstructure(value)
                 self['structure'] = self._structure.name
     
         def fdel(self):

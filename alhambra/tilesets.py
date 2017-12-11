@@ -127,9 +127,7 @@ class TileSet(CommentedMap):
                 __name__, os.path.join('seqdiagrambases', 'blank.svg')))
         baseroot = base.getroot()
         pos = 150
-        for tiledef in tileset['tiles']:
-
-            tile = tilestructures.tfactory.parse(tiledef)
+        for tile in tileset.tiles:
             group = tile.sequence_diagram()
 
             group.attrib['transform'] = 'translate(0,{})'.format(pos)
@@ -157,9 +155,7 @@ class TileSet(CommentedMap):
 
         svgtiles = {}
 
-        for tiledef in tileset['tiles']:
-            tile = tilestructures.tfactory.parse(tiledef)
-
+        for tile in tileset.tiles:
             group, n = tile.abstract_diagram(tileset)
             svgtiles[tile['name']] = group
 
@@ -237,18 +233,18 @@ class TileSet(CommentedMap):
     
     def summary(self):
         self.check_consistent()
-        info = {'ntiles': len(self['tiles']),
-                'nends':  len(self['ends']),
-                'ntends': len(tilestructures.endlist_from_tilelist(self['tiles'])),
-                'tns':    " ".join(x['name'] for x in self['tiles'] if 'name' in x.keys()),
-                'ens':    " ".join(x['name'] for x in self['ends'] if 'name' in x.keys()),
+        info = {'ntiles': len(self.tiles),
+                'nends':  len(self.ends),
+                'ntends': len(tilestructures.endlist_from_tilelist(self.tiles)),
+                'tns':    " ".join(x['name'] for x in self.tiles if 'name' in x.keys()),
+                'ens':    " ".join(x['name'] for x in self.ends if 'name' in x.keys()),
                 'name':   " {}".format(self['info']['name']) if \
                                        ('info' in self.keys() and \
                                         'name' in self['info'].keys()) else ""}
-        tun = sum( 1 for x in self['tiles'] if 'name' not in x.keys() )
+        tun = sum( 1 for x in self.tiles if 'name' not in x.keys() )
         if tun > 0:
             info['tns'] += " ({} unnamed)".format(tun)
-        eun = sum( 1 for x in self['ends'] if 'name' not in x.keys() )
+        eun = sum( 1 for x in self.ends if 'name' not in x.keys() )
         if eun > 0:
             info['ens'] += " ({} unnamed)".format(eun)
         return "TileSet{name}: {ntiles} tiles, {nends} ends, {ntends} ends in tiles.\nTiles: {tns}\nEnds:  {ens}".format(**info)
@@ -295,7 +291,7 @@ class TileSet(CommentedMap):
 
         """
         if energetics is None:
-            energetics = stickyends.DEFAULT_ENERGETICS
+            energetics = DEFAULT_ENERGETICS
 
         if hasattr(tileset, 'read'):
             tileset = TileSet.load(tileset)
@@ -387,7 +383,7 @@ class TileSet(CommentedMap):
         ends = EndList()
 
         if newtileset.ends:
-            ends.merge(newtileset['ends'],
+            ends.merge(newtileset.ends,
                        fail_immediate=False, in_place=True)
 
         # This is the endlist from the tiles themselves.
@@ -395,7 +391,7 @@ class TileSet(CommentedMap):
             # this checks for end/complement usage, and whether any
             # previously-describedends are unused
             # FIXME: implement
-            # tilestructures.check_end_usage(newtileset['tiles'], ends)
+            # tilestructures.check_end_usage(newtileset.tiles, ends)
 
             endlist_from_tiles = newtileset.tiles.endlist()
 
@@ -593,7 +589,7 @@ class TileSet(CommentedMap):
 
         # Ensure that only ends in newends moved: that all others remain mergeable:
         if newends:
-            old_ends_from_new_set = EndList(end for end in tset['ends']
+            old_ends_from_new_set = EndList(end for end in tset.ends
                                             if end['name'] not in newends)
             tileset.ends.merge(old_ends_from_new_set)
 
@@ -673,12 +669,12 @@ class TileSet(CommentedMap):
         # Ensure:
         tileset.ends.merge(
             tileset_with_strands.tiles.endlist())  # Ends still fit
-        for tile in tileset_with_strands['tiles']:
+        for tile in tileset_with_strands.tiles:
             oldtile = tileset.tiles[tile.name]
             if 'fullseqs' in oldtile.keys():
                 for old, new in zip(oldtile['fullseqs'], tile['fullseqs']):
                     seq.merge(old, new)  # old tile sequences remain
-            assert oldtile['ends'] == tile['ends']
+            assert oldtile.ends == tile.ends
 
         # Check that old end sequences remain
         tileset['ends'].merge(tileset_with_strands['ends'])
@@ -724,7 +720,7 @@ class TileSet(CommentedMap):
         importlist = set()
         compstring = ""
 
-        for tile in tileset['tiles']:
+        for tile in tileset.tiles:
             e = [[], []]
             for end in tile['ends']:
                 if (end == 'hp'):
@@ -775,7 +771,7 @@ class TileSet(CommentedMap):
         # this is a pretty low priority.  UPDATE for 2017: WOW, LOOK AT ME BEING AN
         # IDIOT IN THE COMMENTS - CGE
 
-        for tile in tset['tiles']:
+        for tile in tset.tiles:
             pepperstrands = re.compile('strand ' + tile['name'] +
                                        '-([^ ]+) = ([^\n]+)').findall(seqsstring)
             tile['fullseqs'] = tilestructures.order_pepper_strands(pepperstrands)
@@ -865,7 +861,7 @@ class TileSet(CommentedMap):
 
         if rotate:
             rotatedtiles = []
-            for tile in ts['tiles']:
+            for tile in ts.tiles:
                 if tile['structure'] == 'tile_daoe_3up' or tile['structure'] == 'tile_daoe_5up':
                     newtile = copy.deepcopy(tile)
                     newtile['name']+='_lrf'
@@ -912,9 +908,9 @@ class TileSet(CommentedMap):
                     newtile['ends']=[tile['ends'][x] for x in (3,4,5,0,1,2)]
                     rotatedtiles.append(newtile)
 
-            ts['tiles'] += rotatedtiles
+            ts.tiles += rotatedtiles
 
-        for tile in ts['tiles']:
+        for tile in ts.tiles:
             if tile['structure'] == 'tile_daoe_3up' or tile['structure'] == 'tile_daoe_5up':
                 newtile = {}
                 newtile['edges'] = [ re.sub('/','_c',x) for x in tile['ends'] ]
@@ -990,7 +986,7 @@ class TileSet(CommentedMap):
             if energetics:
                 ef = energetics
             else:
-                ef = stickyends.DEFAULT_ENERGETICS
+                ef = DEFAULT_ENERGETICS
 
             eavg = {}
             for t in ['DT', 'TD']:
@@ -1014,7 +1010,7 @@ class TileSet(CommentedMap):
                 ts['ends']=[]
             endsinlist = set( e['name'] for e in ts['ends'] )
             endsintiles = set()
-            for tile in ts['tiles']:
+            for tile in ts.tiles:
                 endsintiles.update( re.sub('/','',e) for e in tile['ends'] if e != 'hp')
             for end in ts['ends'] + list({'name': e} for e in endsintiles):
                 newends.append( { 'name': end['name'], 'strength': 0 } )
@@ -1045,10 +1041,10 @@ class TileSet(CommentedMap):
                       title=None, **kwargs):
 
         if all_energetics is None:
-            all_energetics = stickyends.DEFAULT_MULTIMODEL_ENERGETICS
+            all_energetics = DEFAULT_MULTIMODEL_ENERGETICS
 
         if energetics_names is None:
-            energetics_names = stickyends.DEFAULT_MM_ENERGETICS_NAMES
+            energetics_names = DEFAULT_MM_ENERGETICS_NAMES
 
         if 'ends' in tileset.keys():
             ends = tileset['ends']
@@ -1077,8 +1073,8 @@ class TileSet(CommentedMap):
         if energetics is None:
             energetics = DEFAULT_REGION_ENERGETICS
 
-        regions = [tilestructures.tfactory.parse(t)._side_bound_regions
-                   for t in tileset['tiles']]
+        regions = [t.structure._side_bound_regions
+                   for t in tileset.tiles]
         regions = [[x.lower() for x in y] for y in regions]
         allregions = sum(regions, [])
         count = [[Counter(x) for x in y] for y in regions]
@@ -1101,15 +1097,14 @@ class TileSet(CommentedMap):
         pylab.xlabel('stickydesign ΔG')
         pylab.suptitle('8 nt end-adjacent region strengths')
 
-
     def plot_side_strands(tileset,
                           energetics=None):
 
         if energetics is None:
             energetics = DEFAULT_REGION_ENERGETICS
 
-        regions = [tilestructures.tfactory.parse(t)._short_bound_full
-                   for t in tileset['tiles']]
+        regions = [t.structure._short_bound_full
+                   for t in tileset.tiles]
         regions = [[x.lower() for x in y] for y in regions]
         allregions = sum(regions, [])
         count = [[Counter(x) for x in y] for y in regions]
@@ -1131,7 +1126,6 @@ class TileSet(CommentedMap):
         pylab.ylabel('# of 16 nt regions')
         pylab.xlabel('stickydesign ΔG')
         pylab.suptitle('16 nt arm region strengths')
-
 
 
 RoundTripRepresenter.add_representer(TileSet,

@@ -120,16 +120,13 @@ class TileStructure(object):
 
 class tile_daoe(TileStructure):
     def sequence_diagram(self, tile):
-        if 'extra' in tile:
-            ttype = tile['type'] + '_' + tile['extra']
-        else:
-            ttype = tile['type']
+        ttype = tile.structure.name
         from lxml import etree
         base_svg = etree.parse(
             pkg_resources.resource_stream(__name__, os.path.join(
                 'seqdiagrambases', ttype + '.svg')))
 
-        strings = self._seqdiagseqstrings + [
+        strings = self._seqdiagseqstrings(tile) + [
             e for e, t in self.tile_ends(tile)
             if not (t in ('hairpin', 'blunt', 'inert'))
         ] + [tile['name']]
