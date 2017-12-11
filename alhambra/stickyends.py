@@ -253,8 +253,7 @@ def reorder(tileset,
     """Given a tileset dictionary that includes sticky end sequences, reorder these
     to try to optimize error rates.
     """
-    # from . import endreorder
-    from . import endreorder_fast
+    from . import endreorder
     from . import anneal
 
     if energetics is None:
@@ -265,10 +264,8 @@ def reorder(tileset,
     if 'info' not in tset.keys():
         tset['info'] = {}
 
-    reordersys = endreorder_fast.EndSystemFseq(
+    reordersys = endreorder.EndSystemFseq(
         tset, newends, energetics=energetics)
-
-    # reordersys_old = endreorder.EndSystemFseq( tset, energetics=energetics )
 
     # FIXME: better parameter control here.
     annealer = anneal.Annealer(reordersys.score, reordersys.mutate)
