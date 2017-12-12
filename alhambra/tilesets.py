@@ -75,6 +75,15 @@ class TileSet(CommentedMap):
         else:
             return cls(yaml.round_trip_load(name_or_stream, *args, **kwargs))
 
+    def to_file(self, name_or_stream):
+        if getattr(name_or_stream, 'read', None) is None:
+            return yaml.round_trip_dump(self, open(name_or_stream, 'w'))
+        else:
+            return yaml.round_trip_dump(self, name_or_stream)
+
+    def dump(self, *args, **kwargs):
+        return yaml.round_trip_dump(self, *args, **kwargs)
+        
     @property
     def tiles(self):
         return self['tiles']
@@ -328,30 +337,33 @@ class TileSet(CommentedMap):
         tileset_with_strands.check_consistent()
         return tileset_with_strands
 
-
     def create_end_sequences(tileset, method='default', energetics=None,
                              trials=100, sdopts={}, ecpars={}):
-        """Create sticky end sequences for a tileset, using stickydesign.  This new
-    version should be more flexible, and should be able to keep old sticky ends,
-    accounting for them in creating new ones.
+        """Create sticky end sequences for a tileset, using stickydesign.
+    This new version should be more flexible, and should be able to
+    keep old sticky ends, accounting for them in creating new ones.
 
     Parameters
     ----------
 
-    tileset: the tileset to create sticky ends sequences for.  This will be copied
-         and returned, not modified.
+    tileset: the tileset to create sticky ends sequences for.  This
+         will be copied and returned, not modified.
 
-    method: [default 'default'] if 'default', use the default, single-model
-    sequence design.  If 'multimodel', use multimodel end choice.
+    method: [default 'default'] if 'default', use the default,
+    single-model sequence design.  If 'multimodel', use multimodel end
+    choice.
 
-    energetics: the energetics instance to use for the design.  If None (default),
-    will use alhambra.designer.DEFAULT_ENERGETICS.  Note that if
-    method='multimodel', energetics *must* be specified, and should be a list of
-    energy models.  The first model in the list will be used as primary.
+    energetics: the energetics instance to use for the design, or list
+    of energetics for method='multimodel', in which case the first
+    will be the primary.  If None (default), will use
+    alhambra.DEFAULT_ENERGETICS, or, if method='multimodel', will use
+    alhambra.DEFAULT_MM_ENERGETICS.
 
-    Outputs (tileset, new_ends) where new_ends is a list of new end names that
-    were designed.
-    """
+
+    Outputs (tileset, new_ends) where new_ends is a list of new end
+    names that were designed.
+
+        """
         info = {}
         info['method'] = method
         info['time'] = datetime.now(tz=timezone.utc).isoformat()
@@ -399,28 +411,30 @@ class TileSet(CommentedMap):
 
         # Ensure that if there are any resulting completely-undefined ends, they
         # have their sequences removed.
-        for end in ends:
-            if end.fseq and set(end.fseq) == {'n'}:
-                del(end.fseq)
+        #for end in ends:
+        #    if end.fseq and set(end.fseq) == {'n'}:
+        #        del(end.fseq)
 
         # Build inputs suitable for stickydesign: lists of old sequences for TD/DT,
         # and numbers of new sequences needed.
         oldDTseqs = [
             end.fseq for end in ends
-            if end.fseq and end.etype == 'DT'
+            if end.etype == 'DT' and seq.is_definite(end.fseq)
         ]
+        oldDTarray = sd.endarray(oldDTseqs, 'DT')
         oldTDseqs = [
             end.fseq for end in ends
-            if end.fseq and end.etype == 'TD'
+            if end.etype == 'TD' and seq.is_definite(end.fseq)
         ]
+        oldTDarray = sd.endarray(oldTDseqs, 'TD')
 
-        newTDnames = [
-            end['name'] for end in ends
-            if not end.fseq and end.etype == 'TD'
+        newTD = [
+            end for end in ends
+            if end.etype == 'TD' and not seq.is_definite(end.fseq)
         ]
-        newDTnames = [
-            end['name'] for end in ends
-            if not end.fseq and end.etype == 'DT'
+        newDT = [
+            end for end in ends
+            if end.etype == 'DT' and not seq.is_definite(end.fseq)
         ]
 
         # Deal with energetics, considering potential old sequences.
@@ -432,21 +446,29 @@ class TileSet(CommentedMap):
             targets.append(sd.enhist('TD', 5, energetics=energetics)[2]['emedian'])
         if len(oldDTseqs) > 0:
             targets.append(
-                energetics.matching_uniform(sd.endarray(oldDTseqs, 'DT')))
+                energetics.matching_uniform(oldDTarray))
         if len(oldTDseqs) > 0:
             targets.append(
-                energetics.matching_uniform(sd.endarray(oldTDseqs, 'TD')))
+                energetics.matching_uniform(oldTDarray))
         targetint = np.average(targets)
 
-        if method == 'multimodel' and (len(oldDTseqs) > 0 or len(oldTDseqs) > 0):
-            raise NotImplementedError()
+        if any(not seq.is_null(end.fseq) for end in newTD):
+            TDtemplates = [end.fseq for end in newTD]
+        else:
+            TDtemplates = None
+        if any(not seq.is_null(end.fseq) for end in newDT):
+            DTtemplates = [end.fseq for end in newDT]
+        else:
+            DTtemplates = None
 
         if method == 'default':
+            if TDtemplates or DTtemplates:
+                raise NotImplementedError
             # Create new sequences.
             newTDseqs = sd.easyends(
                 'TD',
                 5,
-                number=len(newTDnames),
+                number=len(newTD),
                 energetics=energetics,
                 interaction=targetint,
                 **sdopts).tolist()
@@ -454,7 +476,7 @@ class TileSet(CommentedMap):
             newDTseqs = sd.easyends(
                 'DT',
                 5,
-                number=len(newDTnames),
+                number=len(newDT),
                 energetics=energetics,
                 interaction=targetint,
                 **sdopts).tolist()
@@ -463,70 +485,96 @@ class TileSet(CommentedMap):
             SELOGGER.info(
                 "starting multimodel sticky end generation " +
                 "of TD ends for {} DT and {} TD ends, {} trials.".format(
-                    len(newDTnames), len(newTDnames), trials))
-
-            endchooser = sd.multimodel.endchooser(all_energetics, **ecpars)
+                    len(newDT), len(newTD), trials))
 
             newTDseqs = []
             pl = util.ProgressLogger(SELOGGER, trials*2)
             for i in range(0, trials):
+                endchooserTD = sd.multimodel.endchooser(all_energetics,
+                                                        templates=TDtemplates,
+                                                        **ecpars)
+
                 newTDseqs.append(
                     sd.easyends(
                         'TD',
                         5,
-                        number=len(newTDnames),
+                        number=len(newTD),
+                        oldends=oldTDseqs,
                         energetics=energetics,
                         interaction=targetint,
-                        echoose=endchooser,
+                        echoose=endchooserTD,
                         **sdopts))
                 pl.update(i)
 
-            tvals = [[e.matching_uniform(x[0:1])
-                     for e in all_energetics] for x in newTDseqs]
-            endchoosers = [sd.multimodel.endchooser(all_energetics,
-                                                    target_vals=tval,
-                                                    **ecpars)
-                           for tval in tvals]
+            if oldTDseqs:
+                tvals = [[e.matching_uniform(oldTDarray[0:1])
+                         for e in all_energetics] *
+                         len(newTDseqs)] * len(newTDseqs)
+            else:
+                tvals = [[e.matching_uniform(x[0:1])
+                          for e in all_energetics] for x in newTDseqs]
+
+            endchoosersDT = [sd.multimodel.endchooser(all_energetics,
+                                                      target_vals=tval,
+                                                      templates=DTtemplates,
+                                                      **ecpars)
+                             for tval in tvals]
 
             SELOGGER.info("generating corresponding DT ends")
             newDTseqs = []
-            for i, echoose in enumerate(endchoosers):
+            for i, echoose in enumerate(endchoosersDT):
                 newDTseqs.append(
                     sd.easyends(
                         'DT',
                         5,
-                        number=len(newDTnames),
+                        number=len(newDT),
+                        oldends=oldDTseqs,
                         energetics=energetics,
                         interaction=targetint,
                         echoose=echoose,
                         **sdopts))
                 pl.update(i+trials)
 
+            TDarr = [[oldTDarray.concat(x),
+                      oldDTarray.concat(y)]
+                     for x, y in zip(newTDseqs, newDTseqs)]
+
             scores = [sd.multimodel.deviation_score(list(e), all_energetics)
-                      for e in zip(newTDseqs, newDTseqs)]
+                      for e in TDarr]
 
             sort = np.argsort(scores)
 
-            newTDseqs = newTDseqs[sort[0]].tolist()
-            newDTseqs = newDTseqs[sort[0]].tolist()
+            newTDseqs = newTDseqs[sort[0]].tolist()[len(oldTDseqs):]
+            newDTseqs = newDTseqs[sort[0]].tolist()[len(oldDTseqs):]
             info['score'] = scores[sort[0]]
             info['maxscore'] = scores[sort[-1]]
             info['meanscore'] = np.mean(scores)
 
         # FIXME: move to stickydesign
-        assert len(newTDseqs) == len(newTDnames)
-        assert len(newDTseqs) == len(newDTnames)
+        assert len(newTDseqs) == len(newTD)
+        assert len(newDTseqs) == len(newDT)
 
-        # Shuffle the lists of end sequences, to ensure that they're random order,
-        # and that ends used earlier in the set are not always better than those
-        # used later.
-        shuffle(newTDseqs)
-        shuffle(newDTseqs)
+        # Shuffle the lists of end sequences, to ensure that they're
+        # random order, and that ends used earlier in the set are not
+        # always better than those used later. But only shuffle if
+        # there were no templates:
+        if not TDtemplates:
+            shuffle(newTDseqs)
+        if not DTtemplates:
+            shuffle(newDTseqs)
 
-        for name, s in zip(newDTnames, newDTseqs):
-            ends[name].fseq = s
-        for name, s in zip(newTDnames, newTDseqs):
-            ends[name].fseq = s
+        # Make sure things are consistent if there are templates:
+        if TDtemplates:
+            for t, s in zip(TDtemplates, newTDseqs):
+                seq.merge(t, s)
+        if DTtemplates:
+            for t, s in zip(DTtemplates, newDTseqs):
+                seq.merge(t, s)
+            
+        for end, s in zip(newDT, newDTseqs):
+            ends[end.name].fseq = s
+        for end, s in zip(newTD, newTDseqs):
+            ends[end.name].fseq = s
 
         ends.check_consistent()
 
@@ -539,18 +587,17 @@ class TileSet(CommentedMap):
         newtileset.ends = ends
         if 'info' not in newtileset.keys():
             newtileset['info'] = {}
-        newtileset['info']['end_design'] = info
+        newtileset['info']['end_design'] = info  # FIXME
 
-        return (newtileset, newTDnames + newDTnames)
-
+        return (newtileset, [e.name for e in newTD] + [e.name for e in newDT])
 
     def reorder_ends(tileset,
-                newends=[],
-                hightemp=0.1,
-                lowtemp=1e-7,
-                steps=45000,
-                update=1000,
-                energetics=None):
+                     newends=[],
+                     hightemp=0.1,
+                     lowtemp=1e-7,
+                     steps=45000,
+                     update=1000,
+                     energetics=None):
         """Given a tileset dictionary that includes sticky end sequences, reorder these
         to try to optimize error rates.
         """

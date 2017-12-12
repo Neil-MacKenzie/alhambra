@@ -13,8 +13,8 @@ class Tile(CommentedMap):
             self['structure'] = self['type']
             del(self['type'])
 
-        self._structure = getstructure(self.get('structure', None),
-                                       extra=self.get('extra', None))
+        self.structure = getstructure(self.get('structure', None),
+                                      extra=self.get('extra', None))
         if self.get('extra'):
             del(self['extra'])
         
@@ -25,7 +25,9 @@ class Tile(CommentedMap):
             return self._structure
     
         def fset(self, value):
-            if isinstance(value, TileStructure):
+            if value is None:
+                del self['structure']
+            elif isinstance(value, TileStructure):
                 self._structure = value
                 self['structure'] = value.name
             else:
@@ -164,3 +166,8 @@ class TileList(NamedList):
 
         return endlist
 
+from ruamel.yaml.representer import RoundTripRepresenter
+RoundTripRepresenter.add_representer(TileList,
+                                     RoundTripRepresenter.represent_list)
+RoundTripRepresenter.add_representer(Tile,
+                                     RoundTripRepresenter.represent_dict)

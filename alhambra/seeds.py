@@ -122,7 +122,10 @@ class seed_tileadapts(seed_base):
             structinfo = self._mimicadapt[mimic['structure']]
             if adapt.get('structure'):
                 assert adapt.get('structure') == structinfo['structure']
+            else:
+                adapt['structure'] = structinfo['structure']  # FIXME: should be in init code
             assert adapt['ends'] == mimic.ends[structinfo['ends']]
+
 
     edotparens = {
         'tile_adapter_5up': "8(32.8(+5.16)5.",

@@ -168,3 +168,9 @@ class EndList(NamedList):
 
         return out
 
+
+from ruamel.yaml.representer import RoundTripRepresenter
+RoundTripRepresenter.add_representer(EndList,
+                                     RoundTripRepresenter.represent_list)
+RoundTripRepresenter.add_representer(End,
+                                     RoundTripRepresenter.represent_dict)
