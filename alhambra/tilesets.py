@@ -587,7 +587,11 @@ class TileSet(CommentedMap):
         newtileset.ends = ends
         if 'info' not in newtileset.keys():
             newtileset['info'] = {}
-        newtileset['info']['end_design'] = info  # FIXME
+        if 'end_design' not in newtileset['info'].keys():
+            newtileset['info']['end_design'] = []
+        if isinstance('end_design', dict):  # convert old
+            newtileset['info']['end_design'] = [newtileset['info']['end_design']]
+        newtileset['info']['end_design'].append(info)
 
         return (newtileset, [e.name for e in newTD] + [e.name for e in newDT])
 
