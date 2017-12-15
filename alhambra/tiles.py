@@ -66,7 +66,7 @@ class Tile(CommentedMap):
         return self.structure.sequence_diagram(self)
 
     def abstract_diagram(self, tileset=None):
-        return self.structure.abstract_diagram(self, tileset=None)
+        return self.structure.abstract_diagram(self, tileset)
         
     def name():
         doc = """Doc string"""

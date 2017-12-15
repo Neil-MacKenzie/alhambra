@@ -206,7 +206,7 @@ class tile_daoe(TileStructure):
 
         fill = xcolors.get(tile.get('color', None), None)
 
-        tilediag.find("./*[@class='tilename']").text = self.name
+        tilediag.find("./*[@class='tilename']").text = tile.name
         if fill:
             s = cssutils.parseStyle(
                 tilediag.find("./*[@class='tilerect']").attrib['style'])
@@ -219,7 +219,7 @@ class tile_daoe(TileStructure):
         if not tileset:
             return (tilediag, 1)
         
-        for endn, loc in zip(self.ends,
+        for endn, loc in zip(tile.ends,
                              self._a_endlocs):
             if endn in tileset.ends.keys():
                 end = tileset.ends[endn]

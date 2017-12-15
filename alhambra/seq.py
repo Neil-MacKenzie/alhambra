@@ -33,6 +33,8 @@ def revcomp(s):
 def is_null(seq):
     """Return True if a sequence consists only of Ns, or is empty. 
     Return False otherwise."""
+    if not seq:
+        return True
     check_bases(seq)
     return set(seq.lower()).issubset(set('n').union(set(string.whitespace)))
 
@@ -40,6 +42,8 @@ def is_definite(seq):
     """Return True if a sequence consists only of defined bases.  Return
     False otherwise.  If blank, return False.
     """
+    if not seq:
+        return False
     check_bases(seq)
     if set(seq.lower()).issubset(set(string.whitespace)):
         return False

@@ -26,10 +26,10 @@ import numpy as np
 import stickydesign as sd
 
 import stickydesign.plots as sdplots
+import stickydesign.multimodel as multimodel
 from collections import Counter
 from stickydesign import EnergeticsDAOE
 from matplotlib import pylab
-
 
 import collections
 from random import shuffle
@@ -48,18 +48,37 @@ DEFAULT_MULTIMODEL_ENERGETICS = [
     sd.EnergeticsDAOE(
         temperature=33, mismatchtype='combined', coaxparams='peyret'),
     sd.EnergeticsDAOE(
-        temperature=33, mismatchtype='combined', coaxparams=False)]
+        temperature=33, mismatchtype='combined', coaxparams=False)
+]
 
 DEFAULT_MM_ENERGETICS_NAMES = ['Prot', 'Pysh', 'Peyr', 'None']
 
 SELOGGER = logging.getLogger(__name__)
 
-DEFAULT_REGION_ENERGETICS = EnergeticsDAOE(temperature=33,
-                                           coaxparams=False,
-                                           danglecorr=False)
+DEFAULT_REGION_ENERGETICS = EnergeticsDAOE(
+    temperature=33, coaxparams=False, danglecorr=False)
 
 
 class TileSet(CommentedMap):
+    """A class representing a single DNA tile assembly system.
+
+    This class parses and manipulates Alhambra tilesets.  Note that,
+    unless you have already imported or made a dict, you will likely
+    want to construct this with TileSet.from_file .
+
+    Parameters
+    ----------
+
+    val : dict
+        a dict in the Alhambra tileset format.
+
+    Methods
+    -------
+    
+    from_file(name_or_stream)
+        (class method) create a TileSet from a filename or stream.
+    """
+
     def __init__(self, val={}):
         CommentedMap.__init__(self, val)
 
@@ -70,8 +89,9 @@ class TileSet(CommentedMap):
     def from_file(cls, name_or_stream, *args, **kwargs):
         # Assume a stream:
         if getattr(name_or_stream, 'read', None) is None:
-            return cls(yaml.round_trip_load(open(name_or_stream, 'r'),
-                                            *args, **kwargs))
+            return cls(
+                yaml.round_trip_load(
+                    open(name_or_stream, 'r'), *args, **kwargs))
         else:
             return cls(yaml.round_trip_load(name_or_stream, *args, **kwargs))
 
@@ -83,29 +103,44 @@ class TileSet(CommentedMap):
 
     def dump(self, *args, **kwargs):
         return yaml.round_trip_dump(self, *args, **kwargs)
-        
+
     @property
     def tiles(self):
+        """The TileList of tiles in the TileSet"""
         return self['tiles']
 
     def ends():
-        doc = """Doc string"""
+        doc = """The EndList of specified ends in the TileSet (not including
+                 ends that are only in tiles."""
+
         def fget(self):
             return self['ends']
-    
+
         def fset(self, value):
             self['ends'] = value
-    
+
         def fdel(self):
             del self['ends']
+
         return locals()
+
     ends = property(**ends())
-    
+
     @property
     def seed(self):
         return self.get('seed', None)
 
     def create_abstract_diagrams(self, filename, *options):
+        """Write abstract tile diagrams in SVG for the TileSet.
+
+        Parameters
+        ----------
+
+        filename : str
+            a path or filename for the SVG output.
+        *options
+            (currently unused)
+        """
         from lxml import etree
         import os
         import pkg_resources
@@ -125,8 +160,19 @@ class TileSet(CommentedMap):
             baseroot.append(group)
 
         base.write(filename)
-    
+
     def create_sequence_diagrams(tileset, filename, *options):
+        """Write sequence tile diagrams in SVG for the TileSet.
+
+        Parameters
+        ----------
+
+        filename : str
+            a path or filename for the SVG output.
+        *options
+            (currently unused)
+        """
+
         from lxml import etree
         import pkg_resources
         import os.path
@@ -146,16 +192,28 @@ class TileSet(CommentedMap):
         base.write(filename)
 
     def create_adapter_sequences(tileset):
+        """Generate adapter sequences for the TileSet, returning a new
+        TileSet with the generated sequences included.
+
+        Returns
+        -------
+
+        TileSet
+           TileSet with generated adapter sequences.
+        """
         seedclass = seeds.seedtypes[tileset['seed']['type']]
         if seedclass.needspepper:
-            warnings.warn(
-                "This set must have adapter sequences created during\
+            warnings.warn("This set must have adapter sequences created during\
      regular sequence design. You can ignore this if you just created sequences."
-            )
+                          )
             return tileset
         return seedclass.create_adapter_sequences(tileset)
 
-    def create_layout_diagrams(tileset, xgrowarray, filename, scale=1, *options):
+    def create_layout_diagrams(tileset,
+                               xgrowarray,
+                               filename,
+                               scale=1,
+                               *options):
         from lxml import etree
         base = etree.parse(
             pkg_resources.resource_stream(
@@ -166,10 +224,9 @@ class TileSet(CommentedMap):
 
         for tile in tileset.tiles:
             group, n = tile.abstract_diagram(tileset)
-            svgtiles[tile['name']] = group
+            svgtiles[tile.name] = group
 
-        from . import xgrow
-        tilelist = xgrow.generate_xgrow_dict(tileset, perfect=True)['tiles']
+        tilelist = tileset.generate_xgrow_dict(perfect=True)['tiles']
         tilen = [None] + [x['name'] for x in tilelist]
         firstxi = 10000
         firstyi = 10000
@@ -194,12 +251,34 @@ class TileSet(CommentedMap):
 
         base.write(filename)
 
-        
     @property
     def strand_order_list(self):
+        """Return a list of orderable strand sequences for all tile strands.
+
+        These sequences are generated by the Tile.orderableseqs attribute, which
+        should include useful strand names and modified bases for labels.  The
+        sequences may thus not be valid ACGT-only sequences (eg, they may contain
+        /iBiodT/).
+
+        Returns
+        -------
+
+        list
+            a list of tuple (strand_name, strand_sequence) for the system.
+        """
         return [y for x in self.tiles for y in x.orderableseqs]
-    
+
     def check_consistent(self):
+        """Check the TileSet consistency.
+
+        Check a number of properties of the TileSet for consistency.
+        In particular:
+
+           * Each tile must pass Tile.check_consistent()
+           * TileSet.ends and TileSet.tiles.endlist() must not contain conflicting
+             ends or end sequences.
+           * FIXME
+        """
         # * END LIST The end list itself must be consistent.
         # ** Each end must be of understood type
         # ** Each end must have a valid sequence or no sequence
@@ -218,7 +297,7 @@ class TileSet(CommentedMap):
         # ** The tile and end lists must merge validly
         # (checks sequences, adjacents, types, complements)
         self.ends.merge(endsfromtiles)
-        
+
         # ** WARN if tilelist has end references not in ends
         # ** WARN if merge is not equal to the endlist
         # ** WARN if endlist has ends not used in tilelist
@@ -239,7 +318,7 @@ class TileSet(CommentedMap):
             #     origami
             # ** each adapter must have valid definition, which means for us:
             # *** if both tile mimic and ends are specified, they must match
-    
+
     def summary(self):
         self.check_consistent()
         info = {'ntiles': len(self.tiles),
@@ -250,18 +329,20 @@ class TileSet(CommentedMap):
                 'name':   " {}".format(self['info']['name']) if \
                                        ('info' in self.keys() and \
                                         'name' in self['info'].keys()) else ""}
-        tun = sum( 1 for x in self.tiles if 'name' not in x.keys() )
+        tun = sum(1 for x in self.tiles if 'name' not in x.keys())
         if tun > 0:
             info['tns'] += " ({} unnamed)".format(tun)
-        eun = sum( 1 for x in self.ends if 'name' not in x.keys() )
+        eun = sum(1 for x in self.ends if 'name' not in x.keys())
         if eun > 0:
             info['ens'] += " ({} unnamed)".format(eun)
-        return "TileSet{name}: {ntiles} tiles, {nends} ends, {ntends} ends in tiles.\nTiles: {tns}\nEnds:  {ens}".format(**info)
+        return "TileSet{name}: {ntiles} tiles, {nends} ends, {ntends} ends in tiles.\nTiles: {tns}\nEnds:  {ens}".format(
+            **info)
 
-    def __str__( self ):
+    def __str__(self):
         return self.summary()
 
     def copy(self):
+        """Return a full (deep) copy of the TileSet"""
         return copy.deepcopy(self)
 
     def __deepcopy__(self, memo):
@@ -274,17 +355,28 @@ class TileSet(CommentedMap):
         return res
 
     def dump(self, stream):
+        """Dump the tileset into a stream in YAML format.
+
+        Parameters
+        ----------
+
+        stream : stream
+            the stream / file object to dump to.
+        """
+
         return yaml.round_trip_dump(self, stream)
 
-    def design_set(
-            tileset,
-            name='tsd_temp',
-            includes=[pkg_resources.resource_filename(__name__, 'peppercomps-j1')],
-            energetics=None,
-            stickyopts={},
-            reorderopts={},
-            coreopts={},
-            keeptemp=False):
+    def design_set(tileset,
+                   name='tsd_temp',
+                   includes=[
+                       pkg_resources.resource_filename(__name__,
+                                                       'peppercomps-j1')
+                   ],
+                   energetics=None,
+                   stickyopts={},
+                   reorderopts={},
+                   coreopts={},
+                   keeptemp=False):
         """Helper function to design sets from scratch, calling the numerous parts of
         tilesetdesigner. You may want to use the tilesetdesigner shell script
         instead.
@@ -324,7 +416,8 @@ class TileSet(CommentedMap):
 
         # FIXME: this is temporary, until we have a better way of deciding.
         if 'createseqs' in tileset_with_strands['seed'].keys():
-            tileset_with_strands = create_adapter_sequences(tileset_with_strands)
+            tileset_with_strands = create_adapter_sequences(
+                tileset_with_strands)
 
         if not keeptemp:
             os.remove(name + '.fix')
@@ -337,31 +430,45 @@ class TileSet(CommentedMap):
         tileset_with_strands.check_consistent()
         return tileset_with_strands
 
-    def create_end_sequences(tileset, method='default', energetics=None,
-                             trials=100, sdopts={}, ecpars={}):
-        """Create sticky end sequences for a tileset, using stickydesign.
-    This new version should be more flexible, and should be able to
-    keep old sticky ends, accounting for them in creating new ones.
-
-    Parameters
-    ----------
-
-    tileset: the tileset to create sticky ends sequences for.  This
-         will be copied and returned, not modified.
-
-    method: [default 'default'] if 'default', use the default,
-    single-model sequence design.  If 'multimodel', use multimodel end
-    choice.
-
-    energetics: the energetics instance to use for the design, or list
-    of energetics for method='multimodel', in which case the first
-    will be the primary.  If None (default), will use
-    alhambra.DEFAULT_ENERGETICS, or, if method='multimodel', will use
-    alhambra.DEFAULT_MM_ENERGETICS.
+    def create_end_sequences(tileset,
+                             method='default',
+                             energetics=None,
+                             trials=100,
+                             sdopts={},
+                             ecpars={}):
+        """Create sticky end sequences for the TileSet, using stickydesign,
+        and returning a new TileSet including the ends.
 
 
-    Outputs (tileset, new_ends) where new_ends is a list of new end
-    names that were designed.
+        Parameters
+        ----------
+        method: {'default', 'multimodel'} 
+            if 'default', use the default, single-model sequence design.  
+            If 'multimodel', use multimodel end choice.
+
+        energetics : stickydesign.Energetics
+            the energetics instance to use for the design, or list
+            of energetics for method='multimodel', in which case the first
+            will be the primary.  If None (default), will use
+            alhambra.DEFAULT_ENERGETICS, or, if method='multimodel', will use
+            alhambra.DEFAULT_MM_ENERGETICS.
+
+        trials : int
+            the number of trials to attempt. FIXME
+
+        sdopts : dict
+            a dictionary of parameters to pass to stickydesign.easy_ends.
+
+        ecpars : dict
+            a dictionary of parameters to pass to the endchooser function
+            generator (useful only in limited circumstances).
+
+        Returns
+        -------
+        tileset : TileSet 
+            TileSet with designed end sequences included.
+        new_ends : list 
+            Names of the ends that were designed.
 
         """
         info = {}
@@ -395,8 +502,7 @@ class TileSet(CommentedMap):
         ends = EndList()
 
         if newtileset.ends:
-            ends.merge(newtileset.ends,
-                       fail_immediate=False, in_place=True)
+            ends.merge(newtileset.ends, fail_immediate=False, in_place=True)
 
         # This is the endlist from the tiles themselves.
         if newtileset.tiles:  # maybe you just want ends?
@@ -421,12 +527,14 @@ class TileSet(CommentedMap):
             end.fseq for end in ends
             if end.etype == 'DT' and seq.is_definite(end.fseq)
         ]
-        oldDTarray = sd.endarray(oldDTseqs, 'DT')
+        if oldDTseqs:
+            oldDTarray = sd.endarray(oldDTseqs, 'DT')
         oldTDseqs = [
             end.fseq for end in ends
             if end.etype == 'TD' and seq.is_definite(end.fseq)
         ]
-        oldTDarray = sd.endarray(oldTDseqs, 'TD')
+        if oldTDseqs:
+            oldTDarray = sd.endarray(oldTDseqs, 'TD')
 
         newTD = [
             end for end in ends
@@ -442,14 +550,14 @@ class TileSet(CommentedMap):
         # TODO: tests needs to test this
         targets = []
         if len(oldDTseqs) == 0 and len(oldTDseqs) == 0:
-            targets.append(sd.enhist('DT', 5, energetics=energetics)[2]['emedian'])
-            targets.append(sd.enhist('TD', 5, energetics=energetics)[2]['emedian'])
+            targets.append(
+                sd.enhist('DT', 5, energetics=energetics)[2]['emedian'])
+            targets.append(
+                sd.enhist('TD', 5, energetics=energetics)[2]['emedian'])
         if len(oldDTseqs) > 0:
-            targets.append(
-                energetics.matching_uniform(oldDTarray))
+            targets.append(energetics.matching_uniform(oldDTarray))
         if len(oldTDseqs) > 0:
-            targets.append(
-                energetics.matching_uniform(oldTDarray))
+            targets.append(energetics.matching_uniform(oldTDarray))
         targetint = np.average(targets)
 
         if any(not seq.is_null(end.fseq) for end in newTD):
@@ -482,17 +590,15 @@ class TileSet(CommentedMap):
                 **sdopts).tolist()
 
         elif method == 'multimodel':
-            SELOGGER.info(
-                "starting multimodel sticky end generation " +
-                "of TD ends for {} DT and {} TD ends, {} trials.".format(
-                    len(newDT), len(newTD), trials))
+            SELOGGER.info("starting multimodel sticky end generation " +
+                          "of TD ends for {} DT and {} TD ends, {} trials.".
+                          format(len(newDT), len(newTD), trials))
 
             newTDseqs = []
-            pl = util.ProgressLogger(SELOGGER, trials*2)
+            pl = util.ProgressLogger(SELOGGER, trials * 2)
             for i in range(0, trials):
-                endchooserTD = sd.multimodel.endchooser(all_energetics,
-                                                        templates=TDtemplates,
-                                                        **ecpars)
+                endchooserTD = multimodel.endchooser(
+                    all_energetics, templates=TDtemplates, **ecpars)
 
                 newTDseqs.append(
                     sd.easyends(
@@ -507,18 +613,21 @@ class TileSet(CommentedMap):
                 pl.update(i)
 
             if oldTDseqs:
-                tvals = [[e.matching_uniform(oldTDarray[0:1])
-                         for e in all_energetics] *
-                         len(newTDseqs)] * len(newTDseqs)
+                tvals = [[
+                    e.matching_uniform(oldTDarray[0:1]) for e in all_energetics
+                ] * len(newTDseqs)] * len(newTDseqs)
+                SELOGGER.debug(tvals[0])
             else:
-                tvals = [[e.matching_uniform(x[0:1])
-                          for e in all_energetics] for x in newTDseqs]
+                tvals = [[e.matching_uniform(x[0:1]) for e in all_energetics]
+                         for x in newTDseqs]
 
-            endchoosersDT = [sd.multimodel.endchooser(all_energetics,
-                                                      target_vals=tval,
-                                                      templates=DTtemplates,
-                                                      **ecpars)
-                             for tval in tvals]
+            endchoosersDT = [
+                multimodel.endchooser(
+                    all_energetics,
+                    target_vals=tval,
+                    templates=DTtemplates,
+                    **ecpars) for tval in tvals
+            ]
 
             SELOGGER.info("generating corresponding DT ends")
             newDTseqs = []
@@ -533,14 +642,16 @@ class TileSet(CommentedMap):
                         interaction=targetint,
                         echoose=echoose,
                         **sdopts))
-                pl.update(i+trials)
+                pl.update(i + trials)
 
-            TDarr = [[oldTDarray.concat(x),
-                      oldDTarray.concat(y)]
-                     for x, y in zip(newTDseqs, newDTseqs)]
-
-            scores = [sd.multimodel.deviation_score(list(e), all_energetics)
-                      for e in TDarr]
+            arr = [[sd.endarray(oldTDseqs + x.tolist(), 'TD'),
+                    sd.endarray(oldDTseqs + y.tolist(), 'DT')]
+                    for x, y in zip(newTDseqs, newDTseqs)]
+                
+            scores = [
+                multimodel.deviation_score(list(e), all_energetics)
+                for e in arr
+            ]
 
             sort = np.argsort(scores)
 
@@ -570,7 +681,7 @@ class TileSet(CommentedMap):
         if DTtemplates:
             for t, s in zip(DTtemplates, newDTseqs):
                 seq.merge(t, s)
-            
+
         for end, s in zip(newDT, newDTseqs):
             ends[end.name].fseq = s
         for end, s in zip(newTD, newTDseqs):
@@ -590,7 +701,9 @@ class TileSet(CommentedMap):
         if 'end_design' not in newtileset['info'].keys():
             newtileset['info']['end_design'] = []
         if isinstance('end_design', dict):  # convert old
-            newtileset['info']['end_design'] = [newtileset['info']['end_design']]
+            newtileset['info']['end_design'] = [
+                newtileset['info']['end_design']
+            ]
         newtileset['info']['end_design'].append(info)
 
         return (newtileset, [e.name for e in newTD] + [e.name for e in newDT])
@@ -622,8 +735,8 @@ class TileSet(CommentedMap):
         # FIXME: better parameter control here.
         annealer = anneal.Annealer(reordersys.score, reordersys.mutate)
 
-        newstate = annealer.anneal(reordersys.initstate, hightemp, lowtemp, steps,
-                                   update)
+        newstate = annealer.anneal(reordersys.initstate, hightemp, lowtemp,
+                                   steps, update)
 
         # Now take that new state, and apply it to the new tileset.
         seqs = reordersys.slowseqs(newstate[0])
@@ -648,19 +761,41 @@ class TileSet(CommentedMap):
         tset.check_consistent()
         return tset
 
-
     def create_strand_sequences(tileset,
-                                basename,
+                                basename=None,
                                 includes=None,
                                 spurious_pars="verboten_weak=1.5",
                                 *options):
         """Given a tileset dictionary with sticky ends sequences, create core sequences
-    for tiles.
+        for tiles, using Pepper.
+
+        Parameters
+        ----------
+
+        basename : str, optional
+            The base name to use in Pepper (FIXME: why is this needed?).
+
+        includes : list of str paths, optional
+            The include paths for Pepper.
+
+        spurious_pars : str
+            Command line options for SpuriousDesign
+
+        Returns
+        -------
+
+        TileSet
+            A TileSet with generated strand sequences for all tiles.
         """
+
+        if not basename:
+            import uuid
+            basename = str(uuid.uuid4()).replace('-', '')
+            # FIXME: is this a valid basename?
 
         newtileset = copy.deepcopy(tileset)
 
-        newtileset.create_pepper_input_files(basename)
+        newtileset._create_pepper_input_files(basename)
 
         compiler.compiler(
             basename, [],
@@ -689,15 +824,17 @@ class TileSet(CommentedMap):
             cdi = {}
             cdi['basename'] = basename
             cdi['score_verboten'] = float(
-                re.findall(r'score_verboten\s+score\s+=\s+([+-]?[\d.,]+)', a)[1])
+                re.findall(r'score_verboten\s+score\s+=\s+([+-]?[\d.,]+)', a)[
+                    1])
             cdi['score_spurious'] = float(
-                re.findall(r'score_spurious\s+score\s+=\s+([+-]?[\d.,]+)', a)[1])
+                re.findall(r'score_spurious\s+score\s+=\s+([+-]?[\d.,]+)', a)[
+                    1])
             cdi['score_bonds'] = float(
                 re.findall(r'score_bonds\s+score\s+=\s+([+-]?[\d.,]+)', a)[1])
             cdi['score'] = float(
                 re.findall(r'weighted score\s+=\s+([+-]?[\d.,]+)', a)[1])
-            cdi['spurious_output'] = re.search(r"(?<=FINAL\n\n)[\w\W]+weighted.*",
-                                               a, re.MULTILINE).group(0)
+            cdi['spurious_output'] = re.search(
+                r"(?<=FINAL\n\n)[\w\W]+weighted.*", a, re.MULTILINE).group(0)
 
         newtileset['info']['core'] = cdi
 
@@ -715,7 +852,7 @@ class TileSet(CommentedMap):
             spurious=False,
             spurious_time=0)  # FIXME: shouldn't need so many options.
 
-        tileset_with_strands = newtileset.load_pepper_output_files(basename)
+        tileset_with_strands = newtileset._load_pepper_output_files(basename)
 
         # Ensure:
         tileset.ends.merge(
@@ -732,9 +869,9 @@ class TileSet(CommentedMap):
 
         return tileset_with_strands
 
-    def create_pepper_input_files(tileset, basename):
+    def _create_pepper_input_files(tileset, basename):
         # Are we creating adapters in Pepper?
-        if seeds.seedtypes[tileset['seed']['type']].needspepper:
+        if tileset.seed and seeds.seedtypes[tileset['seed']['type']].needspepper:
             seedclass = seeds.seedtypes[tileset['seed']['type']]
             createadapts = True
         else:
@@ -765,7 +902,8 @@ class TileSet(CommentedMap):
             # sequences
         if createadapts:
             for i, core in enumerate(seedclass.cores, 1):
-                fixedfile.write("signal origamicore_{0} = {1}\n".format(i, core))
+                fixedfile.write(
+                    "signal origamicore_{0} = {1}\n".format(i, core))
 
         # Now we'll create the system file in parts.
         importlist = set()
@@ -792,12 +930,12 @@ class TileSet(CommentedMap):
                 tile['name'], tiletype, s1, s2)
             importlist.add(tiletype)
             if 'fullseqs' in tile.keys():
-                fixedfile.write("structure {}-tile = ".format(tile['name']) +
-                                "+".join([seq.upper()
-                                          for seq in tile['fullseqs']]) + "\n")
+                fixedfile.write(
+                    "structure {}-tile = ".format(tile['name']) + "+".join(
+                        [seq.upper() for seq in tile['fullseqs']]) + "\n")
 
         if createadapts:
-            importlist, compstring = seedclass.create_pepper_input_files(
+            importlist, compstring = seedclass._create_pepper_input_files(
                 tileset['seed'], importlist, compstring)
 
         with open(basename + '.sys', 'w') as sysfile:
@@ -805,7 +943,7 @@ class TileSet(CommentedMap):
             sysfile.write("import " + ", ".join(importlist) + "\n\n")
             sysfile.write(compstring)
 
-    def load_pepper_output_files(tileset, basename):
+    def _load_pepper_output_files(tileset, basename):
         import re
 
         # Are we creating adapters in Pepper?
@@ -824,13 +962,17 @@ class TileSet(CommentedMap):
 
         for tile in tset.tiles:
             pepperstrands = re.compile('strand ' + tile['name'] +
-                                       '-([^ ]+) = ([^\n]+)').findall(seqsstring)
-            tile['fullseqs'] = tilestructures.order_pepper_strands(pepperstrands)
+                                       '-([^ ]+) = ([^\n]+)').findall(
+                                           seqsstring)
+            tile['fullseqs'] = tilestructures.order_pepper_strands(
+                pepperstrands)
 
-        for adapter in tset['seed']['adapters']:
-            pepperstrands = re.compile('strand ' + adapter['name'] +
-                                       '-([^ ]+) = ([^\n]+)').findall(seqsstring)
-            adapter['fullseqs'] = tilestructures.order_pepper_strands(pepperstrands)
+        #for adapter in tset['seed']['adapters']:
+        #    pepperstrands = re.compile('strand ' + adapter['name'] +
+        #                               '-([^ ]+) = ([^\n]+)').findall(
+        #                                   seqsstring)
+        #    adapter['fullseqs'] = tilestructures.order_pepper_strands(
+        #        pepperstrands)
 
         return tset
 
@@ -864,10 +1006,27 @@ class TileSet(CommentedMap):
 
         base.write(filename)
 
-    def generate_xgrow_dict(ts,
-                            perfect=False,
-                            rotate=False,
-                            energetics=None):
+    def generate_xgrow_dict(ts, perfect=False, rotate=False, energetics=None):
+        """Generate a Xgrow tileset dict.
+
+        Parameters
+        ----------
+
+        perfect : bool
+            If True, each end binds to its complement by strength 1.  If False,
+            stickydesign energetics are used.  Note that TileSets with odd ends
+            (eg, with different "ends" that are actually just the same end with
+            different adjacent bases, as in the original COUNT system) will likely
+            not behave as expected with perfect=True.
+
+        rotate : bool, optional
+            If False (Default), tiles are simply converted to Xgrow tiles.  If True,
+            rotated/flipped copies of each tile are created in order to simulate valid
+            tile orientations other than those intended.
+
+        energetics: stickydesign.Energetics, optional
+            The energetics model to use.  If not specified, DEFAULT_ENERGETICS is used.
+        """
 
         # Combine ends and tile-specified adjacents
         newtiles = []
@@ -877,19 +1036,23 @@ class TileSet(CommentedMap):
         vdoubleends = []
         vdoubles = []
         ts = copy.deepcopy(ts)
-        newtiles.append({'name': 'origami',
-                         'edges': ['origami', 'origami', 'origami', 'origami'],
-                         'stoic': 0,
-                         'color': 'white'})
+        newtiles.append({
+            'name': 'origami',
+            'edges': ['origami', 'origami', 'origami', 'origami'],
+            'stoic': 0,
+            'color': 'white'
+        })
 
-        atiles = [None]*16
+        atiles = [None] * 16
         to_use = []
         # If we have use_adapters, use that, otherwise use every adapter:
         if 'use_adapters' in ts['seed']:
             for tilename in ts['seed']['use_adapters']:
                 try:
-                    tile = [x for x in ts['seed']['adapters']
-                            if x.get('name') == tilename][0]
+                    tile = [
+                        x for x in ts['seed']['adapters']
+                        if x.get('name') == tilename
+                    ][0]
                     to_use.append(tile)
                 except IndexError as e:
                     raise Exception("Can't find {}".format(tilename)) from e
@@ -898,141 +1061,172 @@ class TileSet(CommentedMap):
 
         for tile in to_use:
             newtile = {}
-            newtile['edges'] = [ 'origami' ] +  [ re.sub('/','_c',x) for x in tile['ends'] ] + [ 'origami' ]
-            newtile['name'] = tile.get('name','')
+            newtile['edges'] = ['origami'] + [
+                re.sub('/', '_c', x) for x in tile['ends']
+            ] + ['origami']
+            newtile['name'] = tile.get('name', '')
             newtile['stoic'] = 0
             newtile['color'] = 'white'
-            atiles[tile['loc']-1] = newtile
+            atiles[tile['loc'] - 1] = newtile
         for tile in atiles:
             if tile:
                 newtiles.append(tile)
             else:
-                newtiles.append( { 'name': 'emptyadapt', 'edges': ['origami',0,0,'origami'], 'stoic': 0, 'color': 'white'} )
-
+                newtiles.append({
+                    'name': 'emptyadapt',
+                    'edges': ['origami', 0, 0, 'origami'],
+                    'stoic': 0,
+                    'color': 'white'
+                })
 
         if rotate:
             rotatedtiles = []
             for tile in ts.tiles:
-                if tile['structure'] == 'tile_daoe_3up' or tile['structure'] == 'tile_daoe_5up':
+                if (tile['structure'] == 'tile_daoe_3up'
+                        or tile['structure'] == 'tile_daoe_5up'):
                     newtile = copy.deepcopy(tile)
-                    newtile['name']+='_lrf'
-                    newtile['ends']=[tile['ends'][x] for x in (1,0,3,2)]
+                    newtile['name'] += '_lrf'
+                    newtile['ends'] = [tile['ends'][x] for x in (1, 0, 3, 2)]
                     rotatedtiles.append(newtile)
                     newtile = copy.deepcopy(tile)
-                    newtile['name']+='_udf'
-                    newtile['structure']='tile_daoe_'+{'5up':'3up','3up':'5up'}[tile['structure'][-3:]]
-                    newtile['ends']=[tile['ends'][x] for x in (3,2,1,0)]
+                    newtile['name'] += '_udf'
+                    newtile['structure'] = 'tile_daoe_' + {
+                        '5up': '3up',
+                        '3up': '5up'
+                    }[tile['structure'][-3:]]
+                    newtile['ends'] = [tile['ends'][x] for x in (3, 2, 1, 0)]
                     rotatedtiles.append(newtile)
                     newtile = copy.deepcopy(tile)
-                    newtile['name']+='_bf'
-                    newtile['structure']='tile_daoe_'+{'5up':'3up','3up':'5up'}[tile['structure'][-3:]]
-                    newtile['ends']=[tile['ends'][x] for x in (2,3,0,1)]
+                    newtile['name'] += '_bf'
+                    newtile['structure'] = 'tile_daoe_' + {
+                        '5up': '3up',
+                        '3up': '5up'
+                    }[tile['structure'][-3:]]
+                    newtile['ends'] = [tile['ends'][x] for x in (2, 3, 0, 1)]
                     rotatedtiles.append(newtile)
                 elif tile['structure'] == 'tile_daoe_doublehoriz_35up':
                     newtile = copy.deepcopy(tile)
-                    newtile['name']+='_lrf'
-                    newtile['structure']='tile_daoe_doublevert_53up'
-                    newtile['ends']=[tile['ends'][x] for x in (2,1,0,5,4,3)]
+                    newtile['name'] += '_lrf'
+                    newtile['structure'] = 'tile_daoe_doublevert_53up'
+                    newtile['ends'] = [
+                        tile['ends'][x] for x in (2, 1, 0, 5, 4, 3)
+                    ]
                     rotatedtiles.append(newtile)
                     newtile = copy.deepcopy(tile)
-                    newtile['name']+='_udf'
-                    newtile['structure']='tile_daoe_doublevert_53up'
-                    newtile['ends']=[tile['ends'][x] for x in (5,4,3,2,1,0)]
+                    newtile['name'] += '_udf'
+                    newtile['structure'] = 'tile_daoe_doublevert_53up'
+                    newtile['ends'] = [
+                        tile['ends'][x] for x in (5, 4, 3, 2, 1, 0)
+                    ]
                     rotatedtiles.append(newtile)
                     newtile = copy.deepcopy(tile)
-                    newtile['name']+='_bf'
-                    newtile['ends']=[tile['ends'][x] for x in (3,4,5,0,1,2)]
+                    newtile['name'] += '_bf'
+                    newtile['ends'] = [
+                        tile['ends'][x] for x in (3, 4, 5, 0, 1, 2)
+                    ]
                     rotatedtiles.append(newtile)
                 elif tile['structure'] == 'tile_daoe_doublevert_35up':
                     newtile = copy.deepcopy(tile)
-                    newtile['name']+='_lrf'
-                    newtile['structure']='tile_daoe_doublehoriz_53up'
-                    newtile['ends']=[tile['ends'][x] for x in (2,1,0,5,4,3)]
+                    newtile['name'] += '_lrf'
+                    newtile['structure'] = 'tile_daoe_doublehoriz_53up'
+                    newtile['ends'] = [
+                        tile['ends'][x] for x in (2, 1, 0, 5, 4, 3)
+                    ]
                     rotatedtiles.append(newtile)
                     newtile = copy.deepcopy(tile)
-                    newtile['name']+='_udf'
-                    newtile['structure']='tile_daoe_doublehoriz_53up'
-                    newtile['ends']=[tile['ends'][x] for x in (5,4,3,2,1,0)]
+                    newtile['name'] += '_udf'
+                    newtile['structure'] = 'tile_daoe_doublehoriz_53up'
+                    newtile['ends'] = [
+                        tile['ends'][x] for x in (5, 4, 3, 2, 1, 0)
+                    ]
                     rotatedtiles.append(newtile)
                     newtile = copy.deepcopy(tile)
-                    newtile['name']+='_bf'
-                    newtile['ends']=[tile['ends'][x] for x in (3,4,5,0,1,2)]
+                    newtile['name'] += '_bf'
+                    newtile['ends'] = [
+                        tile['ends'][x] for x in (3, 4, 5, 0, 1, 2)
+                    ]
                     rotatedtiles.append(newtile)
 
             ts.tiles += rotatedtiles
 
         for tile in ts.tiles:
-            if tile['structure'] == 'tile_daoe_3up' or tile['structure'] == 'tile_daoe_5up':
+            if (tile['structure'] == 'tile_daoe_3up'
+                    or tile['structure'] == 'tile_daoe_5up'):
                 newtile = {}
-                newtile['edges'] = [ re.sub('/','_c',x) for x in tile['ends'] ]
-                if 'name' in tile: newtile['name'] = tile['name']
-                if 'conc' in tile: newtile['stoic'] = tile['conc']
-                if 'color' in tile: newtile['color'] = tile['color']
+                newtile['edges'] = [re.sub('/', '_c', x) for x in tile['ends']]
+                if 'name' in tile:
+                    newtile['name'] = tile['name']
+                if 'conc' in tile:
+                    newtile['stoic'] = tile['conc']
+                if 'color' in tile:
+                    newtile['color'] = tile['color']
                 newtiles.append(newtile)
 
-            if tile['structure'] == 'tile_daoe_doublehoriz_35up' or tile['structure'] == 'tile_daoe_doublehoriz_53up':
+            if re.match('tile_daoe_doublehoriz', tile.structure.name):
                 newtile1 = {}
                 newtile2 = {}
                 newtile1['edges'] = [ re.sub('/','_c',x) for x in tile['ends'][0:1] ] \
                     + [ tile['name']+'_db' ] \
                     + [ re.sub('/','_c',x) for x in tile['ends'][4:] ]
                 newtile2['edges'] = [ re.sub('/','_c',x) for x in tile['ends'][1:4] ] \
-                    + [ tile['name']+'_db' ]            
-                newtile1['name'] = tile['name']+'_left'
-                newtile2['name'] = tile['name']+'_right'
+                    + [ tile['name']+'_db' ]
+                newtile1['name'] = tile['name'] + '_left'
+                newtile2['name'] = tile['name'] + '_right'
 
-                doubleends.append( tile['name']+'_db' )
-                doubles.append( (newtile1['name'], newtile2['name']) )
+                doubleends.append(tile['name'] + '_db')
+                doubles.append((newtile1['name'], newtile2['name']))
 
-                if 'conc' in tile: 
+                if 'conc' in tile:
                     newtile1['stoic'] = tile['conc']
                     newtile2['stoic'] = tile['conc']
 
-                if 'color' in tile: 
+                if 'color' in tile:
                     newtile1['color'] = tile['color']
                     newtile2['color'] = tile['color']
 
                 newtiles.append(newtile1)
                 newtiles.append(newtile2)
-            if tile['structure'] == 'tile_daoe_doublevert_35up' or tile['structure'] == 'tile_daoe_doublevert_53up':
+            if re.match('tile_daoe_doublevert', tile.structure.name):
                 newtile1 = {}
                 newtile2 = {}
                 newtile1['edges'] = [ re.sub('/','_c',x) for x in tile['ends'][0:2] ] \
                     + [ tile['name']+'_db' ] \
                     + [ re.sub('/','_c',x) for x in tile['ends'][5:] ]
-                newtile2['edges'] = [ tile['name']+'_db' ] + [ re.sub('/','_c',x) for x in tile['ends'][2:5] ] 
-                newtile1['name'] = tile['name']+'_top'
-                newtile2['name'] = tile['name']+'_bottom'
+                newtile2['edges'] = [tile['name'] + '_db'] + [
+                    re.sub('/', '_c', x) for x in tile['ends'][2:5]
+                ]
+                newtile1['name'] = tile['name'] + '_top'
+                newtile2['name'] = tile['name'] + '_bottom'
 
-                vdoubleends.append( tile['name']+'_db' )
-                vdoubles.append( (newtile1['name'], newtile2['name']) )
+                vdoubleends.append(tile['name'] + '_db')
+                vdoubles.append((newtile1['name'], newtile2['name']))
 
-                if 'conc' in tile: 
+                if 'conc' in tile:
                     newtile1['stoic'] = tile['conc']
                     newtile2['stoic'] = tile['conc']
 
-                if 'color' in tile: 
+                if 'color' in tile:
                     newtile1['color'] = tile['color']
                     newtile2['color'] = tile['color']
 
                 newtiles.append(newtile1)
                 newtiles.append(newtile2)
 
-        newends.append( { 'name': 'origami', 'strength': 100 } )
+        newends.append({'name': 'origami', 'strength': 100})
 
         for end in doubleends:
-            newends.append( { 'name': end, 'strength': 10 } )
+            newends.append({'name': end, 'strength': 10})
         for end in vdoubleends:
-            newends.append( { 'name': end, 'strength': 10 } )
+            newends.append({'name': end, 'strength': 10})
 
         gluelist = []
-        if not perfect: 
+        if not perfect:
             glueends = {'DT': [], 'TD': []}
             for end in ts['ends']:
-                newends.append( { 'name': end['name'], 'strength': 0 } )
-                newends.append( { 'name': end['name']+'_c', 'strength': 0 } )
+                newends.append({'name': end['name'], 'strength': 0})
+                newends.append({'name': end['name'] + '_c', 'strength': 0})
                 if (end['type'] == 'TD') or (end['type'] == 'DT'):
-                    glueends[end['type']].append((end['name'],end['fseq']))
+                    glueends[end['type']].append((end['name'], end['fseq']))
 
             if energetics:
                 ef = energetics
@@ -1043,53 +1237,55 @@ class TileSet(CommentedMap):
             for t in ['DT', 'TD']:
                 names, fseqs = zip(*glueends[t])
                 ea = sd.endarray(fseqs, t)
-                eavg[t] = np.average( ef.matching_uniform( ea ) )
-            eavg_combined = ( eavg['DT'] + eavg['TD'] ) / 2.0
+                eavg[t] = np.average(ef.matching_uniform(ea))
+            eavg_combined = (eavg['DT'] + eavg['TD']) / 2.0
 
-            for t in ['DT','TD']:
+            for t in ['DT', 'TD']:
                 names, fseqs = zip(*glueends[t])
-                allnames = names + tuple( x+'_c' for x in names )
+                allnames = names + tuple(x + '_c' for x in names)
                 ea = sd.endarray(fseqs, t)
-                ar = sd.energy_array_uniform(ea,ef) / eavg_combined
-                for i1,n1 in enumerate(names):
-                    for i2,n2 in enumerate(allnames):
-                        gluelist.append([n1,n2,max(float(ar[i1,i2]),0.0)])
-
+                ar = sd.energy_array_uniform(ea, ef) / eavg_combined
+                for i1, n1 in enumerate(names):
+                    for i2, n2 in enumerate(allnames):
+                        gluelist.append([n1, n2, max(float(ar[i1, i2]), 0.0)])
 
         else:
             if 'ends' not in ts.keys():
-                ts['ends']=[]
-            endsinlist = set( e['name'] for e in ts['ends'] )
+                ts['ends'] = []
+            endsinlist = set(e['name'] for e in ts['ends'])
             endsintiles = set()
             for tile in ts.tiles:
-                endsintiles.update( re.sub('/','',e) for e in tile['ends'] if e != 'hp')
+                endsintiles.update(
+                    re.sub('/', '', e) for e in tile['ends'] if e != 'hp')
             for end in ts['ends'] + list({'name': e} for e in endsintiles):
-                newends.append( { 'name': end['name'], 'strength': 0 } )
-                newends.append( { 'name': end['name']+'_c', 'strength': 0 } )
-                gluelist.append([end['name'],end['name']+'_c',1.0]) 
+                newends.append({'name': end['name'], 'strength': 0})
+                newends.append({'name': end['name'] + '_c', 'strength': 0})
+                gluelist.append([end['name'], end['name'] + '_c', 1.0])
 
-
-
-        newends.append( {'name': 'hp', 'strength': 0} )
+        newends.append({'name': 'hp', 'strength': 0})
 
         xga = {}
-        xga['doubletiles'] = [ list(x) for x in doubles ]
-        xga['vdoubletiles'] = [ list(x) for x in vdoubles ]
-        xga.update( ts['xgrow_options'] )
-        xga.update( ts['xgrow_options'] )
+        xga['doubletiles'] = [list(x) for x in doubles]
+        xga['vdoubletiles'] = [list(x) for x in vdoubles]
+        xga.update(ts['xgrow_options'])
+        xga.update(ts['xgrow_options'])
         #if not perfect:
         #    xga['gse_calc_avg'] = eavg_combined
 
-
-        sts = { 'tiles': newtiles, 'bonds': newends, 'xgrowargs': xga, 'glues': gluelist }
+        sts = {
+            'tiles': newtiles,
+            'bonds': newends,
+            'xgrowargs': xga,
+            'glues': gluelist
+        }
 
         return sts
 
-    
     def plot_se_hists(tileset,
                       all_energetics=None,
                       energetics_names=None,
-                      title=None, **kwargs):
+                      title=None,
+                      **kwargs):
 
         if all_energetics is None:
             all_energetics = DEFAULT_MULTIMODEL_ENERGETICS
@@ -1106,38 +1302,32 @@ class TileSet(CommentedMap):
             # FIXME
             title = 'Title'
 
-        td = sd.endarray([x['fseq'] for x in ends
-                          if x['type'] == 'TD'], 'TD')
+        td = sd.endarray([x['fseq'] for x in ends if x['type'] == 'TD'], 'TD')
 
-        dt = sd.endarray([x['fseq'] for x in ends
-                          if x['type'] == 'DT'], 'DT')
+        dt = sd.endarray([x['fseq'] for x in ends if x['type'] == 'DT'], 'DT')
 
-        sdplots.hist_multi([td, dt],
-                           all_energetics,
-                           energetics_names,
-                           title, **kwargs)
+        sdplots.hist_multi([td, dt], all_energetics, energetics_names, title,
+                           **kwargs)
 
-
-    def plot_adjacent_regions(tileset,
-                              energetics=None):
+    def plot_adjacent_regions(tileset, energetics=None):
 
         if energetics is None:
             energetics = DEFAULT_REGION_ENERGETICS
 
-        regions = [t.structure._side_bound_regions
-                   for t in tileset.tiles]
+        regions = [t.structure._side_bound_regions for t in tileset.tiles]
         regions = [[x.lower() for x in y] for y in regions]
         allregions = sum(regions, [])
         count = [[Counter(x) for x in y] for y in regions]
-        gc_count = [[x['g']+x['c'] for x in c] for c in count]
+        gc_count = [[x['g'] + x['c'] for x in c] for c in count]
         gc_counts = sum(gc_count, [])
 
         ens = energetics.matching_uniform(sd.endarray(allregions, 'DT'))
 
         pylab.figure(figsize=(10, 4))
         pylab.subplot(121)
-        pylab.hist(gc_counts,
-                   bins=np.arange(min(gc_counts)-0.5, max(gc_counts)+0.5))
+        pylab.hist(
+            gc_counts,
+            bins=np.arange(min(gc_counts) - 0.5, max(gc_counts) + 0.5))
         pylab.title('G/C pairs in arms')
         pylab.ylabel('# of 15 nt arms')
         pylab.xlabel('# of G/C pairs')
@@ -1148,26 +1338,25 @@ class TileSet(CommentedMap):
         pylab.xlabel('stickydesign ΔG')
         pylab.suptitle('8 nt end-adjacent region strengths')
 
-    def plot_side_strands(tileset,
-                          energetics=None):
+    def plot_side_strands(tileset, energetics=None):
 
         if energetics is None:
             energetics = DEFAULT_REGION_ENERGETICS
 
-        regions = [t.structure._short_bound_full
-                   for t in tileset.tiles]
+        regions = [t.structure._short_bound_full for t in tileset.tiles]
         regions = [[x.lower() for x in y] for y in regions]
         allregions = sum(regions, [])
         count = [[Counter(x) for x in y] for y in regions]
-        gc_count = [[x['g']+x['c'] for x in c] for c in count]
+        gc_count = [[x['g'] + x['c'] for x in c] for c in count]
         gc_counts = sum(gc_count, [])
 
         ens = energetics.matching_uniform(sd.endarray(allregions, 'DT'))
 
         pylab.figure(figsize=(10, 4))
         pylab.subplot(121)
-        pylab.hist(gc_counts,
-                   bins=np.arange(min(gc_counts)-0.5, max(gc_counts)+0.5))
+        pylab.hist(
+            gc_counts,
+            bins=np.arange(min(gc_counts) - 0.5, max(gc_counts) + 0.5))
         pylab.title('G/C pairs in arms')
         pylab.ylabel('# of 15 nt arms')
         pylab.xlabel('# of G/C pairs')
@@ -1181,4 +1370,3 @@ class TileSet(CommentedMap):
 
 RoundTripRepresenter.add_representer(TileSet,
                                      RoundTripRepresenter.represent_dict)
-

@@ -188,7 +188,7 @@ class tallrect_endadapts(seed_base):
     needspepper = True
     cores = tallrect_tileadapts.cores
 
-    def create_pepper_input_files(self, seeddef, importlist, compstring):
+    def _create_pepper_input_files(self, seeddef, importlist, compstring):
         for adapter in seeddef['adapters']:
             adaptertype = 'tile_adapter_5up'
             e = [[], []]
