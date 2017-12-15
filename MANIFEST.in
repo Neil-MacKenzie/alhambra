@@ -1,5 +1,9 @@
 include alhambra/peppercomps/*.comp
 
+include alhambra/peppercomps-nomidt/*.comp
+
+include alhambra/peppercomps-j1/*.comp
+
 include alhambra/seqdiagrambases/*.svg
 
 include alhambra/data/rgb.txt
