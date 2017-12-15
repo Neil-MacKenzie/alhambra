@@ -3,7 +3,6 @@
 from . import anneal
 from . import sensitivity as sens
 import stickydesign as sd
-import stickydesign.energetics as en
 import numpy.random as random
 import numpy as np
 import random as pyrand
@@ -54,11 +53,6 @@ class FastState:
 
 class EndSystemFseq:
     def __init__(self, tilesys, newends=None, pairs=None, energetics=None):
-        # Set up variables, etc.
-        if not energetics:
-            self.ef = en.energetics_santalucia(mismatchtype='max')
-        else:
-            self.ef = energetics
         tilesys = deepcopy(tilesys)
         self.ends = tilesys['ends']
         self.tiles = tilesys['tiles']
