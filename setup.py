@@ -7,7 +7,7 @@ setup(
     packages=['alhambra'],
     install_requires=[
         'numpy', 'stickydesign >= 0.6.0', 'svgwrite', 'lxml', 'shutilwhich',
-        'peppercompiler', 'ruamel.yaml', 'cssutils'
+        'peppercompiler >= 0.1.2', 'ruamel.yaml', 'cssutils'
     ],
     include_package_data=True,
     entry_points={'console_scripts': ['alhambra = alhambra.scripts:alhambra']},
