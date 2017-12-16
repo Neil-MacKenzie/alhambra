@@ -87,6 +87,21 @@ class TileSet(CommentedMap):
 
     @classmethod
     def from_file(cls, name_or_stream, *args, **kwargs):
+        """
+        Class method to create a TileSet from a file or stream.
+
+        Parameters
+        ----------
+        name_or_stream : file-like or path-like object
+            The path of the file, or a file object, to lead.
+
+
+        Returns
+        -------
+        TileSet
+            The loaded TileSet.
+
+        """
         # Assume a stream:
         if getattr(name_or_stream, 'read', None) is None:
             return cls(
@@ -96,13 +111,20 @@ class TileSet(CommentedMap):
             return cls(yaml.round_trip_load(name_or_stream, *args, **kwargs))
 
     def to_file(self, name_or_stream):
-        if getattr(name_or_stream, 'read', None) is None:
+        """
+        Write a TileSet to a file or stream.
+
+        Parameters
+        ----------
+        name_or_stream : file-like or path-like object
+            The path of the file, or a file object, to write to.
+
+        """
+
+        if getattr(name_or_stream, 'write', None) is None:
             return yaml.round_trip_dump(self, open(name_or_stream, 'w'))
         else:
             return yaml.round_trip_dump(self, name_or_stream)
-
-    def dump(self, *args, **kwargs):
-        return yaml.round_trip_dump(self, *args, **kwargs)
 
     @property
     def tiles(self):
@@ -214,6 +236,23 @@ class TileSet(CommentedMap):
                                filename,
                                scale=1,
                                *options):
+        """Create an SVG layout diagram from xgrow output.
+
+        This currently uses the abstract diagram bases to create the
+        layout diagrams.
+
+        Parameters
+        ----------
+
+        xgrowarray : ndarray or dict
+            Xgrow output.  This may be a numpy array of
+            an xgrow state, obtained in some way, or may be the 'array'
+            output of xgrow.run.
+
+        filename : string
+            File name / path of the output file.
+
+        """
         from lxml import etree
         base = etree.parse(
             pkg_resources.resource_stream(
@@ -222,6 +261,12 @@ class TileSet(CommentedMap):
 
         svgtiles = {}
 
+        if isinstance(dict, xgrowarray):
+            if 'tiles' in xgrowarray:
+                xgrowarray = xgrowarray['tiles']
+            elif 'array' in xgrowarray:
+                xgrowarray = xgrowarray['array']['tiles']
+        
         for tile in tileset.tiles:
             group, n = tile.abstract_diagram(tileset)
             svgtiles[tile.name] = group
@@ -320,14 +365,15 @@ class TileSet(CommentedMap):
             # *** if both tile mimic and ends are specified, they must match
 
     def summary(self):
+        """Returns a short summary line about the TileSet"""
         self.check_consistent()
         info = {'ntiles': len(self.tiles),
                 'nends':  len(self.ends),
-                'ntends': len(tilestructures.endlist_from_tilelist(self.tiles)),
-                'tns':    " ".join(x['name'] for x in self.tiles if 'name' in x.keys()),
-                'ens':    " ".join(x['name'] for x in self.ends if 'name' in x.keys()),
-                'name':   " {}".format(self['info']['name']) if \
-                                       ('info' in self.keys() and \
+                'ntends': len(self.tiles.tilelist()),
+                'tns':    " ".join(x.name for x in self.tiles if x.name),
+                'ens':    " ".join(x.name for x in self.ends if x.name),
+                'name':   " {}".format(self['info']['name']) if 
+                                       ('info' in self.keys() and 
                                         'name' in self['info'].keys()) else ""}
         tun = sum(1 for x in self.tiles if 'name' not in x.keys())
         if tun > 0:
@@ -383,12 +429,16 @@ class TileSet(CommentedMap):
 
         As with other functions in tilesetdesigner, this should not clobber inputs.
 
-        :tileset: tileset definition dictionary, or an IO object with a read
-        attribute, or a filename.
+        Parameters
+        ----------
 
-        :name: base name for temporary files (default tsd_temp)
+        name : str, optional
+            Base name for temporary files (default tsd_temp).
 
-        :returns: tileset definition dictionary, with added sequences
+        Returns
+        -------
+        TileSet
+            A copy of the TileSet with added sequences.
 
         """
         if energetics is None:
@@ -762,8 +812,11 @@ class TileSet(CommentedMap):
         return tset
 
     def create_strand_sequences(tileset,
-                                basename=None,
-                                includes=None,
+                                basename='alhambratemp',
+                                includes=[
+                                    pkg_resources.resource_filename(__name__,
+                                                                    'peppercomps-j1')
+                                ],
                                 spurious_pars="verboten_weak=1.5",
                                 *options):
         """Given a tileset dictionary with sticky ends sequences, create core sequences
@@ -955,11 +1008,6 @@ class TileSet(CommentedMap):
 
         seqsstring = open(basename + '.seqs').read()
 
-        # FIXME: we should do more than just get these sequences. We should also
-        # check that our ends, complements, adjacents, etc are still correct. But
-        # this is a pretty low priority.  UPDATE for 2017: WOW, LOOK AT ME BEING AN
-        # IDIOT IN THE COMMENTS - CGE
-
         for tile in tset.tiles:
             pepperstrands = re.compile('strand ' + tile['name'] +
                                        '-([^ ]+) = ([^\n]+)').findall(
@@ -977,10 +1025,19 @@ class TileSet(CommentedMap):
         return tset
 
     def create_guard_strand_sequences(tileset):
-        tset = copy.deepcopy(tileset)
+        """Given a tileset dictionary with core tile sequences,
+        create guard strand sequences.
+
+        Returns
+        -------
+
+        TileSet
+            A TileSet with generated guard strand sequences.
+        """
+        tset = tileset.copy()
 
         for guard in tset['guards']:
-            tile = tilestructures.gettile(tset, guard[0])
+            tile = tset.tiles[guard[0]]
             guard.append(wc(tile['fullseqs'][guard[1] - 1]))
 
         return tset
@@ -1024,8 +1081,14 @@ class TileSet(CommentedMap):
             rotated/flipped copies of each tile are created in order to simulate valid
             tile orientations other than those intended.
 
-        energetics: stickydesign.Energetics, optional
+        energetics : stickydesign.Energetics, optional
             The energetics model to use.  If not specified, DEFAULT_ENERGETICS is used.
+
+        Returns
+        -------
+
+        dict
+            An xgrow-compatible tileset definition, suitable for, eg, xgrow.run.
         """
 
         # Combine ends and tile-specified adjacents
@@ -1286,7 +1349,24 @@ class TileSet(CommentedMap):
                       energetics_names=None,
                       title=None,
                       **kwargs):
+        """Plot histograms of sticky end energies, using stickydesign.plots.hist_multi.
 
+        Parameters
+        ----------
+
+        all_energetics : list of Energetic
+            A list of energetics to use.  Defaults to DEFAULT_MULTIMODEL_ENERGETICS.
+
+        energetics_names : list of str
+            Names for energetics in all_energetics.  Defaults to DEFAULT_MM_ENERGETICS_NAMES.
+
+        title : str
+            Title for the plot.
+
+        **kwargs
+            kwargs passed to stickydesign.plots.hist_multi.
+
+        """
         if all_energetics is None:
             all_energetics = DEFAULT_MULTIMODEL_ENERGETICS
 
@@ -1306,10 +1386,20 @@ class TileSet(CommentedMap):
 
         dt = sd.endarray([x['fseq'] for x in ends if x['type'] == 'DT'], 'DT')
 
-        sdplots.hist_multi([td, dt], all_energetics, energetics_names, title,
-                           **kwargs)
+        return sdplots.hist_multi([td, dt], all_energetics,
+                                  energetics_names, title, **kwargs)
 
     def plot_adjacent_regions(tileset, energetics=None):
+        """
+        Plots the strength of double-stranded regions in DX tiles adjacent 
+        to sticky ends.
+
+        Parameters
+        ----------
+
+        energetics : stickydesign.Energetics
+            The energetics to use.  Defaults to DEFAULT_REGION_ENERGETICS.
+        """
 
         if energetics is None:
             energetics = DEFAULT_REGION_ENERGETICS
@@ -1329,7 +1419,7 @@ class TileSet(CommentedMap):
             gc_counts,
             bins=np.arange(min(gc_counts) - 0.5, max(gc_counts) + 0.5))
         pylab.title('G/C pairs in arms')
-        pylab.ylabel('# of 15 nt arms')
+        pylab.ylabel('# of 8 nt arms')
         pylab.xlabel('# of G/C pairs')
         pylab.subplot(122)
         pylab.hist(ens)
@@ -1339,6 +1429,15 @@ class TileSet(CommentedMap):
         pylab.suptitle('8 nt end-adjacent region strengths')
 
     def plot_side_strands(tileset, energetics=None):
+        """
+        Plots the binding strength of short strands in DX tiles.
+
+        Parameters
+        ----------
+
+        energetics : stickydesign.Energetics
+            The energetics to use.  Defaults to DEFAULT_REGION_ENERGETICS.
+        """
 
         if energetics is None:
             energetics = DEFAULT_REGION_ENERGETICS
@@ -1358,7 +1457,7 @@ class TileSet(CommentedMap):
             gc_counts,
             bins=np.arange(min(gc_counts) - 0.5, max(gc_counts) + 0.5))
         pylab.title('G/C pairs in arms')
-        pylab.ylabel('# of 15 nt arms')
+        pylab.ylabel('# of 8 nt arms')
         pylab.xlabel('# of G/C pairs')
         pylab.subplot(122)
         pylab.hist(ens)
