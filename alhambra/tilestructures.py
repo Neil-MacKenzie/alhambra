@@ -11,6 +11,12 @@ import os.path
 from .ends import End, EndList
 import warnings
 from .seq import validnts, revcomp
+from . import seq as sq
+
+
+import logging
+cssutils.log.setLevel(logging.FATAL)
+
 
 rgbv = pkg_resources.resource_stream(__name__, os.path.join('data', 'rgb.txt'))
 xcolors = {" ".join(y[3:]): "rgb({},{},{})".format(y[0], y[1], y[2])
@@ -69,10 +75,12 @@ def check_edotparen_sequence(edotparen, sequence):
             if ss not in stacks.keys():
                 raise ValueError("Opening not found", s, strand, strandloc)
             vv = stacks[ss].pop()
-            if v != revcomp(vv):
+            try:
+                sq.merge(v, revcomp(vv))
+            except sq.MergeConflictError as e:
                 raise ValueError(
                     "{} != WC({}) at strand {} loc {} (both from 0)".format(
-                        v, vv, strand, strandloc), v, vv, strand, strandloc)
+                        v, vv, strand, strandloc), v, vv, strand, strandloc) from None
         elif s == ".":
             assert v in validnts
         elif s == "+":
@@ -345,7 +353,7 @@ class tile_daoe_5up_2h(tile_daoe_single):
         ]
 
 
-class tile_daoe_3up_2h(tile_daoe_single):
+class tile_daoe_3up_2h(tile_daoe_3up):
     def _short_bound_full(self, tile):
         s = tile.strands
         return [s[0][5:-5], s[3][5:-18]]
