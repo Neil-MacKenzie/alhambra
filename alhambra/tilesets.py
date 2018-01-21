@@ -128,17 +128,39 @@ class TileSet(CommentedMap):
 
     @property
     def tiles(self):
-        """The TileList of tiles in the TileSet"""
+        """The TileList of tiles in the TileSet
+
+        Returns
+        -------
+
+        TileList"""
         return self['tiles']
 
     @property
     def allends(self):
-        """All ends in the system, both from ends and tiles."""
+        """All ends in the system, both from ends and tiles.
+
+        Returns
+        -------
+
+        EndList"""
         return self.ends.merge(self.tiles.endlist())
     
     def ends():
         doc = """The EndList of specified ends in the TileSet (not including
-                 ends that are only in tiles."""
+                 ends that are only in tiles.
+
+                 Returns
+                 -------
+
+                 EndList
+
+                 See Also
+                 --------
+
+                 TileSet.allends
+
+                 TileSet.tiles.endlist"""
 
         def fget(self):
             return self['ends']
@@ -327,7 +349,10 @@ class TileSet(CommentedMap):
            * Each tile must pass Tile.check_consistent()
            * TileSet.ends and TileSet.tiles.endlist() must not contain conflicting
              ends or end sequences.
-           * FIXME
+           * If there is a seed:
+               * It must be of an understood type (it must be in seeds.seedtypes)
+               * All adapter locations must be valid.
+               * The seed must pass its check_consistent and check_sequence.
         """
         # * END LIST The end list itself must be consistent.
         # ** Each end must be of understood type
@@ -491,7 +516,8 @@ class TileSet(CommentedMap):
                              trials=100,
                              devmethod='dev',
                              sdopts={},
-                             ecpars={}):
+                             ecpars={},
+                             listends=False):
         """Create sticky end sequences for the TileSet, using stickydesign,
         and returning a new TileSet including the ends.
 
@@ -518,6 +544,10 @@ class TileSet(CommentedMap):
         ecpars : dict
             a dictionary of parameters to pass to the endchooser function
             generator (useful only in limited circumstances).
+
+        listends : bool
+            if False, return just the TileSet.  If True, return both the
+            TileSet and a list of the names of the ends that were created.
 
         Returns
         -------
@@ -1425,7 +1455,7 @@ class TileSet(CommentedMap):
         Parameters
         ----------
 
-        all_energetics : list of Energetic
+        all_energetics : list of Energetics
             A list of energetics to use.  Defaults to DEFAULT_MULTIMODEL_ENERGETICS.
 
         energetics_names : list of str
@@ -1460,6 +1490,37 @@ class TileSet(CommentedMap):
         return sdplots.hist_multi([td, dt], all_energetics,
                                   energetics_names, title, **kwargs)
 
+    def plot_se_lv(self,
+                   all_energetics=None,
+                   energetics_names=None,
+                   pltcmd=None,
+                   title=None,
+                   **kwargs):
+
+        if all_energetics is None:
+            all_energetics = DEFAULT_MULTIMODEL_ENERGETICS
+
+        if energetics_names is None:
+            energetics_names = DEFAULT_MM_ENERGETICS_NAMES
+
+        m, s = sdplots._multi_data_pandas(
+            self.ends.to_endarrays(),
+            all_energetics,
+            energetics_names)
+
+        import seaborn as sns
+        import matplotlib.pyplot as plt
+
+        if pltcmd is None:
+            pltcmd = sns.lvplot
+            
+        pltcmd(data=m, **kwargs)
+        pltcmd(data=s, **kwargs)
+        if title:
+            plt.title(title)
+        plt.ylabel("Energy (kcal/mol)")
+
+    
     def plot_adjacent_regions(tileset, energetics=None):
         """
         Plots the strength of double-stranded regions in DX tiles adjacent 

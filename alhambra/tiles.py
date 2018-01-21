@@ -19,7 +19,8 @@ class Tile(CommentedMap):
             del(self['extra'])
         
     def structure():
-        doc = """Doc string"""
+        doc = """The structure of the tile, set either as a string (to be looked up
+with getstructure) or a TileStructure.  Get always returns the TileStructure."""
         
         def fget(self):
             return self._structure

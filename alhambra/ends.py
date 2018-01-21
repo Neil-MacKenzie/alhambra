@@ -4,6 +4,7 @@ from .util import NamedList
 import copy
 from peppercompiler.DNA_classes import wc
 from . import seq
+import stickydesign as sd
 
 
 class End(CommentedMap):
@@ -22,6 +23,8 @@ class End(CommentedMap):
                 self['name'], self.get('type', '?'))
 
     def fseq():
+        """The fseq / full sequence of the End, including the adjacent base on the end
+        and the complement of the adjacent base on the complement."""
         def fget(self):
             return self.get('fseq', None)
     
@@ -48,6 +51,7 @@ class End(CommentedMap):
     
     @property
     def seq(self):
+        """The end sequence (of just the end) of the End, as a string."""
         if not self.fseq:
             return None
         if self.etype == 'TD':
@@ -57,6 +61,7 @@ class End(CommentedMap):
 
     @property
     def comp(self):
+        """The complement end sequences of the End, as a string."""
         if not self.fseq:
             return None
         if self.etype == 'TD':
@@ -66,6 +71,7 @@ class End(CommentedMap):
 
     @property
     def etype(self):
+        """The end type of the end."""
         return self['type']
 
     def merge(end1, end2):
@@ -89,14 +95,37 @@ class End(CommentedMap):
                 out[i] = copy.deepcopy(v)
         return out
 
-    
-
 class EndList(NamedList):
+    """A list of End instances, which can be merged together, converted to
+       stickydesign.endarray instances, etc."""
     def __init__(self, val=[]):
+        """Create an EndList instance.
+
+        Parameters
+        ----------
+
+        val : iterable
+            an enumerable iterable of objects that can initialize End instances.
+        """
         NamedList.__init__(self, val)
         for i, end in enumerate(self):
             self[i] = End(end)
 
+    def to_endarrays(self):
+        """Return stickydesign endarrays of each type of (non-hairpin) end.
+
+        Returns
+        -------
+
+        list of stickydesign.endarray
+            the endarrays of ends in the system.
+        """
+        
+        endtypes = {x['type'] for x in self}
+        endtypes = endtypes - {'hp', 'hairpin'}
+        return list(sd.endarray([x['fseq'] for x in self if x['type'] == y], y)
+                     for y in endtypes)
+            
     def merge(endlist1, endlist2, fail_immediate=False,
               in_place=False):
         """\
@@ -120,7 +149,11 @@ class EndList(NamedList):
         in_place: (default False) if True, do merging in place in endlist1.
         Note the merged and added ends from endlist2 will be copies regardless.
 
-        output: a merged NamedList of sticky ends.
+        Returns
+        -------
+        
+        EndList
+            a merged list of sticky ends
 
 
         Exceptions
