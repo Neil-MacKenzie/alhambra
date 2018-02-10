@@ -5,6 +5,8 @@ import copy
 from peppercompiler.DNA_classes import wc
 from . import seq
 import stickydesign as sd
+import stickydesign2 as sd2
+from .util import DEFAULT_SD2_MULTIMODEL_ENERGETICS, DEFAULT_MM_ENERGETICS_NAMES
 
 
 class End(CommentedMap):
@@ -125,7 +127,31 @@ class EndList(NamedList):
         endtypes = endtypes - {'hp', 'hairpin'}
         return list(sd.endarray([x['fseq'] for x in self if x['type'] == y], y)
                      for y in endtypes)
-            
+
+    @property
+    def _epas(self):
+        """Return stickydesign2 EndPairArrays"""
+        endtypes = {x['type'] for x in self}
+        endtypes = endtypes - {'hp', 'hairpin'}
+        epat = {'TD': sd2.EndPairArrayTD, 'DT': sd2.EndPairArrayDT}
+        return list(epat[y]([x.fseq for x in self if x['type'] == y])
+                    for y in endtypes)
+
+
+    @property
+    def _epans(self):
+        """Return stickydesign2 EndPairArrays"""
+        endtypes = {x['type'] for x in self}
+        endtypes = endtypes - {'hp', 'hairpin'}
+        epat = {'TD': sd2.EndPairArrayTD, 'DT': sd2.EndPairArrayDT}
+        return list(list([x.name for x in self if x['type'] == y])
+                    for y in endtypes)
+
+    def _pandas_data(self, models=DEFAULT_SD2_MULTIMODEL_ENERGETICS,
+                     modelnames=DEFAULT_MM_ENERGETICS_NAMES):
+        import stickydesign2.plots as s2pl
+        return s2pl._pandas_data(self._epas, self._epans, models, modelnames)
+    
     def merge(endlist1, endlist2, fail_immediate=False,
               in_place=False):
         """\

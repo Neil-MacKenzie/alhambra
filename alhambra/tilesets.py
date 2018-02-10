@@ -37,26 +37,13 @@ from datetime import datetime, timezone
 
 import logging
 
-DEFAULT_ENERGETICS = sd.EnergeticsDAOE(
-    temperature=33, coaxparams=True)
 
-DEFAULT_MULTIMODEL_ENERGETICS = [
-    sd.EnergeticsDAOE(
-        temperature=33, coaxparams='protozanova'),
-    sd.EnergeticsDAOE(
-        temperature=33, coaxparams='pyshni'),
-    sd.EnergeticsDAOE(
-        temperature=33, coaxparams='peyret'),
-    sd.EnergeticsDAOE(
-        temperature=33, coaxparams=False)
-]
 
-DEFAULT_MM_ENERGETICS_NAMES = ['Prot', 'Pysh', 'Peyr', 'None']
+import stickydesign2 as sd2
+
+from .util import DEFAULT_SD2_MULTIMODEL_ENERGETICS, DEFAULT_MM_ENERGETICS_NAMES, DEFAULT_REGION_ENERGETICS, DEFAULT_MULTIMODEL_ENERGETICS, DEFAULT_ENERGETICS
 
 SELOGGER = logging.getLogger(__name__)
-
-DEFAULT_REGION_ENERGETICS = sd.EnergeticsBasic(
-    temperature=33, coaxparams=False, danglecorr=False)
 
 
 class TileSet(CommentedMap):
@@ -143,7 +130,13 @@ class TileSet(CommentedMap):
         Returns
         -------
 
-        EndList"""
+        EndList
+
+        See Also
+        --------
+
+        TileSet.ends
+        TileSet.tiles.endlist"""
         return self.ends.merge(self.tiles.endlist())
     
     def ends():
@@ -810,7 +803,8 @@ class TileSet(CommentedMap):
                      lowtemp=1e-7,
                      steps=45000,
                      update=1000,
-                     energetics=None):
+                     energetics=None,
+                     fsopts={}):
         """Given a tileset dictionary that includes sticky end sequences, reorder these
         to try to optimize error rates.
         """
@@ -826,7 +820,7 @@ class TileSet(CommentedMap):
             tset['info'] = {}
 
         reordersys = endreorder.EndSystemFseq(
-            tset, newends, energetics=energetics)
+            tset, newends, energetics=energetics, **fsopts)
 
         # FIXME: better parameter control here.
         annealer = anneal.Annealer(reordersys.score, reordersys.mutate)
@@ -843,7 +837,7 @@ class TileSet(CommentedMap):
 
         ri = {}
 
-        ri['score'] = reordersys.score(newstate[0])
+        ri['score'] = float(reordersys.score(newstate[0]))
 
         tset['info']['reorder'] = ri
 
@@ -857,6 +851,255 @@ class TileSet(CommentedMap):
         tset.check_consistent()
         return tset
 
+    def _create_end_sequences_sd2(tileset,
+                                  method='default',
+                                  energetics=None,
+                                  trials=100,
+                                  devmethod='dev',
+                                  sdopts={},
+                                  ecpars={},
+                                  listends=False):
+        """Create sticky end sequences for the TileSet, using stickydesign,
+        and returning a new TileSet including the ends. USES STICKYDESIGN2.
+
+
+        Parameters
+        ----------
+        method: {'default', 'multimodel'} 
+            if 'default', use the default, single-model sequence design.  
+            If 'multimodel', use multimodel end choice.
+
+        energetics : stickydesign.Energetics
+            the energetics instance to use for the design, or list
+            of energetics for method='multimodel', in which case the first
+            will be the primary.  If None (default), will use
+            alhambra.DEFAULT_ENERGETICS, or, if method='multimodel', will use
+            alhambra.DEFAULT_MM_ENERGETICS.
+
+        trials : int
+            the number of trials to attempt. FIXME
+
+        sdopts : dict
+            a dictionary of parameters to pass to stickydesign.easy_ends.
+
+        ecpars : dict
+            a dictionary of parameters to pass to the endchooser function
+            generator (useful only in limited circumstances).
+
+        listends : bool
+            if False, return just the TileSet.  If True, return both the
+            TileSet and a list of the names of the ends that were created.
+
+        Returns
+        -------
+        tileset : TileSet 
+            TileSet with designed end sequences included.
+        new_ends : list 
+            Names of the ends that were designed.
+
+        """
+        info = {}
+        info['method'] = method
+        info['time'] = datetime.now(tz=timezone.utc).isoformat()
+        info['sd_version'] = 'stickydesign2-predev'
+
+        if not energetics:
+            if method == 'multimodel':
+                energetics = DEFAULT_SD2_MULTIMODEL_ENERGETICS
+            else:
+                energetics = DEFAULT_SD2_MULTIMODEL_ENERGETICS[0]
+        if method == 'multimodel' and not isinstance(energetics,
+                                                     collections.Iterable):
+            raise ValueError("Energetics must be an iterable for multimodel.")
+        elif method == 'multimodel':
+            all_energetics = energetics
+            energetics = all_energetics[0]
+            info['energetics'] = [str(e) for e in all_energetics]
+            info['trails'] = trials
+        elif method == 'default':
+            all_energetics = [energetics]
+            info['energetics'] = str(energetics)
+
+        # Steps for doing this:
+        print(all_energetics)
+        # Create a copy of the tileset.
+        newtileset = tileset.copy()
+
+        # Build a list of ends from the endlist in the tileset.  Do this
+        # by creating a NamedList, then merging them into it.
+        ends = EndList()
+
+        if newtileset.ends:
+            ends.merge(newtileset.ends, fail_immediate=False, in_place=True)
+
+        # This is the endlist from the tiles themselves.
+        if newtileset.tiles:  # maybe you just want ends?
+            # this checks for end/complement usage, and whether any
+            # previously-describedends are unused
+            # FIXME: implement
+            # tilestructures.check_end_usage(newtileset.tiles, ends)
+
+            endlist_from_tiles = newtileset.tiles.endlist()
+
+        ends.merge(endlist_from_tiles, in_place=True)
+
+        # Ensure that if there are any resulting completely-undefined ends, they
+        # have their sequences removed.
+        #for end in ends:
+        #    if end.fseq and set(end.fseq) == {'n'}:
+        #        del(end.fseq)
+
+        # Build inputs suitable for stickydesign: lists of old sequences for TD/DT,
+        # and numbers of new sequences needed.
+        oldDTseqs = [
+            end.fseq for end in ends
+            if end.etype == 'DT' and seq.is_definite(end.fseq)
+        ]
+        if oldDTseqs:
+            oldDTarray = sd2.EndPairArrayDT(oldDTseqs, 'DT')
+        else:
+            oldDTarray = None
+        oldTDseqs = [
+            end.fseq for end in ends
+            if end.etype == 'TD' and seq.is_definite(end.fseq)
+        ]
+        if oldTDseqs:
+            oldTDarray = sd2.EndPairArrayTD(oldTDseqs, 'TD')
+        else:
+            oldTDarray = None
+
+        newTD = [
+            end for end in ends
+            if end.etype == 'TD' and not seq.is_definite(end.fseq)
+        ]
+        newDT = [
+            end for end in ends
+            if end.etype == 'DT' and not seq.is_definite(end.fseq)
+        ]
+
+        # If there are old sequences, use those to get an interaction
+        # target for the filter:
+        interactions = []
+        if len(oldDTseqs) > 0:
+            interaction.append(np.mean(energetics.gse(oldDTarray)))
+        if len(oldTDseqs) > 0:
+            interactions.append(np.mean(energetics.gse(oldTDarray)))
+        if len(oldDTseqs) == 0 and len(oldTDseqs) == 0:
+            interactions.append(sd2.genpre('DT',5,energetics)[1])
+            interactions.append(sd2.genpre('TD',5,energetics)[1])
+        interaction = np.average(interactions)
+        
+        availendsDT, _, sfDT = sd2.genpre('DT', 5, energetics,
+                                          interaction=interaction,
+                                          oldends=oldDTarray)
+        availendsTD, _, sfTD = sd2.genpre('TD', 5, energetics,
+                                          interaction=interaction,
+                                          oldends=oldTDarray)
+        
+        if any(not seq.is_null(end.fseq) for end in newTD):
+            raise NotImplementedError
+        if any(not seq.is_null(end.fseq) for end in newDT):
+            raise NotImplementedError
+
+        newTDseqs = []
+        newDTseqs = []
+        
+        rejects = 0
+        min_score=1000.0
+        SELOGGER.info("starting sticky end generation " +
+                      "of TD ends for {} DT and {} TD ends, {} trials.".
+                      format(len(newDT), len(newTD), trials))
+
+        
+        for i in range(0, trials):
+
+            if method == 'default':
+                chooser = sd2.BasicChooser(energetics, interaction)
+
+            elif method == 'multimodel':
+                chooser = sd2.MultiModelChooser(all_energetics, **ecpars)
+
+            eTD = sd2.easyends(
+                'TD',
+                5,
+                number=len(newTD),
+                #oldends=oldTDseqs,
+                energetics=energetics,
+                interaction=interaction,
+                chooser=chooser,
+                preavail=availendsTD,
+                seqfilter=sfTD,
+                **sdopts)
+            if len(eTD) < len(newTD):
+                rejects += 1
+                continue
+            
+            eDT = sd2.easyends(
+                'DT',
+                5,
+                number=len(newDT),
+                #oldends=oldDTseqs,
+                energetics=energetics,
+                interaction=interaction,
+                chooser=chooser,
+                preavail=availendsDT,
+                seqfilter=sfDT,
+                **sdopts)
+            if len(eDT) < len(newDT):
+                rejects += 1
+                continue
+
+            # FIXME: old ends
+            score = sd2.deviation_score([eTD, eDT], all_energetics, devmethod=devmethod)
+            if score < min_score:
+                min_score = score
+                minTD = eTD
+                minDT = eDT
+                SELOGGER.info("Found set: score {} trial {} rejects {}".format(
+                    score, i, rejects))
+
+        newTDseqs = minTD.strs
+        newDTseqs = minDT.strs
+        info['score'] = float(min_score)
+
+        # Shuffle the lists of end sequences, to ensure that they're
+        # random order, and that ends used earlier in the set are not
+        # always better than those used later. But only shuffle if
+        # there were no templates:
+        shuffle(newTDseqs)
+        shuffle(newDTseqs)
+
+        # Make sure things are consistent if there are templates:
+        for end, s in zip(newDT, newDTseqs):
+            ends[end.name].fseq = s
+        for end, s in zip(newTD, newTDseqs):
+            ends[end.name].fseq = s
+
+        ends.check_consistent()
+
+        # Ensure that the old and new sets have consistent end definitions,
+        # and that the tile definitions still fit.
+        tileset.ends.merge(ends)
+        newtileset.tiles.endlist().merge(ends)
+
+        newendnames = [e.name for e in newTD] + [e.name for e in newDT]
+        info['newends'] = newendnames
+        
+        # Apply new sequences to tile system.
+        newtileset.ends = ends
+        if 'info' not in newtileset.keys():
+            newtileset['info'] = {}
+        if 'end_design' not in newtileset['info'].keys():
+            newtileset['info']['end_design'] = []
+        if isinstance('end_design', dict):  # convert old
+            newtileset['info']['end_design'] = [
+                newtileset['info']['end_design']
+            ]
+        newtileset['info']['end_design'].append(info)
+
+        return newtileset, newendnames
+
+    
     def create_strand_sequences(tileset,
                                 basename='alhambratemp',
                                 includes=[
@@ -1515,7 +1758,7 @@ class TileSet(CommentedMap):
             pltcmd = sns.lvplot
             
         pltcmd(data=m, **kwargs)
-        pltcmd(data=s, **kwargs)
+        pltcmd(data=s, marker='x', **kwargs)
         if title:
             plt.title(title)
         plt.ylabel("Energy (kcal/mol)")

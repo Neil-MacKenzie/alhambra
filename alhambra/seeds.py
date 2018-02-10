@@ -83,6 +83,16 @@ class seed_tileadapts(seed_base):
             'ends': slice(2, 4),
             'structure': 'tile_adapter_5up_1h'
         },
+        'tile_daoe_doublehoriz_35up_1h2i': {
+            'strand': 5,
+            'ends': slice(2, 4),
+            'structure': 'tile_adapter_5up'
+        },
+        'tile_daoe_doublehoriz_35up': {
+            'strand': 5,
+            'ends': slice(2, 4),
+            'structure': 'tile_adapter_5up'
+        },
         'tile_daoe_doublevert_35up_4h5h': {
             'strand': 5,
             'ends': slice(2, 4),

@@ -52,15 +52,22 @@ class FastState:
 
 
 class EndSystemFseq:
-    def __init__(self, tilesys, newends=None, pairs=None, energetics=None):
+    def __init__(self, tilesys, newends=None, pairs=None, energetics=None, inputpairs=False, multiscore=False):
         tilesys = deepcopy(tilesys)
-        self.ends = tilesys['ends']
-        self.tiles = tilesys['tiles']
+        self.ends = tilesys.ends
+        self.tiles = tilesys.tiles
         self.tilesystem = tilesys
-        
+        self.ef = energetics
+        self.multiscore = multiscore
         if not pairs:
             pairs = sens.consolidate_pairs( sens.senspairs(tilesys), comcomp=1, onlytop=True )
 
+        if inputpairs:
+            inputpairs = [  tuple(z[:-1] for z,i in zip(x['ends'],x['input']) if i)
+                             for x in self.tiles ]
+            print(inputpairs)
+        self.inputpairs = inputpairs
+            
         self.names = {}
         fseqsTD, self.names['TD'] = (list(x) for x in zip(*[ [end['fseq'].lower(),end['name']] for end in self.ends if end['type'] == 'TD']))
         fseqsDT, self.names['DT'] = (list(x) for x in zip(*[ [end['fseq'].lower(),end['name']] for end in self.ends if end['type'] == 'DT']))
@@ -81,11 +88,8 @@ class EndSystemFseq:
         else:
             self.mutableTD = range(0,len(fseqsTD))
             self.mutableDT = range(0,len(fseqsDT))
-            
-        # Get the mean non-spurious interaction
-        self.meangse = 0.5*( np.mean(self.ef.matching_uniform( self.seqs['TD'] ))+np.mean(self.ef.matching_uniform( self.seqs['DT'] )) )
-        self.mult = {'1NGO': np.exp(-2.0*self.meangse), '2NGO': np.exp(-1.65*self.meangse), '1GO': np.exp(-1.5*self.meangse), '2GO': np.exp(-1.1*self.meangse)}
-        
+
+
         self.pairdict = {}
         for pairclass,memberset in pairs.items():
             for x,y in memberset:
@@ -93,14 +97,46 @@ class EndSystemFseq:
                 self.pairdict[(y,ecomp(x))] = pairclass
         tdsh = ( len(self.seqs['TD']), len(self.seqs['TD']) )
         dtsh = ( len(self.seqs['DT']), len(self.seqs['DT']) )
-        self.ecache_cc = {  'TD': cachedarray( lambda x,y: self.ef.uniform(self.seqs['TD'][x:x+1].comps,self.seqs['TD'][y:y+1].comps) , tdsh ),
-                            'DT': cachedarray( lambda x,y: self.ef.uniform(self.seqs['DT'][x:x+1].comps,self.seqs['DT'][y:y+1].comps) , dtsh ) }
-        self.ecache_ce = {  'TD': cachedarray( lambda x,y: self.ef.uniform(self.seqs['TD'][x:x+1].comps,self.seqs['TD'][y:y+1].ends) , tdsh ),
-                            'DT': cachedarray( lambda x,y: self.ef.uniform(self.seqs['DT'][x:x+1].comps,self.seqs['DT'][y:y+1].ends) , dtsh ) }
-        self.ecache_ec = {  'TD': cachedarray( lambda x,y: self.ef.uniform(self.seqs['TD'][x:x+1].ends,self.seqs['TD'][y:y+1].comps) , tdsh ),
-                            'DT': cachedarray( lambda x,y: self.ef.uniform(self.seqs['DT'][x:x+1].ends,self.seqs['DT'][y:y+1].comps) , dtsh ) }
-        self.ecache_ee = {  'TD': cachedarray( lambda x,y: self.ef.uniform(self.seqs['TD'][x:x+1].ends,self.seqs['TD'][y:y+1].ends) , tdsh ),
-                            'DT': cachedarray( lambda x,y: self.ef.uniform(self.seqs['DT'][x:x+1].ends,self.seqs['DT'][y:y+1].ends) , dtsh ) }
+            
+        if not multiscore:
+            # Get the mean non-spurious interaction
+            self.meangse = 0.5*( np.mean(self.ef.matching_uniform( self.seqs['TD'] ))+np.mean(self.ef.matching_uniform( self.seqs['DT'] )) )
+
+            self.mult = {'1NGO': np.exp(-2.0*self.meangse), '2NGO': np.exp(-1.65*self.meangse), '1GO': np.exp(-1.5*self.meangse),
+                         '2GO': np.exp(-1.1*self.meangse), 'I': np.exp(-1.0*self.meangse)}
+
+            self.ecache_cc = {  'TD': cachedarray( lambda x,y: self.ef.uniform(self.seqs['TD'][x:x+1].comps,self.seqs['TD'][y:y+1].comps) , tdsh ),
+                                'DT': cachedarray( lambda x,y: self.ef.uniform(self.seqs['DT'][x:x+1].comps,self.seqs['DT'][y:y+1].comps) , dtsh ) }
+            self.ecache_ce = {  'TD': cachedarray( lambda x,y: self.ef.uniform(self.seqs['TD'][x:x+1].comps,self.seqs['TD'][y:y+1].ends) , tdsh ),
+                                'DT': cachedarray( lambda x,y: self.ef.uniform(self.seqs['DT'][x:x+1].comps,self.seqs['DT'][y:y+1].ends) , dtsh ) }
+            self.ecache_ec = {  'TD': cachedarray( lambda x,y: self.ef.uniform(self.seqs['TD'][x:x+1].ends,self.seqs['TD'][y:y+1].comps) , tdsh ),
+                                'DT': cachedarray( lambda x,y: self.ef.uniform(self.seqs['DT'][x:x+1].ends,self.seqs['DT'][y:y+1].comps) , dtsh ) }
+            self.ecache_ee = {  'TD': cachedarray( lambda x,y: self.ef.uniform(self.seqs['TD'][x:x+1].ends,self.seqs['TD'][y:y+1].ends) , tdsh ),
+                                'DT': cachedarray( lambda x,y: self.ef.uniform(self.seqs['DT'][x:x+1].ends,self.seqs['DT'][y:y+1].ends) , dtsh ) }
+        else:
+            self.ecache_cc = []
+            self.ecache_ee = []
+            self.ecache_ce = []
+            self.ecache_ec = []
+            self.mult = []
+            self.meangse = []
+            for ef in self.ef:
+                self.meangse.append(0.5*( np.mean(ef.matching_uniform( self.seqs['TD'] ))+np.mean(ef.matching_uniform( self.seqs['DT'] )) ))
+
+                self.mult.append({'1NGO': np.exp(-2.0*self.meangse[-1]), '2NGO': np.exp(-1.65*self.meangse[-1]), '1GO': np.exp(-1.5*self.meangse[-1]),
+                             '2GO': np.exp(-1.1*self.meangse[-1]), 'I': np.exp(-1.0*self.meangse[-1])})
+
+                self.ecache_cc.append({  'TD': cachedarray( lambda x,y: ef.uniform(self.seqs['TD'][x:x+1].comps,self.seqs['TD'][y:y+1].comps) , tdsh ),
+                                    'DT': cachedarray( lambda x,y: ef.uniform(self.seqs['DT'][x:x+1].comps,self.seqs['DT'][y:y+1].comps) , dtsh ) })
+                self.ecache_ce.append({  'TD': cachedarray( lambda x,y: ef.uniform(self.seqs['TD'][x:x+1].comps,self.seqs['TD'][y:y+1].ends) , tdsh ),
+                                    'DT': cachedarray( lambda x,y: ef.uniform(self.seqs['DT'][x:x+1].comps,self.seqs['DT'][y:y+1].ends) , dtsh ) })
+                self.ecache_ec.append({  'TD': cachedarray( lambda x,y: ef.uniform(self.seqs['TD'][x:x+1].ends,self.seqs['TD'][y:y+1].comps) , tdsh ),
+                                    'DT': cachedarray( lambda x,y: ef.uniform(self.seqs['DT'][x:x+1].ends,self.seqs['DT'][y:y+1].comps) , dtsh ) })
+                self.ecache_ee.append({  'TD': cachedarray( lambda x,y: ef.uniform(self.seqs['TD'][x:x+1].ends,self.seqs['TD'][y:y+1].ends) , tdsh ),
+                                    'DT': cachedarray( lambda x,y: ef.uniform(self.seqs['DT'][x:x+1].ends,self.seqs['DT'][y:y+1].ends) , dtsh ) })
+                
+            
+                    
     def slowseqs(self, state):
         "Give the state as the slow version would have"
         return {'DT': self.seqs['DT'][state['DT']], 'TD': self.seqs['TD'][state['TD']] }
@@ -120,9 +156,32 @@ class EndSystemFseq:
     def score(self, state):
         
         sc = 0.0
+        if self.inputpairs:
+            if self.multiscore:
+                ip = np.zeros((len(self.ef),len(self.inputpairs)))
+            else:
+                ip = np.zeros(len(self.inputpairs))
+            for i, (xn, yn) in enumerate(self.inputpairs):
+                if xn[-1] == '/':
+                    xn = xn[:-1]
+                if yn[-1] == '/':
+                    yn = yn[:-1]
+                xi,xt = self.enlocs[xn]
+                yi,yt = self.enlocs[yn]
+                if self.multiscore:
+                    scc = 0
+                    for j in range(len(self.ef)):
+                        ip[j][i] = np.abs((self.ecache_ec[j][xt][state[xt][xi], state[xt][xi]] +
+                                           self.ecache_ec[j][yt][state[yt][yi], state[yt][yi]]))
+                else:
+                    ip[i] = np.abs((self.ecache_ec[xt][state[xt][xi], state[xt][xi]] +
+                                self.ecache_ec[yt][state[yt][yi], state[yt][yi]]))
+            if self.multiscore:
+                sc += np.mean(np.array([z['I'] for z in self.mult]) * np.exp(np.ptp(ip, axis=1)))
+            else:
+                sc += self.mult['I'] * np.exp(np.ptp(ip))
         
         for (xn,yn),pairclass in self.pairdict.items():
-            
             # set comp flags
             xc = False
             yc = False
@@ -139,18 +198,32 @@ class EndSystemFseq:
             #print "%s, %s: (%s %s)" % (xn,yn,xt,yt)
             # skip if not same type
             if xt != yt: continue
-            
-            if yc and xc:
-                val = self.ecache_cc[xt][state[xt][xi],state[yt][yi]] # self.ef.uniform(state.seqs[xt][xi:xi+1].comps,state.seqs[yt][yi:yi+1].comps)[0]
-            elif xc:
-                val = self.ecache_ce[xt][state[xt][xi],state[yt][yi]] # self.ef.uniform(state.seqs[xt][xi:xi+1].comps,state.seqs[yt][yi:yi+1].ends)[0]
-            elif yc:
-                val = self.ecache_ec[xt][state[xt][xi],state[yt][yi]] # state[f.uniform(state.seqs[xt][xi:xi+1].ends,state.seqs[yt][yi:yi+1].comps)[0]
+            if not self.multiscore:
+                if yc and xc:
+                    val = self.ecache_cc[xt][state[xt][xi],state[yt][yi]] # self.ef.uniform(state.seqs[xt][xi:xi+1].comps,state.seqs[yt][yi:yi+1].comps)[0]
+                elif xc:
+                    val = self.ecache_ce[xt][state[xt][xi],state[yt][yi]] # self.ef.uniform(state.seqs[xt][xi:xi+1].comps,state.seqs[yt][yi:yi+1].ends)[0]
+                elif yc:
+                    val = self.ecache_ec[xt][state[xt][xi],state[yt][yi]] # state[f.uniform(state.seqs[xt][xi:xi+1].ends,state.seqs[yt][yi:yi+1].comps)[0]
+                else:
+                    val = self.ecache_ee[xt][state[xt][xi],state[yt][yi]] # self.ef.uniform(state.seqs[xt][xi:xi+1].ends,state.seqs[yt][yi:yi+1].ends)[0]
+
+                sc += self.mult[pairclass]*np.exp( val )
             else:
-                val = self.ecache_ee[xt][state[xt][xi],state[yt][yi]] # self.ef.uniform(state.seqs[xt][xi:xi+1].ends,state.seqs[yt][yi:yi+1].ends)[0]
-            
-            sc += self.mult[pairclass]*np.exp( val )
-    
+                scc = 0
+                for i in range(len(self.ef)):
+                    if yc and xc:
+                        val = self.ecache_cc[i][xt][state[xt][xi],state[yt][yi]] # self.ef.uniform(state.seqs[xt][xi:xi+1].comps,state.seqs[yt][yi:yi+1].comps)[0]
+                    elif xc:
+                        val = self.ecache_ce[i][xt][state[xt][xi],state[yt][yi]] # self.ef.uniform(state.seqs[xt][xi:xi+1].comps,state.seqs[yt][yi:yi+1].ends)[0]
+                    elif yc:
+                        val = self.ecache_ec[i][xt][state[xt][xi],state[yt][yi]] # state[f.uniform(state.seqs[xt][xi:xi+1].ends,state.seqs[yt][yi:yi+1].comps)[0]
+                    else:
+                        val = self.ecache_ee[i][xt][state[xt][xi],state[yt][yi]] # self.ef.uniform(state.seqs[xt][xi:xi+1].ends,state.seqs[yt][yi:yi+1].ends)[0]
+
+                    scc += self.mult[i][pairclass]*np.exp( val )
+                sc += scc/len(self.ef)
+                
         return sc   
 
             

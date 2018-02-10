@@ -6,6 +6,41 @@ from ruamel.yaml.representer import RoundTripRepresenter
 
 from . import seq
 
+import stickydesign as sd
+import stickydesign2 as sd2
+
+DEFAULT_ENERGETICS = sd.EnergeticsDAOE(
+    temperature=33, coaxparams=True)
+
+DEFAULT_MULTIMODEL_ENERGETICS = [
+    sd.EnergeticsDAOE(
+        temperature=33, coaxparams='protozanova'),
+    sd.EnergeticsDAOE(
+        temperature=33, coaxparams='pyshni'),
+    sd.EnergeticsDAOE(
+        temperature=33, coaxparams='peyret'),
+    sd.EnergeticsDAOE(
+        temperature=33, coaxparams=False)
+]
+
+DEFAULT_SD2_MULTIMODEL_ENERGETICS = [
+    sd2.EnergeticsDAOEC(5,
+        temperature=36, coaxparams='protozanova'),
+    sd2.EnergeticsDAOEC(5,
+        temperature=36, coaxparams='pyshni'),
+    sd2.EnergeticsDAOEC(5,
+        temperature=36, coaxparams='peyret'),
+    sd2.EnergeticsDAOEC(5,
+        temperature=36, coaxparams=False)
+]
+
+
+DEFAULT_MM_ENERGETICS_NAMES = ['Prot', 'Pysh', 'Peyr', 'None']
+
+
+
+DEFAULT_REGION_ENERGETICS = sd.EnergeticsBasic(
+    temperature=33, coaxparams=False, danglecorr=False)
 
 class NamedList(CommentedSeq):
     """A class for a list of dicts, where some dicts have a 'name' item

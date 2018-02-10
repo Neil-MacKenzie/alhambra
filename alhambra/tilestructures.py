@@ -322,7 +322,7 @@ class tile_daoe_3up(tile_daoe_single):
 class tile_daoe_5up_2h(tile_daoe_single):
     _orient = ('5', '3')
     _endtypes = ['TD', 'hairpin', 'DT', 'DT']
-    _endlocs = [(0, 0, 5), (3, 0, 18), (3, 21, None), (0, 21, None)]
+    _endlocs = [(0, 0, 5), (3, 0, 18), (3, -5, None), (0, -5, None)]
 
     edotparen = "5.16(5.+8)16[16{8)+8(16]16}8(+5.16)7(4.7)"
 
@@ -441,7 +441,7 @@ class tile_daoe_doublehoriz_35up(tile_daoe_doublehoriz):
                 s[4][24:32], s[4][32:40] + "--" + s[4][40:48],
                 (s[5][0:5] + "--" + s[5][5:13])[::-1],
                 s[5][13:21] + "--" + s[5][21:26]]
-
+    edotparen = '5.16(5.+8)16[16{8)+5.29(16]16}8(+5.29)16[16{8)+8(16]16}8(+5.16)5.'
 
 class tile_daoe_doublehoriz_53up(tile_daoe_doublehoriz):
 
@@ -697,6 +697,7 @@ tilestructures = {
     'tile_daoe_3up_2h': tile_daoe_3up_2h,
     'tile_daoe_doublehoriz_53up': tile_daoe_doublehoriz_53up,
     'tile_daoe_doublehoriz_53up_2h3h': tile_daoe_doublehoriz_53up_2h3h,
+    'tile_daoe_doublehoriz_35up': tile_daoe_doublehoriz_35up,    
     'tile_daoe_doublehoriz_35up_2h3h': tile_daoe_doublehoriz_35up_2h3h,
     'tile_daoe_doublehoriz_35up_1h2i': tile_daoe_doublehoriz_35up_1h2i,
     'tile_daoe_doublehoriz_35up_4h5i': tile_daoe_doublehoriz_35up_4h5i,

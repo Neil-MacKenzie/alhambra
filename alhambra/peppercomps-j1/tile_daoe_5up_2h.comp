@@ -14,7 +14,7 @@ sequence aBL = "N" : 1
 # core 
 sequence sTLarm = "5N CA" : 7
 sequence sTcore = "GG 12N GG" : 16
-sequence sTRarm = "AC 5N" : 8 
+sequence sTRarm = "AC 6N" : 8 
 sequence sBLarm = "5N GG" : 7 
 sequence sBcore = "AC 5N AT 5N CA" : 16
 sequence sBRarm = "GG 5N" : 7
