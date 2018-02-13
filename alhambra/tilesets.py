@@ -123,6 +123,13 @@ class TileSet(CommentedMap):
         TileList"""
         return self['tiles']
 
+    @tiles.setter
+    def tiles(self, val):
+        if isinstance(val, TileList):
+            self['tiles'] = val
+        else:
+            self['tiles'] = TileList(val)
+    
     @property
     def allends(self):
         """All ends in the system, both from ends and tiles.
@@ -1488,8 +1495,8 @@ class TileSet(CommentedMap):
         if rotate:
             rotatedtiles = []
             for tile in ts.tiles:
-                if (tile['structure'] == 'tile_daoe_3up'
-                        or tile['structure'] == 'tile_daoe_5up'):
+                if (re.match('tile_daoe_3up', tile.structure.name)
+                        or re.match('tile_daoe_5up', tile.structure.name)):
                     newtile = copy.deepcopy(tile)
                     newtile['name'] += '_lrf'
                     newtile['ends'] = [tile['ends'][x] for x in (1, 0, 3, 2)]
@@ -1510,7 +1517,7 @@ class TileSet(CommentedMap):
                     }[tile['structure'][-3:]]
                     newtile['ends'] = [tile['ends'][x] for x in (2, 3, 0, 1)]
                     rotatedtiles.append(newtile)
-                elif tile['structure'] == 'tile_daoe_doublehoriz_35up':
+                elif re.match('tile_daoe_doublehoriz_35up', tile.structure.name):
                     newtile = copy.deepcopy(tile)
                     newtile['name'] += '_lrf'
                     newtile['structure'] = 'tile_daoe_doublevert_53up'
@@ -1531,7 +1538,7 @@ class TileSet(CommentedMap):
                         tile['ends'][x] for x in (3, 4, 5, 0, 1, 2)
                     ]
                     rotatedtiles.append(newtile)
-                elif tile['structure'] == 'tile_daoe_doublevert_35up':
+                elif re.match('tile_daoe_doublevert_35up', tile.structure.name):
                     newtile = copy.deepcopy(tile)
                     newtile['name'] += '_lrf'
                     newtile['structure'] = 'tile_daoe_doublehoriz_53up'
