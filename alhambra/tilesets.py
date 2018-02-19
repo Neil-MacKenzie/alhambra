@@ -16,6 +16,7 @@ from . import tilestructures
 from . import seeds
 from . import util
 from . import seq
+from . import sensitivitynew as sensitivity
 
 from peppercompiler import compiler as compiler
 from peppercompiler.design import spurious_design as spurious_design
@@ -1411,7 +1412,10 @@ class TileSet(CommentedMap):
                          extraparams=xgrowparams,
                          outputopts=output,
                          ui=ui)
-        
+
+    def sensitivity_classes(ts, count=False):
+        return sensitivity.sensitivity_classes(ts, count=False)
+    
     def generate_xgrow_dict(ts, perfect=False, rotate=False, energetics=None):
         """Generate a Xgrow tileset dict.
 

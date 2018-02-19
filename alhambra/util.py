@@ -9,38 +9,27 @@ from . import seq
 import stickydesign as sd
 import stickydesign2 as sd2
 
-DEFAULT_ENERGETICS = sd.EnergeticsDAOE(
-    temperature=33, coaxparams=True)
+DEFAULT_ENERGETICS = sd.EnergeticsDAOE(temperature=33, coaxparams=True)
 
 DEFAULT_MULTIMODEL_ENERGETICS = [
-    sd.EnergeticsDAOE(
-        temperature=33, coaxparams='protozanova'),
-    sd.EnergeticsDAOE(
-        temperature=33, coaxparams='pyshni'),
-    sd.EnergeticsDAOE(
-        temperature=33, coaxparams='peyret'),
-    sd.EnergeticsDAOE(
-        temperature=33, coaxparams=False)
+    sd.EnergeticsDAOE(temperature=33, coaxparams='protozanova'),
+    sd.EnergeticsDAOE(temperature=33, coaxparams='pyshni'),
+    sd.EnergeticsDAOE(temperature=33, coaxparams='peyret'),
+    sd.EnergeticsDAOE(temperature=33, coaxparams=False)
 ]
 
 DEFAULT_SD2_MULTIMODEL_ENERGETICS = [
-    sd2.EnergeticsDAOEC(5,
-        temperature=36, coaxparams='protozanova'),
-    sd2.EnergeticsDAOEC(5,
-        temperature=36, coaxparams='pyshni'),
-    sd2.EnergeticsDAOEC(5,
-        temperature=36, coaxparams='peyret'),
-    sd2.EnergeticsDAOEC(5,
-        temperature=36, coaxparams=False)
+    sd2.EnergeticsDAOEC(5, temperature=36, coaxparams='protozanova'),
+    sd2.EnergeticsDAOEC(5, temperature=36, coaxparams='pyshni'),
+    sd2.EnergeticsDAOEC(5, temperature=36, coaxparams='peyret'),
+    sd2.EnergeticsDAOEC(5, temperature=36, coaxparams=False)
 ]
-
 
 DEFAULT_MM_ENERGETICS_NAMES = ['Prot', 'Pysh', 'Peyr', 'None']
 
-
-
 DEFAULT_REGION_ENERGETICS = sd.EnergeticsBasic(
     temperature=33, coaxparams=False, danglecorr=False)
+
 
 class NamedList(CommentedSeq):
     """A class for a list of dicts, where some dicts have a 'name' item
@@ -139,3 +128,19 @@ class ProgressLogger(object):
                     int((self.N - i) * (ctime - self.stime) / i)))
             self.ltime = ctime
             self.li = i
+
+
+def comp(endname):
+    "Return the complementary name of a given end (eg, for 'a', return 'a/')"
+    if endname[-1] == '/':
+        return endname[:-1]
+    else:
+        return endname + '/'
+
+
+def base(endname):
+    "Return the base name of a given end name (eg, for either 'a' or 'a/', return 'a')"
+    if endname[-1] == '/':
+        return endname[:-1]
+    else:
+        return endname
