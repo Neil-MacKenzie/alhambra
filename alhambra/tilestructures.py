@@ -251,6 +251,8 @@ class tile_daoe_single(tile_daoe):
 
     _abase = 'tile_daoe_single'
     _a_endlocs = ['north', 'east', 'south', 'west']
+    double = False
+    singleends = ((0, 1, 2, 3),)
         
     def _seqdiagseqstrings(self, tile):
         s = tile.strands
@@ -281,6 +283,12 @@ class tile_daoe_5up(tile_daoe_single):
     _endlocs = [(0, 0, 5), (3, 0, 5), (3, 21, None), (0, 21, None)]
     # valid edotparen for both 3up and 5up
     edotparen = "5.16(5.+8)16[16{8)+8(16]16}8(+5.16)5."
+
+    @property
+    def rotations(self):
+        return [(tile_daoe_3up, (3, 2, 1, 0)),
+                (tile_daoe_5up, (1, 0, 3, 2)),
+                (tile_daoe_3up, (2, 3, 0, 1))]
     
     def orderableseqs(self, tile):
         seqs = copy.deepcopy(tile.strands)
@@ -296,7 +304,6 @@ class tile_daoe_5up(tile_daoe_single):
         return [("{}-{}".format(tile.name, i+1), seq)
                 for i, seq in enumerate(seqs)]
 
-
 class tile_daoe_3up(tile_daoe_single):
     _orient = ('3', '5')
     _endtypes = ['DT', 'DT', 'TD', 'TD']
@@ -304,6 +311,12 @@ class tile_daoe_3up(tile_daoe_single):
     # valid edotparen for both 3up and 5up
     edotparen = "5.16(5.+8)16[16{8)+8(16]16}8(+5.16)5."
 
+    @property
+    def rotations(self):
+        return [(tile_daoe_5up, (3, 2, 1, 0)),
+                (tile_daoe_3up, (1, 0, 3, 2)),
+                (tile_daoe_5up, (2, 3, 0, 1))]
+    
     def orderableseqs(self, tile):
         seqs = copy.deepcopy(tile.strands)
         if tile.get('label', None) == 'both':
@@ -389,6 +402,8 @@ class tile_daoe_doublehoriz(tile_daoe):
     _abase = 'tile_daoe_doublehoriz'
     _a_endlocs = ['northwest', 'northeast', 'east', 'southeast',
                   'southwest', 'west']
+    singleends = ((0, None, 4, 5), (1, 2, 3, None))
+    double = 'h'
         
 
 class tile_daoe_doublevert(tile_daoe):
@@ -396,7 +411,8 @@ class tile_daoe_doublevert(tile_daoe):
     _abase = 'tile_daoe_doublevert'
     _a_endlocs = ['north', 'northeast', 'southeast',
                   'south', 'southwest', 'northwest']
-
+    singleends = ((0, 1, None, 5), (None, 2, 3, 4))
+    double = 'v'
 
 class tile_daoe_doublehoriz_35up(tile_daoe_doublehoriz):
     _endtypes = ['DT', 'TD', 'TD', 'DT', 'TD', 'TD']
@@ -404,6 +420,13 @@ class tile_daoe_doublehoriz_35up(tile_daoe_doublehoriz):
     _endlocs = [(0, -5, None), (2, 0, 5), (5, 0, 5), (5, -5, None),
                 (3, 0, 5), (0, 0, 5)]
 
+    @property
+    def rotations(self):
+        return [(tile_daoe_doublehoriz_35up, (3, 4, 5, 0, 1, 2)),
+                (tile_daoe_doublevert_53up, (5, 4, 3, 2, 1, 0)),
+                (tile_daoe_doublevert_53up, (2, 1, 0, 5, 4, 3))]
+
+    
     def _short_bound_full(self, tile):
         s = tile.strands
         el = self._endlocs
@@ -447,8 +470,8 @@ class tile_daoe_doublehoriz_53up(tile_daoe_doublehoriz):
 
     _endtypes = ['TD', 'DT', 'DT', 'TD', 'DT', 'DT']
     _orient = ('5', '3')
-    _endlocs = [(0, -5, None), (2, 0, 5), (5, 0, 5), (5, -5, None),
-                (3, 0, 5), (0, 0, 5)]
+    _endlocs = [(0, 0, 5), (2, -5, None), (5, -5, None), (5, 0, 5),
+                (3, -5, None), (0, -5, None)]
 
     def _short_bound_full(self, tile):
         s = tile.strands
@@ -490,6 +513,12 @@ class tile_daoe_doublehoriz_53up(tile_daoe_doublehoriz):
 
 
 class tile_daoe_doublevert_35up(tile_daoe_doublevert):
+    @property
+    def rotations(self):
+        return [(tile_daoe_doublevert_35up, (3, 4, 5, 0, 1, 2)),
+                (tile_daoe_doublehoriz_53up, (5, 4, 3, 2, 1, 0)),
+                (tile_daoe_doublehoriz_53up, (2, 1, 0, 5, 4, 3))]
+
     def _short_bound_full(self, tile):
         s = tile.strands
         el = self._endlocs
@@ -514,6 +543,39 @@ class tile_daoe_doublevert_35up(tile_daoe_doublevert):
     _endlocs = [(0, -5, None), (3, -5, None), (5, 0, 5),
                 (5, -5, None), (2, -5, None), (0, 0, 5)]
 
+class tile_daoe_doublevert_53up(tile_daoe_doublevert):
+#    @property
+#    def rotations(self):
+#        return [(tile_daoe_doublevert_35up, (3, 4, 5, 0, 1, 2)),
+#                (tile_daoe_doublehoriz_35up, (5, 4, 3, 2, 1, 0)),
+#                (tile_daoe_doublehoriz_35up, (2, 1, 0, 5, 4, 3))]
+
+    def _short_bound_full(self, tile):
+        raise NotImplementedError
+        s = tile.strands
+        el = self._endlocs
+        return [s[0][el[5][2]:el[0][1]], s[5][el[2][2]:el[3][1]]]
+
+    def _side_bound_regions(self, tile):
+        raise NotImplementedError
+        s = tile.strands
+        el = self._endlocs
+
+        def g(e):
+            if e[2] is None or e[2] == len(s[e[0]]):
+                return s[e[0]][-8 + e[1]:e[1]]
+            elif e[1] == 0:
+                return s[e[0]][e[2]:e[2] + 8]
+            else:
+                raise ValueError()
+
+        return [g(e) for e in el]
+
+    _endtypes = ['TD', 'TD', 'DT', 'TD', 'TD', 'DT']
+    _orient = ('5', '3')
+    _endlocs = [(0, 0, 5), (3, 0, 5), (5, -5, None),
+                (5, 0, 5), (2, 0, 5), (0, -5, None)]
+    
 
 class tile_daoe_doublehoriz_35up_1h2i(tile_daoe_doublehoriz_35up):
     edotparen = '5.16(7(4.7)+8)16[16{8)+5(29(16]16}8(+5.29)16[16{8)5)+8(16]16}8(+5.16)5.'

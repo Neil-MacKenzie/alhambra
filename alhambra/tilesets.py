@@ -29,7 +29,7 @@ import stickydesign.plots as sdplots
 import stickydesign.multimodel as multimodel
 from collections import Counter
 
-from matplotlib import pylab
+
 
 import collections
 from random import shuffle
@@ -1794,7 +1794,7 @@ class TileSet(CommentedMap):
         gc_counts = sum(gc_count, [])
 
         ens = energetics.matching_uniform(sd.endarray(allregions, 'DT'))
-
+        from matplotlib import pylab
         pylab.figure(figsize=(10, 4))
         pylab.subplot(121)
         pylab.hist(
@@ -1832,7 +1832,7 @@ class TileSet(CommentedMap):
         gc_counts = sum(gc_count, [])
 
         ens = energetics.matching_uniform(sd.endarray(allregions, 'DT'))
-
+        from matplotlib import pylab
         pylab.figure(figsize=(10, 4))
         pylab.subplot(121)
         pylab.hist(

@@ -42,6 +42,25 @@ with getstructure) or a TileStructure.  Get always returns the TileStructure."""
         return locals()
     structure = property(**structure())
 
+    def copy(self):
+        return copy.deepcopy(self)
+    
+    @property
+    def rotations(self):
+        rl = self.structure.rotations
+        tl = TileList()
+        for ri, (structure, endorder) in enumerate(rl):
+            t = self.copy()
+            if 'input' in t.keys():
+                del(t['input'])
+            t.ends = [t.ends[i] for i in endorder]
+            t.name = t.name + '_r{}'.format(ri)
+            t.structure = structure()
+            t.structure._endtypes = [self.structure._endtypes[i]
+                                     for i in endorder]
+            tl.append(t)
+        return tl
+    
     def strands():
         doc = """Doc string"""
         
