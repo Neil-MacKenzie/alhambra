@@ -3,6 +3,7 @@ from .util import comp, base
 from random import shuffle
 import logging
 from .seq import _WC
+from .latticedefect import latticedefects
 import re
 
 log = logging.getLogger()
@@ -12,7 +13,6 @@ def getsimadjs(ts, adjlike):
     endtomimic = ts.allends[adjlike]
     assert endtomimic.fseq
     adjs = (endtomimic.fseq[0], endtomimic.fseq[-1])
-    logging.debug(adjs)
     allowed = []
     for end in ts.allends:
         if not end.fseq:
@@ -22,9 +22,9 @@ def getsimadjs(ts, adjlike):
         if (end.fseq[0], end.fseq[-1]) == adjs:
             allowed.append(end.name)
         if (_WC[end.fseq[-1]], _WC[end.fseq[0]]) == adjs:
-            allowed.append(end.name+'/')
-    logging.debug(allowed)
+            allowed.append(end.name + '/')
     return allowed
+
 
 def find_potential_end_removal(ts, end, sc=None, adjlike=None):
     allpotential = find_nonsens_pairs(ts, sc)
@@ -39,7 +39,7 @@ def find_potential_end_removal(ts, end, sc=None, adjlike=None):
     if adjlike is not None:
         allowed = getsimadjs(ts, adjlike)
         partners = {partner for partner in partners if partner in allowed}
-    
+
     pairlist = [(partner, end) for partner in partners]
     shuffle(pairlist)
     return pairlist
@@ -70,7 +70,12 @@ def find_nonsens_pairs(ts, sc=None):
     return potentialpairs
 
 
-def check_changes(oldts, newts, equatedpair, oldsc=None, newsc=None):
+def check_changes(oldts,
+                  newts,
+                  equatedpair,
+                  oldsc=None,
+                  newsc=None,
+                  checkld=False):
     if oldsc is None:
         oldsc = oldts.sensitivity_classes()
     if newsc is None:
@@ -81,26 +86,25 @@ def check_changes(oldts, newts, equatedpair, oldsc=None, newsc=None):
     for pair in newsc['2GO']:
         if pair not in oldsc['2GO']:
             if eremain in pair:
-                log.debug("in replace: {}".format(pair))
-                pair = frozenset.union(pair-{eremain},{ereplace})
-                log.debug("now: {}".format(pair))
+                pair = frozenset.union(pair - {eremain}, {ereplace})
                 if pair not in oldsc['2GO']:
                     return False
-                else:
-                    log.debug("caught by replace")
             elif comp(eremain) in pair:
-                log.debug("in creplace: {}".format(pair))
-                pair = frozenset.union(pair-{comp(eremain)},{comp(ereplace)})
-                log.debug("now: {}".format(pair))
+                pair = frozenset.union(pair - {comp(eremain)},
+                                       {comp(ereplace)})
                 if pair not in oldsc['2GO']:
                     return False
-                else:
-                    log.debug("caught by compreplace")
             else:
-                log.debug((pair,ereplace,eremain))
                 return False
 
     # FIXME: add lattice defect check
+    if checkld:
+        oldld = latticedefects(oldts, depth=checkld)
+        newld = latticedefects(newts, depth=checkld)
+        if (len(newld) > len(oldld)) or (len(
+                [x for x in newld if x not in oldld]) > 0):
+            log.debug("lattice defect: {}".format(equatedpair))
+            return False
     return True
 
 
@@ -125,17 +129,23 @@ def equate_pair(ts, pair):
         t['ends'] = [r.sub(rfunc, x) for x in t['ends']]
     return newts
 
+
 def _update_nonsens_pairs(potentials, pair, trialsc):
     def rename(x):
         if pair[1] in x:
-            return frozenset.union(x-{pair[1]},{pair[0]})
+            return frozenset.union(x - {pair[1]}, {pair[0]})
         elif comp(pair[1]) in x:
-            return frozenset.union(x-{comp(pair[1])},{comp(pair[0])})
+            return frozenset.union(x - {comp(pair[1])}, {comp(pair[0])})
         else:
             return x
+
     p1 = [rename(x) for x in potentials]
-    return [x for x in p1 if x not in set.union(*trialsc.values()) and
-            len({base(y) for y in x}) == 2]
+    return [
+        x for x in p1
+        if x not in set.union(*trialsc.values()) and len({base(y)
+                                                          for y in x}) == 2
+    ]
+
 
 def fast_reduce_ends(ts):
     oldts = ts
@@ -156,13 +166,13 @@ def fast_reduce_ends(ts):
             potentials = _update_nonsens_pairs(potentials, pair, trialsc)
             removedpairs.append(pair)
             if log.isEnabledFor(logging.INFO):
-                log.info("removed {}. {} ends remain, {} potential pairs".format(
-                    pair, len(oldts.allends), len(potentials)))
+                log.info("removed {}. {} ends remain, {} potential pairs".
+                         format(pair, len(oldts.allends), len(potentials)))
 
     return oldts, removedpairs
 
 
-def reduce_ends(ts):
+def reduce_ends(ts, checkld=False):
     oldts = ts
     sc = ts.sensitivity_classes()
     potentials = find_nonsens_pairs(oldts, sc)
@@ -175,28 +185,27 @@ def reduce_ends(ts):
         pair = potentials.pop()
         trialts = equate_pair(oldts, pair)
         trialsc = trialts.sensitivity_classes()
-        if check_changes(oldts, trialts, pair, sc, trialsc):
+        if check_changes(oldts, trialts, pair, sc, trialsc, checkld=checkld):
             oldts = trialts
             sc = trialsc
             potentials = find_nonsens_pairs(oldts, sc)
             removedpairs.append(pair)
             if log.isEnabledFor(logging.INFO):
-                log.info("removed {}. {} ends remain, {} potential pairs".format(
-                    pair, len(oldts.allends), len(potentials)))
+                log.info("removed {}. {} ends remain, {} potential pairs".
+                         format(pair, len(oldts.allends), len(potentials)))
 
     return oldts, removedpairs
 
-def attempt_end_removal(ts, end, adjlike=None):
+
+def attempt_end_removal(ts, end, adjlike=None, checkld=False):
     oldts = ts
     sc = ts.sensitivity_classes()
     potentials = find_potential_end_removal(ts, end, sc, adjlike)
     newts = None
-    log.debug(potentials)
     while len(potentials) > 0:
         pair = potentials.pop()
-        logging.debug(pair)
         trialts = equate_pair(ts, pair)
-        if check_changes(oldts, trialts, pair, sc):
+        if check_changes(oldts, trialts, pair, sc, checkld=checkld):
             newts = trialts
             break
 
