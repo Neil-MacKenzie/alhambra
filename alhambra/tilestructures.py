@@ -332,7 +332,7 @@ class tile_daoe_3up(tile_daoe_single):
                 for i, seq in enumerate(seqs)]
 
 
-class tile_daoe_5up_2h(tile_daoe_single):
+class tile_daoe_5up_2h(tile_daoe_5up):
     _orient = ('5', '3')
     _endtypes = ['TD', 'hairpin', 'DT', 'DT']
     _endlocs = [(0, 0, 5), (3, 0, 18), (3, -5, None), (0, -5, None)]
