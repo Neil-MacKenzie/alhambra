@@ -6,7 +6,7 @@ from .seq import _WC
 from .latticedefect import latticedefects
 import re
 
-log = logging.getLogger()
+log = logging.getLogger(__name__)
 
 
 def getsimadjs(ts, adjlike):
@@ -44,9 +44,6 @@ def find_potential_end_removal(ts, end, sc=None, adjlike=None):
     shuffle(pairlist)
     return pairlist
 
-
-#def check_pair_sensitivity(ts, sc=None):
-#    pass
 
 
 def find_nonsens_pairs(ts, sc=None):
@@ -102,7 +99,7 @@ def check_changes(oldts,
         oldld = latticedefects(oldts, depth=checkld)
         newld = latticedefects(newts, depth=checkld)
         if (len(newld) > len(oldld)) or (len(
-                [x for x in newld if x not in oldld]) > 0):
+            [x for x in newld if x not in oldld]) > 0):
             log.debug("lattice defect: {}".format(equatedpair))
             return False
     return True
@@ -115,7 +112,7 @@ def equate_pair(ts, pair):
     swap = not ((e1[-1] == '/' and e2[-1] == '/') or
                 (e1[-1] != '/' and e2[-1] != '/'))
     newts = ts.copy()
-    r = re.compile(base(e2) + r'(/?)$')
+    r = re.compile(r'^' + base(e2) + r'(/?)$')
 
     def rfunc(match):
         if swap:
@@ -125,62 +122,29 @@ def equate_pair(ts, pair):
 
     for t in newts.tiles:
         t.ends = [r.sub(rfunc, x) for x in t.ends]
-    for t in newts.seed['adapters']:
-        t['ends'] = [r.sub(rfunc, x) for x in t['ends']]
+    if newts.seed:
+        for t in newts.seed['adapters']:
+            if 'ends' in t.keys():
+                t['ends'] = [r.sub(rfunc, x) for x in t['ends']]
     return newts
 
 
-def _update_nonsens_pairs(potentials, pair, trialsc):
-    def rename(x):
-        if pair[1] in x:
-            return frozenset.union(x - {pair[1]}, {pair[0]})
-        elif comp(pair[1]) in x:
-            return frozenset.union(x - {comp(pair[1])}, {comp(pair[0])})
-        else:
-            return x
-
-    p1 = [rename(x) for x in potentials]
-    return [
-        x for x in p1
-        if x not in set.union(*trialsc.values()) and len({base(y)
-                                                          for y in x}) == 2
-    ]
-
-
-def fast_reduce_ends(ts):
+def reduce_ends(ts, checkld=False, _wraparound=False):
     oldts = ts
     sc = ts.sensitivity_classes()
-    potentials = find_nonsens_pairs(oldts, sc)
+    potentials = list(find_nonsens_pairs(oldts, sc))
     removedpairs = []
+    shuffle(potentials)
 
     log.info("start removal: {} ends, {} potential pairs".format(
         len(ts.allends), len(potentials)))
 
-    while len(potentials) > 0:
-        pair = tuple(potentials.pop())
-        trialts = equate_pair(oldts, pair)
-        trialsc = trialts.sensitivity_classes()
-        if check_changes(oldts, trialts, pair, sc, trialsc):
-            oldts = trialts
-            sc = trialsc
-            potentials = _update_nonsens_pairs(potentials, pair, trialsc)
-            removedpairs.append(pair)
-            if log.isEnabledFor(logging.INFO):
-                log.info("removed {}. {} ends remain, {} potential pairs".
-                         format(pair, len(oldts.allends), len(potentials)))
-
-    return oldts, removedpairs
-
-
-def reduce_ends(ts, checkld=False):
-    oldts = ts
-    sc = ts.sensitivity_classes()
-    potentials = find_nonsens_pairs(oldts, sc)
-    removedpairs = []
-
-    log.info("start removal: {} ends, {} potential pairs".format(
-        len(ts.allends), len(potentials)))
-
+    if checkld and (checkld < 2):
+        log.info("Checkld should be depth (int>=2), \
+not bool or 1. Setting to 2")
+        checkld = 2
+    
+    changed = False
     while len(potentials) > 0:
         pair = potentials.pop()
         trialts = equate_pair(oldts, pair)
@@ -188,11 +152,22 @@ def reduce_ends(ts, checkld=False):
         if check_changes(oldts, trialts, pair, sc, trialsc, checkld=checkld):
             oldts = trialts
             sc = trialsc
-            potentials = find_nonsens_pairs(oldts, sc)
+            # Reset potentials to be only things we haven't visited yet
+            # that are still available:
+            newpairs = find_nonsens_pairs(oldts, sc)
+            potentials = [
+                x for x in potentials if x in newpairs
+            ]
+            if _wraparound:
+                changed = True
             removedpairs.append(pair)
             if log.isEnabledFor(logging.INFO):
                 log.info("removed {}. {} ends remain, {} potential pairs".
-                         format(pair, len(oldts.allends), len(potentials)))
+                         format(set(pair), len(oldts.allends), len(newpairs)))
+        # But if this isn't anything, then reset:
+        if (len(potentials) == 0) and changed:
+            log.info("reset potentials")
+            potentials = newpairs
 
     return oldts, removedpairs
 

@@ -54,7 +54,8 @@ with getstructure) or a TileStructure.  Get always returns the TileStructure."""
             if 'input' in t.keys():
                 del(t['input'])
             t.ends = [t.ends[i] for i in endorder]
-            t.name = t.name + '_r{}'.format(ri)
+            t.name = t.name
+            t['rotation'] = ri
             t.structure = structure()
             t.structure._endtypes = [self.structure._endtypes[i]
                                      for i in endorder]

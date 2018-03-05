@@ -89,6 +89,19 @@ with no output.
         else:
             CommentedSeq.__setitem__(self, i, v)
 
+    def __delitem__(self, i):
+        if isinstance(i, str):
+            r = [ii for ii, x in enumerate(self) if x.get('name', None) == i]
+            if len(r) > 1:
+                raise KeyError(
+                    "There are {} elements named {}.".format(len(r), i))
+            elif len(r) == 0:
+                raise KeyError("No element named {} found.".format(i))
+            else:
+                CommentedSeq.__delitem__(self, r[0])
+        else:
+            return CommentedSeq.__delitem__(self, i)        
+            
     def keys(self):
         return [x['name'] for x in self if 'name' in x.keys()]
 

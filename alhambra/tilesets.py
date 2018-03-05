@@ -1453,6 +1453,7 @@ class TileSet(CommentedMap):
         vdoubles = []
         ts = copy.deepcopy(ts)
         if ts.seed:
+            seedtype = seeds.seedtypes[ts.seed['type']]
             newtiles.append({
                 'name': 'origami',
                 'edges': ['origami', 'origami', 'origami', 'origami'],
@@ -1460,7 +1461,7 @@ class TileSet(CommentedMap):
                 'color': 'white'
             })
 
-            atiles = [None] * 16
+            atiles = [None] * len(seedtype.cores)
             to_use = []
             # If we have use_adapters, use that, otherwise use every adapter:
             if 'use_adapters' in ts['seed']:
@@ -1478,9 +1479,17 @@ class TileSet(CommentedMap):
 
             for tile in to_use:
                 newtile = {}
-                newtile['edges'] = ['origami'] + [
-                    re.sub('/', '_c', x) for x in tile['ends']
-                ] + ['origami']
+                if 'ends' in tile.keys():
+                    newtile['edges'] = ['origami'] + [
+                        re.sub('/', '_c', x) for x in tile['ends']
+                    ] + ['origami']
+                else:
+                    mtile = ts.tiles[tile['tilebase']]
+                    newtile['edges'] = ['origami'] + [
+                        re.sub('/', '_c', x) for x in
+                        mtile.ends[seedtype._mimicadapt[
+                            mtile.structure.name]['ends']]
+                    ] + ['origami']
                 newtile['name'] = tile.get('name', '')
                 newtile['stoic'] = 0
                 newtile['color'] = 'white'

@@ -3,6 +3,10 @@ from .util import comp
 import re
 
 
+def _generic_branch(direction, ts, t, n, f=False):
+    pass
+
+
 def _north_branch(ts, t, n, f=False):
     # North branch finder.  1/3 single-single, 1/5 single-hdouble,
     # 2/3 hdouble-single
@@ -98,6 +102,9 @@ def _ppld(res):
 
 
 def latticedefects(ts, depth=2, pp=True):
+    if depth < 2:
+        raise ValueError(
+            "Depth cannot be less than 2, received {}.".format(depth))
     alldefects = sum((_latticedefect_tile(ts, tile, depth)
                       for tile in ts.tiles), [])
     if pp:
