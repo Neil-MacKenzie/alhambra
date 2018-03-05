@@ -24,7 +24,7 @@ def _fakesingle(tile):
         ft.structure._endtypes = []
         for i in es:
             if i is not None:
-                ft['ends'].append(tile.ends[i])
+                ft['ends'].append(tile['ends'][i])
                 ft.structure._endtypes.append(tile.structure._endtypes[i])
                 if 'input' in tile.keys():
                     ft['input'].append(tile['input'][i])
@@ -63,56 +63,56 @@ def sensitivity_classes(tileset, count=False):
             if t1.structure._endtypes[i] in {'fakedouble', 'hairpin'}:
                 continue
             for t2 in rotatedsingles:
-                if t2.ends[i] != t1.ends[i]:
+                if t2['ends'][i] != t1['ends'][i]:
                     continue
                 for j in range(0, 4):
                     if i == j:
                         continue
-                    if t1.ends[j] == t2.ends[j]:
+                    if t1['ends'][j] == t2['ends'][j]:
                         continue
                     if t1.structure._endtypes[j] != t2.structure._endtypes[j]:
                         continue
                     if t1.structure._endtypes[j] in {'fakedouble', 'hairpin'}:
                         continue
-                    spairs['1NGO'].add(frozenset((t2.ends[j], t1.ends[j])))
-                    spairs['1NGO'].add(frozenset((comp(t2.ends[j]), comp(t1.ends[j]))))
+                    spairs['1NGO'].add(frozenset((t2['ends'][j], t1['ends'][j])))
+                    spairs['1NGO'].add(frozenset((comp(t2['ends'][j]), comp(t1['ends'][j]))))
                     go1 = False
                     if t1['input'][i] and t1['input'][j]:
                         go1 = True
-                        spairs['1GO'].add(frozenset((t2.ends[j], t1.ends[j])))
-                        spairs['1GO'].add(frozenset((comp(t2.ends[j]), comp(t1.ends[j]))))
+                        spairs['1GO'].add(frozenset((t2['ends'][j], t1['ends'][j])))
+                        spairs['1GO'].add(frozenset((comp(t2['ends'][j]), comp(t1['ends'][j]))))
                     for k in (set(range(0, 4)) - {i, j}):
                         if (t1.structure._endtypes[k] == 'hairpin') or (
                                 t2.structure._endtypes[k] == 'hairpin'):
                             continue
-                        ec1 = comp(t1.ends[k])
-                        ec2 = comp(t2.ends[k])
+                        ec1 = comp(t1['ends'][k])
+                        ec2 = comp(t2['ends'][k])
                         kc = _rev[k]
                         for t12 in singles:
-                            if t12.ends[kc] != ec1:
+                            if t12['ends'][kc] != ec1:
                                 continue
                             for t22 in rotatedsingles:
-                                if t22.ends[kc] != ec2:
+                                if t22['ends'][kc] != ec2:
                                     continue
                                 for m in range(0, 4):
                                     if m == kc:
                                         continue
-                                    if t22.ends[m] != t12.ends[m]:
+                                    if t22['ends'][m] != t12['ends'][m]:
                                         continue
                                     if t12.structure._endtypes[m] in {
                                             'fakedouble', 'hairpin'
                                     }:
                                         continue
                                     spairs['2NGO'].add(
-                                        frozenset((t2.ends[j], t1.ends[j])))
+                                        frozenset((t2['ends'][j], t1['ends'][j])))
                                     spairs['2NGO'].add(
-                                        frozenset((comp(t2.ends[j]), comp(t1.ends[j]))))
+                                        frozenset((comp(t2['ends'][j]), comp(t1['ends'][j]))))
                                     if t12['input'][m] and t12['input'][kc] and go1:
                                         spairs['2GO'].add(
-                                            frozenset((t2.ends[j], t1.ends[j]
+                                            frozenset((t2['ends'][j], t1['ends'][j]
                                                        )))
                                         spairs['2GO'].add(
-                                            frozenset((comp(t2.ends[j]), comp(t1.ends[j])
+                                            frozenset((comp(t2['ends'][j]), comp(t1['ends'][j])
                                                        )))
 
     return spairs

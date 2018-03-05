@@ -5,6 +5,8 @@ import logging
 from .seq import _WC
 from .latticedefect import latticedefects
 import re
+import copy
+from .tiles import TileList
 
 log = logging.getLogger(__name__)
 
@@ -105,13 +107,20 @@ def check_changes(oldts,
     return True
 
 
-def equate_pair(ts, pair):
+def equate_pair(ts, pair, unsafe=False, doseed=False):
     pair = tuple(pair)  # ensure that the pair is actually ordered.
     e1, e2 = pair
 
     swap = not ((e1[-1] == '/' and e2[-1] == '/') or
                 (e1[-1] != '/' and e2[-1] != '/'))
-    newts = ts.copy()
+    if not unsafe:
+        newts = ts.copy()
+    else:
+        newts = copy.copy(ts)
+        newts['tiles'] = TileList([copy.copy(t) for t in ts['tiles']])
+        if doseed and ('seed' in ts.keys()):
+            newts['seed'] = ts['seed'].copy()
+            newts['seed']['adapters'] = newts['seed']['adapters'].copy()
     r = re.compile(r'^' + base(e2) + r'(/?)$')
 
     def rfunc(match):
@@ -121,8 +130,8 @@ def equate_pair(ts, pair):
             return base(e1) + match.group(1)
 
     for t in newts.tiles:
-        t.ends = [r.sub(rfunc, x) for x in t.ends]
-    if newts.seed:
+        t['ends'] = [r.sub(rfunc, x) for x in t['ends']]
+    if doseed and newts.seed:
         for t in newts.seed['adapters']:
             if 'ends' in t.keys():
                 t['ends'] = [r.sub(rfunc, x) for x in t['ends']]
@@ -130,7 +139,7 @@ def equate_pair(ts, pair):
 
 
 def reduce_ends(ts, checkld=False, _wraparound=False):
-    oldts = ts
+    oldts = ts.copy()
     sc = ts.sensitivity_classes()
     potentials = list(find_nonsens_pairs(oldts, sc))
     removedpairs = []
@@ -147,7 +156,7 @@ not bool or 1. Setting to 2")
     changed = False
     while len(potentials) > 0:
         pair = potentials.pop()
-        trialts = equate_pair(oldts, pair)
+        trialts = equate_pair(oldts, pair, unsafe=True)
         trialsc = trialts.sensitivity_classes()
         if check_changes(oldts, trialts, pair, sc, trialsc, checkld=checkld):
             oldts = trialts
@@ -169,7 +178,7 @@ not bool or 1. Setting to 2")
             log.info("reset potentials")
             potentials = newpairs
 
-    return oldts, removedpairs
+    return oldts.copy(), removedpairs
 
 
 def attempt_end_removal(ts, end, adjlike=None, checkld=False):

@@ -57,7 +57,7 @@ def equate_multiends(ts, pairs, eqret=False):
                     return (False, False)
         pairs = [p for p in pairs if p[0] != p[1]]
     for p in rpairs:
-        ts = equate_pair(ts, p)
+        ts = equate_pair(ts, p, unsafe=True)
     if not eqret:
         return ts
     else:
@@ -129,7 +129,7 @@ def tryreducerot(ts, rti, rot=0):
             'tiles': TileList([ts.tiles[rti[1]]].copy())
         })
         for p in pr:
-            fakets = equate_pair(fakets, p)
+            fakets = equate_pair(fakets, p, unsafe=True)
 
         rts.tiles.append(fakets.tiles[0])
     if rts is False:

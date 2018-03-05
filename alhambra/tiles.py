@@ -5,16 +5,17 @@ from .tilestructures import TileStructure, getstructure
 import copy
 
 
-class Tile(CommentedMap):
+class Tile(dict):
     def __init__(self, val={}):
-        CommentedMap.__init__(self, val)
+        dict.__init__(self, val)
 
         if 'type' in self.keys():
             self['structure'] = self['type']
             del(self['type'])
 
-        self.structure = getstructure(self.get('structure', None),
-                                      extra=self.get('extra', None))
+        if 'structure' in self.keys():
+            self.structure = getstructure(self.get('structure', None),
+                                          extra=self.get('extra', None))
         if self.get('extra'):
             del(self['extra'])
         
@@ -50,11 +51,10 @@ with getstructure) or a TileStructure.  Get always returns the TileStructure."""
         rl = self.structure.rotations
         tl = TileList()
         for ri, (structure, endorder) in enumerate(rl):
-            t = self.copy()
+            t = copy.copy(self)
             if 'input' in t.keys():
                 del(t['input'])
-            t.ends = [t.ends[i] for i in endorder]
-            t.name = t.name
+            t['ends'] = [t.ends[i] for i in endorder]
             t['rotation'] = ri
             t.structure = structure()
             t.structure._endtypes = [self.structure._endtypes[i]
@@ -138,9 +138,12 @@ with getstructure) or a TileStructure.  Get always returns the TileStructure."""
         self.structure.check_strands(self.strands)
 
     def __deepcopy__(self, memo):
-        c = CommentedMap.__deepcopy__(self, memo)
+        c = self.__class__()
+        memo[id(self)] = c
+        for k, v in self.items():
+            c[k] = copy.deepcopy(v)
         if self.structure:
-            c.structure = copy.deepcopy(self.structure)
+            c._structure = copy.deepcopy(self._structure)
         return c
 
 
