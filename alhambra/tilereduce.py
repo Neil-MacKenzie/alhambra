@@ -5,6 +5,7 @@ import re
 import logging
 from .tilesets import TileSet
 from .tiles import TileList
+from random import shuffle
 
 log = logging.getLogger(__name__)
 
@@ -194,3 +195,42 @@ def check_changes_multi(oldts,
             log.debug("lattice defect: {}".format(equatedpairs))
             return False
     return True
+
+
+def reduce_tiles(ts):
+    go = True
+    newts = ts
+    rmd = []
+    rd = 0
+    red = 0
+    try:
+        while go:
+            go = False
+            todo = list(combinations(newts.tiles, 2))
+            shuffle(todo)
+            print("Round started: {} combinations".format(len(todo)))
+            i=0
+            while len(todo)>0:
+                x = todo.pop()
+                if (x[0].name in rmd) or (x[1].name in rmd):
+                    continue
+                if ('fake' in x[0].keys()) or ('fake' in x[1].keys()):
+                    continue
+                if (len(todo)%1000)==0:
+                    log.info("{} combinations left".format(len(todo)))
+                l = [0,1,2,3]
+                shuffle(l)
+                for rot in l:
+                    tr = tryreducerot(newts, (x[0].name, x[1].name), rot=rot)
+                    if tr is not False:
+                        red += 1
+                        log.info((x[0].name, x[1].name, rot, red, "{}".format(len(todo))))
+                        todo = [z for z in todo if x[1].name not in [y.name for y in z]]
+                        if rot == 0:
+                            rmd.append(x[1].name)
+                        newts = tr
+                        go = True
+                        break
+        return newts
+    except KeyboardInterrupt:
+        return newts
