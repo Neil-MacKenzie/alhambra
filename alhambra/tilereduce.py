@@ -114,10 +114,6 @@ def tryreducerot(ts, rti, rot=0):
     if rot == 0:
         rts, pr = equate_tiles(
             ts, (ts.tiles[rti[0]], ts.tiles[rti[1]]), eqret=True)
-        if rts and rts.seed:
-            for t in rts.seed['adapters']:
-                if rti[1] == t['tilebase']:
-                    t['tilebase'] = rti[0]
     else:
         rts, pr = equate_tiles(
             ts, (ts.tiles[rti[0]], ts.tiles[rti[1]].rotations[rot - 1]),
@@ -157,6 +153,11 @@ def tryreducerot(ts, rti, rot=0):
         rts.tiles[rti[1]]['fake'] = 1
     if not check_changes_multi(ts, rts, pr):
         return False
+    log.debug("Changes: {}".format(pr))
+    if rts and rts.seed and (rot == 0):
+        for t in rts.seed['adapters']:
+            if rti[1] == t['tilebase']:
+                t['tilebase'] = rti[0]
     return rts
 
 
