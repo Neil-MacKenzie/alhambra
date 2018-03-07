@@ -87,31 +87,7 @@ def equate_tiles(tileset, tilepair, eqret=False):
         return endcombs, endreps
 
 
-def tryreducenpr(ts, rti):
-    rts, pr = equate_tiles(
-        ts, (ts.tiles[rti[0]], ts.tiles[rti[1]]), eqret=True)
-    if rts is False:
-        return False
-    allpairset = set.union(*(inputtilepairset(ts, x) for x in ts.tiles))
-    for x in ts.tiles:
-        if x.name not in rti:
-            oldps = inputtilepairset(ts, x)
-            newps = set.intersection(
-                inputtilepairset(rts, rts.tiles[x.name], rti=rti), allpairset)
-        else:
-            oldps = set.union(
-                inputtilepairset(ts, ts.tiles[rti[0]]),
-                inputtilepairset(ts, ts.tiles[rti[1]]))
-            newps = set.intersection(
-                inputtilepairset(rts, rts.tiles[rti[0]], rti=rti), allpairset)
-        if oldps != newps:
-            return False
-    if not check_changes_multi(ts, rts, pr):
-        return False
-    return rts
-
-
-def tryreducerot(ts, rti, rot=0):
+def tryreducerot(ts, rti, rot=0, checkld=False):
     if rot == 0:
         rts, pr = equate_tiles(
             ts, (ts.tiles[rti[0]], ts.tiles[rti[1]]), eqret=True)
@@ -122,9 +98,7 @@ def tryreducerot(ts, rti, rot=0):
         if rts is False:
             return False
         # add fake tile: this is a really stupid method.
-        fakets = TileSet({
-            'tiles': TileList([ts.tiles[rti[1]]].copy())
-        })
+        fakets = TileSet({'tiles': TileList([ts.tiles[rti[1]]].copy())})
         for p in pr:
             fakets = equate_pair(fakets, p, unsafe=True)
 
@@ -152,7 +126,7 @@ def tryreducerot(ts, rti, rot=0):
     # Now note the fake tile
     if rot > 0:
         rts.tiles[rti[1]]['fake'] = 1
-    if not check_changes_multi(ts, rts, pr):
+    if not check_changes_multi(ts, rts, pr, checkld=checkld):
         return False
     log.debug("Changes: {}".format(pr))
     if rts and rts.seed and (rot == 0):
@@ -191,46 +165,101 @@ def check_changes_multi(oldts,
         oldld = latticedefects(oldts, depth=checkld)
         newld = latticedefects(newts, depth=checkld)
         if (len(newld) > len(oldld)) or (len(
-                [x for x in newld if x not in oldld]) > 0):
+            [x for x in newld if x not in oldld]) > 0):
             log.debug("lattice defect: {}".format(equatedpairs))
             return False
     return True
 
 
-def reduce_tiles(ts):
-    go = True
-    newts = ts
-    rmd = []
-    rd = 0
-    red = 0
-    try:
-        while go:
-            go = False
-            todo = list(combinations(newts.tiles, 2))
-            shuffle(todo)
-            print("Round started: {} combinations".format(len(todo)))
-            i=0
-            while len(todo)>0:
-                x = todo.pop()
-                if (x[0].name in rmd) or (x[1].name in rmd):
-                    continue
-                if ('fake' in x[0].keys()) or ('fake' in x[1].keys()):
-                    continue
-                if (len(todo)%1000)==0:
-                    log.info("{} combinations left".format(len(todo)))
-                l = [0,1,2,3]
-                shuffle(l)
-                for rot in l:
-                    tr = tryreducerot(newts, (x[0].name, x[1].name), rot=rot)
-                    if tr is not False:
-                        red += 1
-                        log.info((x[0].name, x[1].name, rot, red, "{}".format(len(todo))))
-                        todo = [z for z in todo if x[1].name not in [y.name for y in z]]
-                        if rot == 0:
-                            rmd.append(x[1].name)
-                        newts = tr
-                        go = True
-                        break
-        return newts
-    except KeyboardInterrupt:
-        return newts
+def reduce_tiles(tileset,
+                 colors=None,
+                 rotation=True,
+                 checkld=True,
+                 _unsafe=True,
+                 update=1000):
+    """Attempt maximal end reduction on a tileset.
+    
+    Parameters
+    ----------
+
+    tileset : alhambra.TileSet
+        The TileSet to reduce.  Note that reduce_tiles does not currently preprocess
+        to avoid clashes with manual cleverness, so you should avoid using tilesets
+        that have had their ends reduced, or that reuse the same ends for multiple
+        purposes.
+
+    colors : None, dict, or other mapping
+    """
+
+    # Start by making a copy of the set, to make absolutely sure we don't mangle it:
+    ts = tileset.copy()
+    oldts = ts  # FIXME remove when confident
+    pairstodo = list(combinations(ts.tiles, 2))
+    shuffle(pairstodo)
+
+    pairspassed = []
+    removedtiles = []
+    idone = 0
+    if rotation:
+        dirs = [0, 1, 2, 3]
+    else:
+        dirs = [0]
+
+    log.info(
+        "Started tile reduction: {} tile combinations".format(len(pairstodo)))
+
+    while len(pairstodo) > 0:
+        t1, t2 = pairstodo.pop()
+
+        if ('fake' in t1.keys()) or ('fake' in t2.keys()):
+            continue
+        if (t1.name in removedtiles) or (t2.name in removedtiles):
+            log.warning(
+                "{} or {} in removed tiles, but should have been removed from todo".
+                format(t1.name, t2.name))
+
+        if (idone > 0) and (idone % update == 0):
+            log.info(
+                "Finished {} pairs, {} left.".format(idone, len(pairstodo)))
+
+        shuffle(dirs)
+        for r in dirs:
+            trialts = tryreducerot(
+                ts, (t1.name, t2.name), rot=r, checkld=checkld)
+            if trialts is not False:
+                ts = trialts
+                removedtiles.append(t2.name)
+
+                t1['functionsas'] = t1.get('functionsas', []) + t2.get(
+                    'functionsas', []) + [t2.name]
+
+                # Remove pairs that have the removed tile.
+                pairstodo = [
+                    pair for pair in pairstodo
+                    if (t2.name != pair[0].name) and (t2.name != pair[1].name)
+                ]
+                pairspassed = [
+                    pair for pair in pairspassed
+                    if (t2.name != pair[0].name) and (t2.name != pair[1].name)
+                ]
+
+                # We've removed a tile, so now we'll need to add the passed pairs back into the todo list.  We'll shuffle, too:
+                shuffle(pairspassed)
+                pairstodo += pairspassed
+                pairspassed = []
+
+                log.info("{} -> {} (rot {}), {} removed, {} pairs left".format(
+                    t2.name, t1.name, r, len(removedtiles), len(pairstodo)))
+                break
+        idone += 1
+    log.info(
+        "Finished tile reduction: {} -> {} ({} reduction), checked {} pairs.".
+        format(
+            len(tileset.tiles),
+            len(tileset.tiles) - len(removedtiles), len(removedtiles), idone))
+
+    # End by ensuring that unsafe didn't do anything bad:
+    if oldts != tileset:
+        log.warning("ts != tileset in reduce_tiles")
+
+    return ts
