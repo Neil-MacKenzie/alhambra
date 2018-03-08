@@ -91,7 +91,8 @@ def equate_tiles(tileset, tilepair, eqret=False):
         return endcombs, endreps
 
 
-def tryreducerot(ts, rti, rot=0, checkld=False):
+def tryreducerot(ts, rti, rot=0, checkld=False,                _smo=2,
+                 _classes=('2GO',)):
     if rot == 0:
         rts, pr = equate_tiles(
             ts, (ts.tiles[rti[0]], ts.tiles[rti[1]]), eqret=True)
@@ -130,7 +131,7 @@ def tryreducerot(ts, rti, rot=0, checkld=False):
     # Now note the fake tile
     if rot > 0:
         rts.tiles[rti[1]]['fake'] = 1
-    if not check_changes_multi(ts, rts, pr, checkld=checkld):
+    if not check_changes_multi(ts, rts, pr, checkld=checkld, _smo=_smo, _classes=_classes):
         return False
     log.debug("Changes: {}".format(pr))
     if rts and rts.seed and (rot == 0):
@@ -145,24 +146,27 @@ def check_changes_multi(oldts,
                         equatedpairs,
                         oldsc=None,
                         newsc=None,
-                        checkld=False):
+                        checkld=False,
+                        _smo=2,
+                        _classes=('2GO',)):
     if oldsc is None:
-        oldsc = oldts.sensitivity_classes()
+        oldsc = oldts.sensitivity_classes(_maxorder=_smo)
     if newsc is None:
-        newsc = newts.sensitivity_classes()
+        newsc = newts.sensitivity_classes(_maxorder=_smo)
 
     reps = equatedpairs
 
-    for pair in newsc['2GO']:
-        if pair not in oldsc['2GO']:
-            for eremain, ereplace in reps:
-                if eremain in pair:
-                    pair = frozenset.union(pair - {eremain}, {ereplace})
-                elif comp(eremain) in pair:
-                    pair = frozenset.union(pair - {comp(eremain)},
-                                           {comp(ereplace)})
-            if pair not in oldsc['2GO']:
-                return False
+    for sc in _classes:
+        for pair in newsc[sc]:
+            if pair not in oldsc[sc]:
+                for eremain, ereplace in reps:
+                    if eremain in pair:
+                        pair = frozenset.union(pair - {eremain}, {ereplace})
+                    elif comp(eremain) in pair:
+                        pair = frozenset.union(pair - {comp(eremain)},
+                                               {comp(ereplace)})
+                if pair not in oldsc[sc]:
+                    return False
 
     # FIXME: add lattice defect check
     if checkld:
@@ -180,6 +184,8 @@ def reduce_tiles(tileset,
                  rotation=True,
                  checkld=True,
                  _unsafe=True,
+                 _smo=2,
+                 _classes=('2GO',),
                  update=1000):
     """Attempt maximal end reduction on a tileset.
     
@@ -230,7 +236,7 @@ def reduce_tiles(tileset,
         shuffle(dirs)
         for r in dirs:
             trialts = tryreducerot(
-                ts, (t1.name, t2.name), rot=r, checkld=checkld)
+                ts, (t1.name, t2.name), rot=r, checkld=checkld, _smo=_smo, _classes=_classes)
             if trialts is not False:
                 ts = trialts
                 removedtiles.append(t2.name)

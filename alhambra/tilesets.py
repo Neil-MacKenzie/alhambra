@@ -1420,8 +1420,8 @@ class TileSet(CommentedMap):
                          outputopts=output,
                          ui=ui)
 
-    def sensitivity_classes(ts, count=False):
-        return sensitivity.sensitivity_classes(ts, count=False)
+    def sensitivity_classes(ts, count=False, _maxorder=2):
+        return sensitivity.sensitivity_classes(ts, count=False, _maxorder=_maxorder)
     
     def generate_xgrow_dict(ts, perfect=False, rotate=False, energetics=None):
         """Generate a Xgrow tileset dict.

@@ -74,7 +74,8 @@ def check_changes(oldts,
                   equatedpair,
                   oldsc=None,
                   newsc=None,
-                  checkld=False):
+                  checkld=False,
+                  _classes=('2GO',)):
     if oldsc is None:
         oldsc = oldts.sensitivity_classes()
     if newsc is None:
@@ -82,19 +83,20 @@ def check_changes(oldts,
     equatedpair = tuple(equatedpair)
     eremain, ereplace = equatedpair
 
-    for pair in newsc['2GO']:
-        if pair not in oldsc['2GO']:
-            if eremain in pair:
-                pair = frozenset.union(pair - {eremain}, {ereplace})
-                if pair not in oldsc['2GO']:
+    for sc in _classes:
+        for pair in newsc[sc]:
+            if pair not in oldsc[sc]:
+                if eremain in pair:
+                    pair = frozenset.union(pair - {eremain}, {ereplace})
+                    if pair not in oldsc[sc]:
+                        return False
+                elif comp(eremain) in pair:
+                    pair = frozenset.union(pair - {comp(eremain)},
+                                           {comp(ereplace)})
+                    if pair not in oldsc[sc]:
+                        return False
+                else:
                     return False
-            elif comp(eremain) in pair:
-                pair = frozenset.union(pair - {comp(eremain)},
-                                       {comp(ereplace)})
-                if pair not in oldsc['2GO']:
-                    return False
-            else:
-                return False
 
     # FIXME: add lattice defect check
     if checkld:
@@ -138,9 +140,9 @@ def equate_pair(ts, pair, unsafe=False, doseed=False):
     return newts
 
 
-def reduce_ends(ts, checkld=False, _wraparound=False):
+def reduce_ends(ts, checkld=False, _wraparound=False, _classes=('2GO',), _smo=2):
     oldts = ts.copy()
-    sc = ts.sensitivity_classes()
+    sc = ts.sensitivity_classes(_maxorder=_smo)
     potentials = list(find_nonsens_pairs(oldts, sc))
     removedpairs = []
     shuffle(potentials)
@@ -157,8 +159,8 @@ not bool or 1. Setting to 2")
     while len(potentials) > 0:
         pair = potentials.pop()
         trialts = equate_pair(oldts, pair, unsafe=True)
-        trialsc = trialts.sensitivity_classes()
-        if check_changes(oldts, trialts, pair, sc, trialsc, checkld=checkld):
+        trialsc = trialts.sensitivity_classes(_maxorder=_smo)
+        if check_changes(oldts, trialts, pair, sc, trialsc, checkld=checkld, _classes=_classes):
             oldts = trialts
             sc = trialsc
             # Reset potentials to be only things we haven't visited yet

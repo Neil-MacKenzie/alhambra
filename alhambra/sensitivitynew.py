@@ -45,7 +45,7 @@ def _fakesingles(tiles):
 _rev = [2, 3, 0, 1]
 
 
-def sensitivity_classes(tileset, count=False):
+def sensitivity_classes(tileset, count=False, _maxorder=2):
 
     singles = _fakesingles(tileset.tiles)
     rotatedsingles = singles + _fakesingles(
@@ -58,6 +58,10 @@ def sensitivity_classes(tileset, count=False):
     
     spairs = {'1GO': sclass(), '1NGO': sclass(), '2NGO': sclass(), '2GO': sclass()}
 
+    if _maxorder >= 3:
+        spairs['22NGO'] = sclass()
+        spairs['22GO'] = sclass()
+    
     for t1 in singles:
         for i in range(0, 4):
             if t1.structure._endtypes[i] in {'fakedouble', 'hairpin'}:
@@ -114,5 +118,40 @@ def sensitivity_classes(tileset, count=False):
                                         spairs['2GO'].add(
                                             frozenset((comp(t2['ends'][j]), comp(t1['ends'][j])
                                                        )))
+                                    if _maxorder > 2:
+                                        for k2 in (set(range(0,4)) - {i, j, k}):  # should just be one number!
+                                            if (t1.structure._endtypes[k2] == 'hairpin') or (
+                                                    t2.structure._endtypes[k2] == 'hairpin'):
+                                                continue
+                                            ec1_3 = comp(t1['ends'][k2])
+                                            ec2_3 = comp(t2['ends'][k2])
+                                            kc2 = _rev[k2]
+                                            for t13 in singles:
+                                                if t13['ends'][kc2] != ec1_3:
+                                                    continue
+                                                for t23 in rotatedsingles:
+                                                    if t23['ends'][kc2] != ec2_3:
+                                                        continue
+                                                    for m2 in range(0, 4):
+                                                        if m2 == kc2:
+                                                            continue
+                                                        if t23['ends'][m2] != t13['ends'][m2]:
+                                                            continue
+                                                        if t13.structure._endtypes[m2] in {
+                                                                'fakedouble', 'hairpin'
+                                                        }:
+                                                            continue
+                                                        spairs['22NGO'].add(
+                                                            frozenset((t2['ends'][j], t1['ends'][j])))
+                                                        spairs['22NGO'].add(
+                                                            frozenset((comp(t2['ends'][j]), comp(t1['ends'][j]))))
+                                                        if t12['input'][m] and t12['input'][kc] and t13['input'][m2] and t13['input'][kc2] and go1:
+                                                            spairs['22GO'].add(
+                                                                frozenset((t2['ends'][j], t1['ends'][j]
+                                                                           )))
+                                                            spairs['22GO'].add(
+                                                                frozenset((comp(t2['ends'][j]), comp(t1['ends'][j])
+                                                                           )))
+                                            
 
     return spairs
