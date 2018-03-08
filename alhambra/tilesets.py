@@ -805,6 +805,13 @@ class TileSet(CommentedMap):
 
         return newtileset, newendnames
 
+    def add_info(self, ititle, data):
+        if 'info' not in self.keys():
+            self['info'] = {}
+        if ititle not in self['info'].keys():
+            self['info'][ititle] = []
+        self['info'][ititle].append(data)
+    
     def reorder_ends(tileset,
                      newends=[],
                      hightemp=0.1,

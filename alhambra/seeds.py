@@ -134,7 +134,8 @@ class seed_tileadapts(seed_base):
                 assert adapt.get('structure') == structinfo['structure']
             else:
                 adapt['structure'] = structinfo['structure']  # FIXME: should be in init code
-            assert adapt['ends'] == mimic.ends[structinfo['ends']]
+            if 'ends' in adapt.keys():
+                assert adapt['ends'] == mimic.ends[structinfo['ends']]
 
 
     edotparens = {

@@ -169,7 +169,7 @@ not bool or 1. Setting to 2")
             ]
             if _wraparound:
                 changed = True
-            removedpairs.append(pair)
+            removedpairs.append(tuple(pair))
             if log.isEnabledFor(logging.INFO):
                 log.info("removed {}. {} ends remain, {} potential pairs".
                          format(set(pair), len(oldts.allends), len(newpairs)))
@@ -178,7 +178,9 @@ not bool or 1. Setting to 2")
             log.info("reset potentials")
             potentials = newpairs
 
-    return oldts.copy(), removedpairs
+    oldts.add_info('endreduce', {'checkld': checkld, 'wrap': _wraparound, 'removed': removedpairs})
+            
+    return oldts.copy()
 
 
 def attempt_end_removal(ts, end, adjlike=None, checkld=False):

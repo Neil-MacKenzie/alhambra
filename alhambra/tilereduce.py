@@ -13,22 +13,22 @@ RS = [2, 3, 0, 1]
 
 
 def inputtilepairset(tileset, tile, rti=None):
-    if len(tile.ends) != 4:
-        return set()
     tpg = []
-    for s, (e, ip) in enumerate(zip(tile.ends, tile['input'])):
+    for s, e, ip in zip(tile.structure._dirs, tile['ends'], tile['input']):
         if not ip:
             continue
         tt = []
         for tile2 in tileset.tiles:
-            if len(tile.ends) != 4:
+            if comp(e) not in tile2['ends']:
                 continue
-            if (tile2.ends[RS[s]] == comp(e)) and (not tile2['input'][RS[s]]):
-                if (rti is None) or (tile2.name not in rti):
-                    tt.append(tile2.name)
-                else:
-                    tt.append(rti[0])
-                    tt.append(rti[1])
+            for e2, s2, ip2 in zip(tile2['ends'], tile2.structure._dirs,
+                                   tile2['input']):
+                if (not ip2) and (RS[s] == s2) and (comp(e) == e2):
+                    if (rti is None) or (tile2.name not in rti):
+                        tt.append(tile2.name)
+                    else:
+                        tt.append(rti[0])
+                        tt.append(rti[1])
         tpg.append(tt)
     return set(product(*tpg))
 
@@ -199,6 +199,7 @@ def reduce_tiles(tileset,
 
     pairspassed = []
     removedtiles = []
+    reminfo = []
     idone = 0
     if rotation:
         dirs = [0, 1, 2, 3]
@@ -229,9 +230,10 @@ def reduce_tiles(tileset,
             if trialts is not False:
                 ts = trialts
                 removedtiles.append(t2.name)
+                reminfo.append((t1.name, t2.name, r))
 
-                t1['functionsas'] = t1.get('functionsas', []) + t2.get(
-                    'functionsas', []) + [t2.name]
+                ts.tiles[t1.name]['functionsas'] = t1.get(
+                    'functionsas', []) + t2.get('functionsas', []) + [t2.name]
 
                 # Remove pairs that have the removed tile.
                 pairstodo = [
@@ -261,5 +263,11 @@ def reduce_tiles(tileset,
     # End by ensuring that unsafe didn't do anything bad:
     if oldts != tileset:
         log.warning("ts != tileset in reduce_tiles")
+        return ts, oldts
+
+    ts.add_info('tilereduce',
+               {'rotation': rotation,
+                'checkld': checkld,
+                'removed': reminfo})
 
     return ts
