@@ -49,13 +49,17 @@ def equate_multiends(ts, pairs, eqret=False):
 
         r = re.compile(base(e2) + r'(/?)$')
         rpairs.append((e1, e2))
-        for pair in pairs:
+        for i, pair in enumerate(pairs):
             pair = [r.sub(rfunc, x) for x in pair]
+            # we would set a pair = its complement
             if pair[0] == comp(pair[1]):
                 if not eqret:
                     return False
                 else:
                     return (False, False)
+            # we need to update the pair in the list: FIXME is this true?
+            pairs[i] = pair
+            
         pairs = [p for p in pairs if p[0] != p[1]]
     for p in rpairs:
         ts = equate_pair(ts, p, unsafe=True)
