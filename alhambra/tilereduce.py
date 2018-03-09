@@ -6,6 +6,7 @@ import logging
 from .tilesets import TileSet
 from .tiles import TileList
 from random import shuffle
+from .sensitivitynew import _fakesingles
 
 log = logging.getLogger(__name__)
 
@@ -31,6 +32,45 @@ def inputtilepairset(tileset, tile, rti=None):
                         tt.append(rti[1])
         tpg.append(tt)
     return set(product(*tpg))
+
+
+def checkbadrotations(tileset, findall=False, ignore=[]):
+    # We'll use fake singles
+    onlyrotatedsingles = _fakesingles(
+        sum([x.rotations for x in tileset.tiles], TileList()))
+    singles = _fakesingles(tileset.tiles)
+
+    ignore = [frozenset(x) for x in ignore]
+    
+    badpairs = []
+
+    for t1 in singles:
+        if True not in [bool(x) for x in t1['input']]:
+            continue # no inputs
+        il, el = zip(*[(i, e) for i, e in enumerate(t1['ends'])
+                       if t1['input'][i]])
+        for t2 in onlyrotatedsingles:
+            if [t2['ends'][i] for i in il] != list(el):
+                # If the input ends on t1 don't match
+                # t2, no need to worry.
+                continue
+            if ((t1.name in t2.get('functionsas', []))
+                    or (t2.name in t1.get('functionsas', []))):
+                # If t1 or t2 is used as the other,
+                # mostly no need to worry *FIXME*
+                # this ignores the "wrong" rotation,
+                # we need to keep track of rotation here.
+                continue
+            if frozenset((t1.name, t2.name)) in ignore:
+                continue
+            if findall:
+                badpairs.append((t1.name, t2.name))
+            else:
+                return False
+    if not findall:
+        return True
+    else:
+        return ((len(badpairs) == 0), badpairs)
 
 
 def equate_multiends(ts, pairs, eqret=False):
@@ -59,7 +99,7 @@ def equate_multiends(ts, pairs, eqret=False):
                     return (False, False)
             # we need to update the pair in the list: FIXME is this true?
             pairs[i] = pair
-            
+
         pairs = [p for p in pairs if p[0] != p[1]]
     for p in rpairs:
         ts = equate_pair(ts, p, unsafe=True)
@@ -91,8 +131,7 @@ def equate_tiles(tileset, tilepair, eqret=False):
         return endcombs, endreps
 
 
-def tryreducerot(ts, rti, rot=0, checkld=False,                _smo=2,
-                 _classes=('2GO',)):
+def tryreducerot(ts, rti, rot=0, checkld=False, _smo=2, _classes=('2GO', )):
     if rot == 0:
         rts, pr = equate_tiles(
             ts, (ts.tiles[rti[0]], ts.tiles[rti[1]]), eqret=True)
@@ -128,13 +167,17 @@ def tryreducerot(ts, rti, rot=0, checkld=False,                _smo=2,
                 inputtilepairset(rts, rts.tiles[rti[0]], rti=rti), allpairset)
         if oldps != newps:
             return False
+    if not check_changes_multi(
+            ts, rts, pr, checkld=checkld, _smo=_smo, _classes=_classes):
+        return False
+    if not checkbadrotations(rts, ignore=[rti]):
+        return False
     # Now note the fake tile
     if rot > 0:
         rts.tiles[rti[1]]['fake'] = 1
-    if not check_changes_multi(ts, rts, pr, checkld=checkld, _smo=_smo, _classes=_classes):
-        return False
     log.debug("Changes: {}".format(pr))
     if rts and rts.seed and (rot == 0):
+        rts['seed'] = ts.seed.copy()
         for t in rts.seed['adapters']:
             if rti[1] == t['tilebase']:
                 t['tilebase'] = rti[0]
@@ -148,7 +191,7 @@ def check_changes_multi(oldts,
                         newsc=None,
                         checkld=False,
                         _smo=2,
-                        _classes=('2GO',)):
+                        _classes=('2GO', )):
     if oldsc is None:
         oldsc = oldts.sensitivity_classes(_maxorder=_smo)
     if newsc is None:
@@ -185,7 +228,7 @@ def reduce_tiles(tileset,
                  checkld=True,
                  _unsafe=True,
                  _smo=2,
-                 _classes=('2GO',),
+                 _classes=('2GO', ),
                  update=1000):
     """Attempt maximal end reduction on a tileset.
     
@@ -236,14 +279,19 @@ def reduce_tiles(tileset,
         shuffle(dirs)
         for r in dirs:
             trialts = tryreducerot(
-                ts, (t1.name, t2.name), rot=r, checkld=checkld, _smo=_smo, _classes=_classes)
+                ts, (t1.name, t2.name),
+                rot=r,
+                checkld=checkld,
+                _smo=_smo,
+                _classes=_classes)
             if trialts is not False:
+                oldts = ts
                 ts = trialts
                 removedtiles.append(t2.name)
                 reminfo.append((t1.name, t2.name, r))
 
-                ts.tiles[t1.name]['functionsas'] = t1.get(
-                    'functionsas', []) + t2.get('functionsas', []) + [t2.name]
+                ts.tiles[t1.name]['functionsas'] = ts.tiles[t1.name].get(
+                    'functionsas', []) + oldts.tiles[t2.name].get('functionsas', []) + [t2.name]
 
                 # Remove pairs that have the removed tile.
                 pairstodo = [
@@ -271,13 +319,12 @@ def reduce_tiles(tileset,
             len(tileset.tiles) - len(removedtiles), len(removedtiles), idone))
 
     # End by ensuring that unsafe didn't do anything bad:
-    if oldts != tileset:
+    if (oldts != tileset):
         log.warning("ts != tileset in reduce_tiles")
-        return ts, oldts
 
     ts.add_info('tilereduce',
-               {'rotation': rotation,
-                'checkld': checkld,
-                'removed': reminfo})
+                {'rotation': rotation,
+                 'checkld': checkld,
+                 'removed': reminfo})
 
     return ts

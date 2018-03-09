@@ -140,7 +140,7 @@ def equate_pair(ts, pair, unsafe=False, doseed=False):
     return newts
 
 
-def reduce_ends(ts, checkld=False, _wraparound=False, _classes=('2GO',), _smo=2):
+def reduce_ends(ts, checkld=False, _wraparound=False, _classes=('2GO',), _smo=2, _unsafe=False):
     oldts = ts.copy()
     sc = ts.sensitivity_classes(_maxorder=_smo)
     potentials = list(find_nonsens_pairs(oldts, sc))
@@ -158,7 +158,7 @@ not bool or 1. Setting to 2")
     changed = False
     while len(potentials) > 0:
         pair = potentials.pop()
-        trialts = equate_pair(oldts, pair, unsafe=True)
+        trialts = equate_pair(oldts, pair, unsafe=_unsafe)
         trialsc = trialts.sensitivity_classes(_maxorder=_smo)
         if check_changes(oldts, trialts, pair, sc, trialsc, checkld=checkld, _classes=_classes):
             oldts = trialts

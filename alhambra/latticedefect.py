@@ -2,9 +2,20 @@ import itertools
 from .util import comp
 import re
 
+_OE = [2, 3, 0, 1]
+_ENDER = [3, 2, 1, 0]
 
-def _generic_branch(direction, ts, t, n, f=False):
-    pass
+
+def _generic_branch(direction, tiles, tile, n, f=False):
+    # Generic branch finder.  MUST USE ALL SINGLES (EG, FAKESINGLE)
+    branches = []
+    if n == 0:
+        return [([tile], tile['ends'][_ENDER[direction]])]
+    for tn in tiles:
+        if (tile['ends'][direction] == comp(tn['ends'][_OE[direction]])):
+            branches += [([tile] + x, y)
+                         for x, y in _generic_branch(direction, ts, tn, n - 1)]
+    return branches
 
 
 def _north_branch(ts, t, n, f=False):
@@ -89,6 +100,19 @@ def _latticedefect_tile(ts, tile, n=2):
                 if _EWmatch(n[0][1], n[1][1], tile)]
     return res
 
+def _latticedefect_tile_new(tiles, tile, direction='e', n=2):
+    """With n tiles in each branch, can tile t form a lattice defect?"""
+    d1, d2 = {'e': (1, 2), 'w': (0, 3)}
+    b1 = _generic_branch(d1, tiles, tile, n)
+    b2 = _generic_branch(d2, tiles, tile, n)
+    neighborhoods = itertools.product(b1, b2)
+    res = []
+    for n in neighborhoods:
+        res += [(n, tile) for tile in tiles
+                if ((n[0][1] == comp(tile['ends'][_OE[d1]])) and
+                (n[1][1] == comp(tile['ends'][_OE[d2]])))]
+    return res
+
 
 def _ppld(res):
     """pretty-print lattice defects, to some extent.  W is the initial tile, N/S are the
@@ -99,6 +123,18 @@ def _ppld(res):
                 t['name'] for t in n[1][0][1:]) + "] " + "E:" + tt['name']
         for n, tt in res
     ]
+
+
+def latticedefects_new(ts, direction='e', depth=2, pp=True):
+    if depth < 2:
+        raise ValueError(
+            "Depth cannot be less than 2, received {}.".format(depth))
+    alldefects = sum((_latticedefect_tile_new(ts, tile, direction=direction, depth=depth)
+                      for tile in ts.tiles), [])
+    if pp:
+        return _ppld(alldefects)
+    else:
+        return alldefects
 
 
 def latticedefects(ts, depth=2, pp=True):

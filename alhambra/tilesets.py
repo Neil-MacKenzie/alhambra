@@ -1515,71 +1515,7 @@ class TileSet(CommentedMap):
         if rotate:
             rotatedtiles = []
             for tile in ts.tiles:
-                if (re.match('tile_daoe_3up', tile.structure.name)
-                        or re.match('tile_daoe_5up', tile.structure.name)):
-                    newtile = copy.deepcopy(tile)
-                    newtile['name'] += '_lrf'
-                    newtile['ends'] = [tile['ends'][x] for x in (1, 0, 3, 2)]
-                    rotatedtiles.append(newtile)
-                    newtile = copy.deepcopy(tile)
-                    newtile['name'] += '_udf'
-                    newtile['structure'] = 'tile_daoe_' + {
-                        '5up': '3up',
-                        '3up': '5up'
-                    }[tile['structure'][-3:]]
-                    newtile['ends'] = [tile['ends'][x] for x in (3, 2, 1, 0)]
-                    rotatedtiles.append(newtile)
-                    newtile = copy.deepcopy(tile)
-                    newtile['name'] += '_bf'
-                    newtile['structure'] = 'tile_daoe_' + {
-                        '5up': '3up',
-                        '3up': '5up'
-                    }[tile['structure'][-3:]]
-                    newtile['ends'] = [tile['ends'][x] for x in (2, 3, 0, 1)]
-                    rotatedtiles.append(newtile)
-                elif re.match('tile_daoe_doublehoriz_35up', tile.structure.name):
-                    newtile = copy.deepcopy(tile)
-                    newtile['name'] += '_lrf'
-                    newtile['structure'] = 'tile_daoe_doublevert_53up'
-                    newtile['ends'] = [
-                        tile['ends'][x] for x in (2, 1, 0, 5, 4, 3)
-                    ]
-                    rotatedtiles.append(newtile)
-                    newtile = copy.deepcopy(tile)
-                    newtile['name'] += '_udf'
-                    newtile['structure'] = 'tile_daoe_doublevert_53up'
-                    newtile['ends'] = [
-                        tile['ends'][x] for x in (5, 4, 3, 2, 1, 0)
-                    ]
-                    rotatedtiles.append(newtile)
-                    newtile = copy.deepcopy(tile)
-                    newtile['name'] += '_bf'
-                    newtile['ends'] = [
-                        tile['ends'][x] for x in (3, 4, 5, 0, 1, 2)
-                    ]
-                    rotatedtiles.append(newtile)
-                elif re.match('tile_daoe_doublevert_35up', tile.structure.name):
-                    newtile = copy.deepcopy(tile)
-                    newtile['name'] += '_lrf'
-                    newtile['structure'] = 'tile_daoe_doublehoriz_53up'
-                    newtile['ends'] = [
-                        tile['ends'][x] for x in (2, 1, 0, 5, 4, 3)
-                    ]
-                    rotatedtiles.append(newtile)
-                    newtile = copy.deepcopy(tile)
-                    newtile['name'] += '_udf'
-                    newtile['structure'] = 'tile_daoe_doublehoriz_53up'
-                    newtile['ends'] = [
-                        tile['ends'][x] for x in (5, 4, 3, 2, 1, 0)
-                    ]
-                    rotatedtiles.append(newtile)
-                    newtile = copy.deepcopy(tile)
-                    newtile['name'] += '_bf'
-                    newtile['ends'] = [
-                        tile['ends'][x] for x in (3, 4, 5, 0, 1, 2)
-                    ]
-                    rotatedtiles.append(newtile)
-
+                rotatedtiles += tile.rotations
             ts.tiles += rotatedtiles
 
         for tile in ts.tiles:
