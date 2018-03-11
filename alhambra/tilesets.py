@@ -26,19 +26,15 @@ from peppercompiler.DNA_classes import wc
 import numpy as np
 import stickydesign as sd
 
-import stickydesign.plots as sdplots
+
 import stickydesign.multimodel as multimodel
 from collections import Counter
-
-
 
 import collections
 from random import shuffle
 from datetime import datetime, timezone
 
 import logging
-
-
 
 import stickydesign2 as sd2
 
@@ -130,7 +126,7 @@ class TileSet(CommentedMap):
             self['tiles'] = val
         else:
             self['tiles'] = TileList(val)
-    
+
     @property
     def allends(self):
         """All ends in the system, both from ends and tiles.
@@ -146,7 +142,7 @@ class TileSet(CommentedMap):
         TileSet.ends
         TileSet.tiles.endlist"""
         return self.ends.merge(self.tiles.endlist())
-    
+
     def ends():
         doc = """The EndList of specified ends in the TileSet (not including
                  ends that are only in tiles.
@@ -294,7 +290,7 @@ class TileSet(CommentedMap):
                 xgrowarray = xgrowarray['tiles']
             elif 'array' in xgrowarray:
                 xgrowarray = xgrowarray['array']['tiles']
-        
+
         for tile in tileset.tiles:
             group, n = tile.abstract_diagram(tileset)
             svgtiles[tile.name] = group
@@ -398,14 +394,21 @@ class TileSet(CommentedMap):
     def summary(self):
         """Returns a short summary line about the TileSet"""
         self.check_consistent()
-        info = {'ntiles': len(self.tiles),
-                'nends':  len(self.ends),
-                'ntends': len(self.tiles.endlist()),
-                'tns':    " ".join(x.name for x in self.tiles if x.name),
-                'ens':    " ".join(x.name for x in self.ends if x.name),
-                'name':   " {}".format(self['info']['name']) if 
-                                       ('info' in self.keys() and 
-                                        'name' in self['info'].keys()) else ""}
+        info = {
+            'ntiles':
+            len(self.tiles),
+            'nends':
+            len(self.ends),
+            'ntends':
+            len(self.tiles.endlist()),
+            'tns':
+            " ".join(x.name for x in self.tiles if x.name),
+            'ens':
+            " ".join(x.name for x in self.ends if x.name),
+            'name':
+            " {}".format(self['info']['name']) if
+            ('info' in self.keys() and 'name' in self['info'].keys()) else ""
+        }
         tun = sum(1 for x in self.tiles if 'name' not in x.keys())
         if tun > 0:
             info['tns'] += " ({} unnamed)".format(tun)
@@ -686,7 +689,10 @@ class TileSet(CommentedMap):
             presetavail = None
             for i in range(0, trials):
                 endchooserTD = multimodel.endchooser(
-                    all_energetics, templates=TDtemplates, devmethod=devmethod, **ecpars)
+                    all_energetics,
+                    templates=TDtemplates,
+                    devmethod=devmethod,
+                    **ecpars)
 
                 e, presetavail = sd.easyends(
                     'TD',
@@ -738,13 +744,14 @@ class TileSet(CommentedMap):
 
                 pl.update(i + trials)
 
-            arr = [[sd.endarray(oldTDseqs + x.tolist(), 'TD'),
-                    sd.endarray(oldDTseqs + y.tolist(), 'DT')]
-                    for x, y in zip(newTDseqs, newDTseqs)]
-                
+            arr = [[
+                sd.endarray(oldTDseqs + x.tolist(), 'TD'),
+                sd.endarray(oldDTseqs + y.tolist(), 'DT')
+            ] for x, y in zip(newTDseqs, newDTseqs)]
+
             scores = [
-                multimodel.deviation_score(list(e), all_energetics, devmethod=devmethod)
-                for e in arr
+                multimodel.deviation_score(
+                    list(e), all_energetics, devmethod=devmethod) for e in arr
             ]
 
             sort = np.argsort(scores)
@@ -790,7 +797,7 @@ class TileSet(CommentedMap):
 
         newendnames = [e.name for e in newTD] + [e.name for e in newDT]
         info['newends'] = newendnames
-        
+
         # Apply new sequences to tile system.
         newtileset.ends = ends
         if 'info' not in newtileset.keys():
@@ -811,7 +818,7 @@ class TileSet(CommentedMap):
         if ititle not in self['info'].keys():
             self['info'][ititle] = []
         self['info'][ititle].append(data)
-    
+
     def reorder_ends(tileset,
                      newends=[],
                      hightemp=0.1,
@@ -1000,17 +1007,15 @@ class TileSet(CommentedMap):
         if len(oldTDseqs) > 0:
             interactions.append(np.mean(energetics.gse(oldTDarray)))
         if len(oldDTseqs) == 0 and len(oldTDseqs) == 0:
-            interactions.append(sd2.genpre('DT',5,energetics)[1])
-            interactions.append(sd2.genpre('TD',5,energetics)[1])
+            interactions.append(sd2.genpre('DT', 5, energetics)[1])
+            interactions.append(sd2.genpre('TD', 5, energetics)[1])
         interaction = np.average(interactions)
-        
-        availendsDT, _, sfDT = sd2.genpre('DT', 5, energetics,
-                                          interaction=interaction,
-                                          oldends=oldDTarray)
-        availendsTD, _, sfTD = sd2.genpre('TD', 5, energetics,
-                                          interaction=interaction,
-                                          oldends=oldTDarray)
-        
+
+        availendsDT, _, sfDT = sd2.genpre(
+            'DT', 5, energetics, interaction=interaction, oldends=oldDTarray)
+        availendsTD, _, sfTD = sd2.genpre(
+            'TD', 5, energetics, interaction=interaction, oldends=oldTDarray)
+
         if any(not seq.is_null(end.fseq) for end in newTD):
             raise NotImplementedError
         if any(not seq.is_null(end.fseq) for end in newDT):
@@ -1018,14 +1023,13 @@ class TileSet(CommentedMap):
 
         newTDseqs = []
         newDTseqs = []
-        
-        rejects = 0
-        min_score=1000.0
-        SELOGGER.info("starting sticky end generation " +
-                      "of TD ends for {} DT and {} TD ends, {} trials.".
-                      format(len(newDT), len(newTD), trials))
 
-        
+        rejects = 0
+        min_score = 1000.0
+        SELOGGER.info("starting sticky end generation " +
+                      "of TD ends for {} DT and {} TD ends, {} trials.".format(
+                          len(newDT), len(newTD), trials))
+
         for i in range(0, trials):
 
             if method == 'default':
@@ -1048,7 +1052,7 @@ class TileSet(CommentedMap):
             if len(eTD) < len(newTD):
                 rejects += 1
                 continue
-            
+
             eDT = sd2.easyends(
                 'DT',
                 5,
@@ -1065,7 +1069,8 @@ class TileSet(CommentedMap):
                 continue
 
             # FIXME: old ends
-            score = sd2.deviation_score([eTD, eDT], all_energetics, devmethod=devmethod)
+            score = sd2.deviation_score(
+                [eTD, eDT], all_energetics, devmethod=devmethod)
             if score < min_score:
                 min_score = score
                 minTD = eTD
@@ -1099,7 +1104,7 @@ class TileSet(CommentedMap):
 
         newendnames = [e.name for e in newTD] + [e.name for e in newDT]
         info['newends'] = newendnames
-        
+
         # Apply new sequences to tile system.
         newtileset.ends = ends
         if 'info' not in newtileset.keys():
@@ -1114,12 +1119,11 @@ class TileSet(CommentedMap):
 
         return newtileset, newendnames
 
-    
     def create_strand_sequences(tileset,
                                 basename='alhambratemp',
                                 includes=[
-                                    pkg_resources.resource_filename(__name__,
-                                                                    'peppercomps-j1')
+                                    pkg_resources.resource_filename(
+                                        __name__, 'peppercomps-j1')
                                 ],
                                 spurious_pars="verboten_weak=1.5",
                                 *options):
@@ -1233,7 +1237,8 @@ class TileSet(CommentedMap):
 
     def _create_pepper_input_files(tileset, basename):
         # Are we creating adapters in Pepper?
-        if tileset.seed and seeds.seedtypes[tileset['seed']['type']].needspepper:
+        if tileset.seed and seeds.seedtypes[tileset['seed']
+                                            ['type']].needspepper:
             seedclass = seeds.seedtypes[tileset['seed']['type']]
             createadapts = True
         else:
@@ -1372,8 +1377,13 @@ class TileSet(CommentedMap):
 
         base.write(filename)
 
-    def run_xgrow(self, xgrowparams={}, perfect=False, rotate=False, energetics=None,
-                  ui=False, output=None):
+    def run_xgrow(self,
+                  xgrowparams={},
+                  perfect=False,
+                  rotate=False,
+                  energetics=None,
+                  ui=False,
+                  output=None):
         """Run Xgrow for the system.
         
         Parameters
@@ -1413,16 +1423,17 @@ class TileSet(CommentedMap):
 
         """
         import xgrow
-        return xgrow.run(self.generate_xgrow_dict(perfect=perfect,
-                                                  rotate=rotate,
-                                                  energetics=energetics),
-                         extraparams=xgrowparams,
-                         outputopts=output,
-                         ui=ui)
+        return xgrow.run(
+            self.generate_xgrow_dict(
+                perfect=perfect, rotate=rotate, energetics=energetics),
+            extraparams=xgrowparams,
+            outputopts=output,
+            ui=ui)
 
     def sensitivity_classes(ts, count=False, _maxorder=2):
-        return sensitivity.sensitivity_classes(ts, count=False, _maxorder=_maxorder)
-    
+        return sensitivity.sensitivity_classes(
+            ts, count=False, _maxorder=_maxorder)
+
     def generate_xgrow_dict(ts, perfect=False, rotate=False, energetics=None):
         """Generate a Xgrow tileset dict.
 
@@ -1462,10 +1473,13 @@ class TileSet(CommentedMap):
         if ts.seed:
             seedtype = seeds.seedtypes[ts.seed['type']]
             newtiles.append({
-                'name': 'origami',
+                'name':
+                'origami',
                 'edges': ['origami', 'origami', 'origami', 'origami'],
-                'stoic': 0,
-                'color': 'white'
+                'stoic':
+                0,
+                'color':
+                'white'
             })
 
             atiles = [None] * len(seedtype.cores)
@@ -1480,7 +1494,8 @@ class TileSet(CommentedMap):
                         ][0]
                         to_use.append(tile)
                     except IndexError as e:
-                        raise Exception("Can't find {}".format(tilename)) from e
+                        raise Exception(
+                            "Can't find {}".format(tilename)) from e
             else:
                 to_use = ts['seed']['adapters']
 
@@ -1493,9 +1508,10 @@ class TileSet(CommentedMap):
                 else:
                     mtile = ts.tiles[tile['tilebase']]
                     newtile['edges'] = ['origami'] + [
-                        re.sub('/', '_c', x) for x in
-                        mtile.ends[seedtype._mimicadapt[
-                            mtile.structure.name]['ends']]
+                        re.sub('/', '_c', x)
+                        for x in
+                        mtile.ends[seedtype._mimicadapt[mtile.structure.name]
+                                   ['ends']]
                     ] + ['origami']
                 newtile['name'] = tile.get('name', '')
                 newtile['stoic'] = 0
@@ -1692,9 +1708,9 @@ class TileSet(CommentedMap):
         td = sd.endarray([x['fseq'] for x in ends if x['type'] == 'TD'], 'TD')
 
         dt = sd.endarray([x['fseq'] for x in ends if x['type'] == 'DT'], 'DT')
-
-        return sdplots.hist_multi([td, dt], all_energetics,
-                                  energetics_names, title, **kwargs)
+        import stickydesign.plots as sdplots
+        return sdplots.hist_multi([td, dt], all_energetics, energetics_names,
+                                  title, **kwargs)
 
     def plot_se_lv(self,
                    all_energetics=None,
@@ -1708,25 +1724,22 @@ class TileSet(CommentedMap):
 
         if energetics_names is None:
             energetics_names = DEFAULT_MM_ENERGETICS_NAMES
-
-        m, s = sdplots._multi_data_pandas(
-            self.ends.to_endarrays(),
-            all_energetics,
-            energetics_names)
+        import stickydesign.plots as sdplots
+        m, s = sdplots._multi_data_pandas(self.ends.to_endarrays(),
+                                          all_energetics, energetics_names)
 
         import seaborn as sns
         import matplotlib.pyplot as plt
 
         if pltcmd is None:
             pltcmd = sns.lvplot
-            
+
         pltcmd(data=m, **kwargs)
         pltcmd(data=s, marker='x', **kwargs)
         if title:
             plt.title(title)
         plt.ylabel("Energy (kcal/mol)")
 
-    
     def plot_adjacent_regions(tileset, energetics=None):
         """
         Plots the strength of double-stranded regions in DX tiles adjacent 
@@ -1803,6 +1816,45 @@ class TileSet(CommentedMap):
         pylab.ylabel('# of 16 nt regions')
         pylab.xlabel('stickydesign ΔG')
         pylab.suptitle('16 nt arm region strengths')
+
+    def reduce_ends(ts,
+                    checkld=False,
+                    _wraparound=False,
+                    _classes=('2GO', ),
+                    _smo=2,
+                    _unsafe=False):
+        from . import endreduce
+        return endreduce.reduce_ends(
+            ts,
+            checkld=checkld,
+            _wraparound=_wraparound,
+            _classes=_classes,
+            _smo=_smo,
+            _unsafe=_unsafe)
+
+    def reduce_tiles(tileset,
+                     colors=None,
+                     rotation=True,
+                     checkld=2,
+                     _unsafe=True,
+                     _smo=2,
+                     _classes=('2GO', ),
+                     update=1000):
+        from . import tilereduce
+        return tilereduce.reduce_tiles(
+            tileset,
+            colors=colors,
+            rotation=rotation,
+            checkld=checkld,
+            _unsafe=_unsafe,
+            _smo=_smo,
+            _classes=_classes,
+            update=update)
+
+    def latticedefects(ts, direction='e', depth=2, pp=True, rotate=False):
+        from . import latticedefect
+        return latticedefect.latticedefects(
+            ts, direction=direction, depth=depth, pp=pp, rotate=rotate)
 
 
 RoundTripRepresenter.add_representer(TileSet,

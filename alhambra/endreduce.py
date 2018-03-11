@@ -100,11 +100,18 @@ def check_changes(oldts,
 
     # FIXME: add lattice defect check
     if checkld:
-        oldld = latticedefects(oldts, depth=checkld)
-        newld = latticedefects(newts, depth=checkld)
+        oldld = latticedefects(oldts, direction='e', depth=checkld)
+        newld = latticedefects(newts, direction='e', depth=checkld)
         if (len(newld) > len(oldld)) or (len(
             [x for x in newld if x not in oldld]) > 0):
-            log.debug("lattice defect: {}".format(equatedpair))
+            log.debug("lattice defect (e): {}".format(equatedpair))
+            return False
+
+        oldld = latticedefects(oldts, direction='w', depth=checkld)
+        newld = latticedefects(newts, direction='w', depth=checkld)
+        if (len(newld) > len(oldld)) or (len(
+            [x for x in newld if x not in oldld]) > 0):
+            log.debug("lattice defect (w): {}".format(equatedpair))
             return False
     return True
 
@@ -141,6 +148,9 @@ def equate_pair(ts, pair, unsafe=False, doseed=False):
 
 
 def reduce_ends(ts, checkld=False, _wraparound=False, _classes=('2GO',), _smo=2, _unsafe=False):
+    
+    if ('22GO' in _classes) or ('22NGO' in _classes):
+        _smo = 3
     oldts = ts.copy()
     sc = ts.sensitivity_classes(_maxorder=_smo)
     potentials = list(find_nonsens_pairs(oldts, sc))

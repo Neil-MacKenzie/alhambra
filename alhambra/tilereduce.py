@@ -212,20 +212,30 @@ def check_changes_multi(oldts,
                     return False
 
     # FIXME: add lattice defect check
+
+    # FIXME: add lattice defect check
     if checkld:
-        oldld = latticedefects(oldts, depth=checkld)
-        newld = latticedefects(newts, depth=checkld)
+        oldld = latticedefects(oldts, direction='e', depth=checkld)
+        newld = latticedefects(newts, direction='e', depth=checkld)
         if (len(newld) > len(oldld)) or (len(
             [x for x in newld if x not in oldld]) > 0):
-            log.debug("lattice defect: {}".format(equatedpairs))
+            log.debug("lattice defect (e): {}".format(equatedpairs))
             return False
+
+        oldld = latticedefects(oldts, direction='w', depth=checkld)
+        newld = latticedefects(newts, direction='w', depth=checkld)
+        if (len(newld) > len(oldld)) or (len(
+            [x for x in newld if x not in oldld]) > 0):
+            log.debug("lattice defect (w): {}".format(equatedpairs))
+            return False
+
     return True
 
 
 def reduce_tiles(tileset,
                  colors=None,
                  rotation=True,
-                 checkld=True,
+                 checkld=2,
                  _unsafe=True,
                  _smo=2,
                  _classes=('2GO', ),
@@ -250,6 +260,9 @@ def reduce_tiles(tileset,
     pairstodo = list(combinations(ts.tiles, 2))
     shuffle(pairstodo)
 
+    if ('22GO' in _classes) or ('22NGO' in _classes):
+        _smo = 3
+    
     pairspassed = []
     removedtiles = []
     reminfo = []
