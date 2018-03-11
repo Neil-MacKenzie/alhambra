@@ -6,9 +6,19 @@ from .util import comp
 
 
 class CounterSet(Counter):
-    def add(self, val):
+    def add(self, val, valthrowaway):
         self[val] += 1
 
+
+class SetSet(set):
+    def add(self, val, valthrowaway):
+        set.add(self, val)
+        
+class PathSet(dict):
+    def add(self, key, val):
+        if key not in self.keys():
+            self[key] = set()
+        self[key].add(val)
 
 def _fakesingle(tile):
     if not tile.structure.double:
@@ -53,10 +63,12 @@ def sensitivity_classes(tileset, count=False, _maxorder=2):
     rotatedsingles = singles + _fakesingles(
         sum([x.rotations for x in tileset.tiles], TileList()))
 
-    if count:
+    if count == 'paths':
+        sclass = PathSet
+    elif count:
         sclass = CounterSet
     else:
-        sclass = set
+        sclass = SetSet
 
     spairs = {
         '1GO': sclass(),
@@ -95,17 +107,21 @@ def sensitivity_classes(tileset, count=False, _maxorder=2):
                     if t1.structure._endtypes[j] in {'fakedouble', 'hairpin'}:
                         continue
                     spairs['1NGO'].add(
-                        frozenset((t2['ends'][j], t1['ends'][j])))
+                        frozenset((t2['ends'][j], t1['ends'][j])),
+                        (t1.name, t2.name))
                     spairs['1NGO'].add(
-                        frozenset((comp(t2['ends'][j]), comp(t1['ends'][j]))))
+                        frozenset((comp(t2['ends'][j]), comp(t1['ends'][j]))),
+                        (t1.name, t2.name))
                     go1 = False
                     if t1['input'][i] and t1['input'][j]:
                         go1 = True
                         spairs['1GO'].add(
-                            frozenset((t2['ends'][j], t1['ends'][j])))
+                            frozenset((t2['ends'][j], t1['ends'][j])),
+                            (t1.name, t2.name))
                         spairs['1GO'].add(
                             frozenset((comp(t2['ends'][j]), comp(
-                                t1['ends'][j]))))
+                                t1['ends'][j]))),
+                            (t1.name, t2.name))
                     for k in (set(range(0, 4)) - {i, j}):
                         if (t1.structure._endtypes[k] == 'hairpin') or (
                                 t2.structure._endtypes[k] == 'hairpin'):
@@ -130,17 +146,21 @@ def sensitivity_classes(tileset, count=False, _maxorder=2):
                                         continue
                                     spairs['2NGO'].add(
                                         frozenset((t2['ends'][j], t1['ends'][j]
-                                                   )))
+                                                   )),
+                                        (t1.name, t2.name, t12.name, t22.name))
                                     spairs['2NGO'].add(
                                         frozenset((comp(t2['ends'][j]), comp(
-                                            t1['ends'][j]))))
+                                            t1['ends'][j]))),
+                                        (t1.name, t2.name, t12.name, t22.name))
                                     if t12['input'][m] and t12['input'][kc] and go1:
                                         spairs['2GO'].add(
                                             frozenset((t2['ends'][j], t1[
-                                                'ends'][j])))
+                                                'ends'][j])),
+                                            (t1.name, t2.name, t12.name, t22.name))
                                         spairs['2GO'].add(
                                             frozenset((comp(t2['ends'][j]),
-                                                       comp(t1['ends'][j]))))
+                                                       comp(t1['ends'][j]))),
+                                            (t1.name, t2.name, t12.name, t22.name))
                                     if _maxorder > 2:
                                         for k2 in (set(range(0, 4)) - {
                                                 i, j, k
@@ -163,27 +183,31 @@ def sensitivity_classes(tileset, count=False, _maxorder=2):
                                                         t2['ends'][
                                                             j],
                                                         t1['ends'][
-                                                            j])))
+                                                            j])),
+                                                    (t1.name, t2.name, t12.name, t22.name))
                                                 spairs['22NGO'].add(
                                                     frozenset((comp(
                                                         t2['ends'][
                                                             j]
                                                     ), comp(
                                                         t1['ends'][
-                                                            j]))))
+                                                            j]))),
+                                                    (t1.name, t2.name, t12.name, t22.name))
                                                 spairs['22GO'].add(
                                                     frozenset((
                                                         t2['ends'][
                                                             j],
                                                         t1['ends'][
-                                                            j])))
+                                                            j])),
+                                                    (t1.name, t2.name, t12.name, t22.name))
                                                 spairs['22GO'].add(
                                                     frozenset((comp(
                                                         t2['ends'][
                                                             j]
                                                     ), comp(
                                                         t1['ends'][
-                                                            j]))))
+                                                            j]))),
+                                                    (t1.name, t2.name, t12.name, t22.name))
                                                 continue
 
                                             ec1_3 = comp(t1['ends'][k2])
@@ -210,26 +234,30 @@ def sensitivity_classes(tileset, count=False, _maxorder=2):
                                                             frozenset((t2[
                                                                 'ends'][j], t1[
                                                                     'ends'][j]
-                                                                       )))
+                                                                       )),
+                                                            (t1.name, t2.name, t12.name, t22.name, t13.name, t23.name))
                                                         spairs['22NGO'].add(
                                                             frozenset((comp(
                                                                 t2['ends']
                                                                 [j]), comp(
                                                                     t1['ends'][
-                                                                        j]))))
+                                                                        j]))),
+                                                            (t1.name, t2.name, t12.name, t22.name, t13.name, t23.name))
                                                         if t12['input'][m] and t12['input'][kc] and t13['input'][m2] and t13['input'][kc2] and go1:
                                                             spairs['22GO'].add(
                                                                 frozenset((
                                                                     t2['ends'][
                                                                         j],
                                                                     t1['ends'][
-                                                                        j])))
+                                                                        j])),
+                                                                (t1.name, t2.name, t12.name, t22.name, t13.name, t23.name))
                                                             spairs['22GO'].add(
                                                                 frozenset((comp(
                                                                     t2['ends'][
                                                                         j]
                                                                 ), comp(
                                                                     t1['ends'][
-                                                                        j]))))
+                                                                        j]))),
+                                                                (t1.name, t2.name, t12.name, t22.name, t13.name, t23.name))
 
     return spairs
