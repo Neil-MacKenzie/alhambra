@@ -1,6 +1,8 @@
 import itertools
 from .util import comp
 import re
+from .tiles import TileList
+from .sensitivitynew import _fakesingles
 
 _OE = [2, 3, 0, 1]
 _ENDER = [3, 2, 1, 0]
@@ -13,8 +15,10 @@ def _generic_branch(direction, tiles, tile, n, f=False):
         return [([tile], tile['ends'][_ENDER[direction]])]
     for tn in tiles:
         if (tile['ends'][direction] == comp(tn['ends'][_OE[direction]])):
-            branches += [([tile] + x, y)
-                         for x, y in _generic_branch(direction, ts, tn, n - 1)]
+            branches += [
+                ([tile] + x, y)
+                for x, y in _generic_branch(direction, tiles, tn, n - 1)
+            ]
     return branches
 
 
@@ -100,17 +104,18 @@ def _latticedefect_tile(ts, tile, n=2):
                 if _EWmatch(n[0][1], n[1][1], tile)]
     return res
 
+
 def _latticedefect_tile_new(tiles, tile, direction='e', n=2):
     """With n tiles in each branch, can tile t form a lattice defect?"""
-    d1, d2 = {'e': (1, 2), 'w': (0, 3)}
+    d1, d2 = {'e': (1, 2), 'w': (0, 3), 'n': (0, 1), 's': (2, 3)}[direction]
     b1 = _generic_branch(d1, tiles, tile, n)
     b2 = _generic_branch(d2, tiles, tile, n)
     neighborhoods = itertools.product(b1, b2)
     res = []
     for n in neighborhoods:
         res += [(n, tile) for tile in tiles
-                if ((n[0][1] == comp(tile['ends'][_OE[d1]])) and
-                (n[1][1] == comp(tile['ends'][_OE[d2]])))]
+                if ((n[0][1] == comp(tile['ends'][_OE[_ENDER[d1]]])) and (
+                    n[1][1] == comp(tile['ends'][_OE[_ENDER[d2]]])))]
     return res
 
 
@@ -125,12 +130,21 @@ def _ppld(res):
     ]
 
 
-def latticedefects_new(ts, direction='e', depth=2, pp=True):
+def latticedefects_new(ts, direction='e', depth=2, pp=True, rotate=False):
     if depth < 2:
         raise ValueError(
             "Depth cannot be less than 2, received {}.".format(depth))
-    alldefects = sum((_latticedefect_tile_new(ts, tile, direction=direction, depth=depth)
-                      for tile in ts.tiles), [])
+    tiles = _fakesingles(ts.tiles)
+    rtiles = _fakesingles(
+        TileList([x for x in ts.tiles if 'fake' not in x.keys()]) + sum([
+            x.rotations for x in ts.tiles if 'fake' not in x.keys()
+        ], TileList()))
+    if rotate:
+        tll = rtiles
+    else:
+        tll = tiles
+    alldefects = sum((_latticedefect_tile_new(
+        tll, tile, direction=direction, n=depth) for tile in tll), [])
     if pp:
         return _ppld(alldefects)
     else:
