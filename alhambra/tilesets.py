@@ -26,7 +26,6 @@ from peppercompiler.DNA_classes import wc
 import numpy as np
 import stickydesign as sd
 
-
 import stickydesign.multimodel as multimodel
 from collections import Counter
 
@@ -1603,6 +1602,16 @@ class TileSet(CommentedMap):
             newends.append({'name': end, 'strength': 10})
         for end in vdoubleends:
             newends.append({'name': end, 'strength': 10})
+
+        # check for whether we need to use perfect:
+        if not perfect:
+            for end in ts.allends:
+                if (end['type'] in {'TD', 'DT'}) and 'fseq' not in end.keys():
+                    perfect = True
+                    SELOGGER.warn(
+                        "setting perfect=True, because {} has no sequence.".
+                        format(end['name']))
+                    break
 
         gluelist = []
         if not perfect:
