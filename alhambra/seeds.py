@@ -222,11 +222,14 @@ class tallrect_endadapts(seed_base):
             importlist.add(adaptertype)
         return (importlist, compstring)
 
+class bigseed(seed_tileadapts):
+    cores = ["A"]*37
 
 seedtypes = {
     'tallrect_tileadapts': tallrect_tileadapts(),
     'tallrect_endadapts': tallrect_endadapts(),
-    'triangle_side2': triangle_side2()
+    'triangle_side2': triangle_side2(),
+    'bigseed': bigseed()
 }
 seedtypes['longrect'] = seedtypes['tallrect_tileadapts']
 seedtypes['longrect_old'] = seedtypes['tallrect_endadapts']

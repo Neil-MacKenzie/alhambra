@@ -545,11 +545,11 @@ class tile_daoe_doublevert_35up(tile_daoe_doublevert):
                 (5, -5, None), (2, -5, None), (0, 0, 5)]
 
 class tile_daoe_doublevert_53up(tile_daoe_doublevert):
-#    @property
-#    def rotations(self):
-#        return [(tile_daoe_doublevert_35up, (3, 4, 5, 0, 1, 2)),
-#                (tile_daoe_doublehoriz_35up, (5, 4, 3, 2, 1, 0)),
-#                (tile_daoe_doublehoriz_35up, (2, 1, 0, 5, 4, 3))]
+    @property
+    def rotations(self):  # FIXME: check this
+        return [(tile_daoe_doublevert_53up, (3, 4, 5, 0, 1, 2)),
+                (tile_daoe_doublehoriz_35up, (5, 4, 3, 2, 1, 0)),
+                (tile_daoe_doublehoriz_35up, (2, 1, 0, 5, 4, 3))]
 
     def _short_bound_full(self, tile):
         raise NotImplementedError
@@ -752,6 +752,11 @@ class tile_daoe_doublevert_35up_4h5h(tile_daoe_doublevert_35up):
             (s[5][30:32] + '-' + s[5][32:34] + '-' + s[5][34:39])[::-1]  # hp5
         ]
 
+class tile_daoe_doublevert_53up_4h5h(tile_daoe_doublevert_53up):
+    def __init__(self):
+        self._endtypes[3] = 'hairpin'
+        self._endtypes[4] = 'hairpin'
+
 
 tilestructures = {
     'tile_daoe_5up': tile_daoe_5up,
@@ -765,7 +770,8 @@ tilestructures = {
     'tile_daoe_doublehoriz_35up_1h2i': tile_daoe_doublehoriz_35up_1h2i,
     'tile_daoe_doublehoriz_35up_4h5i': tile_daoe_doublehoriz_35up_4h5i,
     'tile_daoe_doublehoriz_35up_4h5b': tile_daoe_doublehoriz_35up_4h5i,
-    'tile_daoe_doublevert_35up_4h5h': tile_daoe_doublevert_35up_4h5h
+    'tile_daoe_doublevert_35up_4h5h': tile_daoe_doublevert_35up_4h5h,
+    'tile_daoe_doublevert_53up_4h5h': tile_daoe_doublevert_53up_4h5h
 }
 
 
