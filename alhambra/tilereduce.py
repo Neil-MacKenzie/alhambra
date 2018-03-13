@@ -275,6 +275,9 @@ def reduce_tiles(tileset,
     log.info(
         "Started tile reduction: {} tile combinations".format(len(pairstodo)))
 
+    if checkld is True:
+        checkld = 2
+    
     while len(pairstodo) > 0:
         t1, t2 = pairstodo.pop()
 
