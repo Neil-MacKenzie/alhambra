@@ -48,11 +48,14 @@ def find_potential_end_removal(ts, end, sc=None, adjlike=None):
 
 
 
-def find_nonsens_pairs(ts, sc=None):
+def find_nonsens_pairs(ts, sc=None, _1go_only=False):
     if sc is None:
         sc = ts.sensitivity_classes()
 
-    allsenspairs = set.union(*sc.values())
+    if not _1go_only:
+        allsenspairs = set.union(*sc.values())
+    else:
+        allsenspairs = set(sc['1GO'])
 
     ae = ts.allends
 
@@ -147,13 +150,13 @@ def equate_pair(ts, pair, unsafe=False, doseed=False):
     return newts
 
 
-def reduce_ends(ts, checkld=False, _wraparound=False, _classes=('2GO',), _smo=2, _unsafe=False):
+def reduce_ends(ts, checkld=False, _wraparound=False, _classes=('2GO',), _smo=2, _unsafe=False, _1go_only=False):
     
     if ('22GO' in _classes) or ('22NGO' in _classes):
         _smo = 3
     oldts = ts.copy()
     sc = ts.sensitivity_classes(_maxorder=_smo)
-    potentials = list(find_nonsens_pairs(oldts, sc))
+    potentials = list(find_nonsens_pairs(oldts, sc, _1go_only))
     removedpairs = []
     shuffle(potentials)
 

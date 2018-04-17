@@ -333,12 +333,36 @@ class tile_daoe_3up(tile_daoe_single):
                 for i, seq in enumerate(seqs)]
 
 
+class tile_daoe_5up_1h(tile_daoe_5up):
+    _orient = ('5', '3')
+    _endtypes = ['hairpin', 'TD', 'DT', 'DT']
+
+
+class tile_daoe_5up_3h(tile_daoe_5up):
+    _orient = ('5', '3')
+    _endtypes = ['TD', 'TD', 'hairpin', 'DT']
+
+class tile_daoe_5up_3b(tile_daoe_5up):
+    _orient = ('5', '3')
+    _endtypes = ['TD', 'TD', 'hairpin', 'DT']
+
+class tile_daoe_5up_4h(tile_daoe_5up):
+    _orient = ('5', '3')
+    _endtypes = ['TD', 'TD', 'DT', 'hairpin']
+
+
 class tile_daoe_5up_2h(tile_daoe_5up):
     _orient = ('5', '3')
     _endtypes = ['TD', 'hairpin', 'DT', 'DT']
     _endlocs = [(0, 0, 5), (3, 0, 18), (3, -5, None), (0, -5, None)]
 
     edotparen = "5.16(5.+8)16[16{8)+8(16]16}8(+5.16)7(4.7)"
+
+    @property
+    def rotations(self):
+        return [(tile_daoe_3up_3h, (3, 2, 1, 0)),
+                (tile_daoe_5up_1h, (1, 0, 3, 2)),
+                (tile_daoe_3up_4h, (2, 3, 0, 1))]
     
     def _short_bound_full(self, tile):
         s = tile.strands
@@ -366,6 +390,16 @@ class tile_daoe_5up_2h(tile_daoe_5up):
             (s[3][:-6:-1] + "--" + s[3][-6:-14:-1])[::-1]
         ]
 
+class tile_daoe_3up_1h(tile_daoe_3up):
+    _endtypes = ['hairpin', 'DT', 'TD', 'TD']
+
+
+class tile_daoe_3up_3h(tile_daoe_3up):
+    _endtypes = ['DT', 'DT', 'hairpin', 'TD']
+
+    
+class tile_daoe_3up_4h(tile_daoe_3up):
+    _endtypes = ['DT', 'DT', 'TD', 'hairpin']
 
 class tile_daoe_3up_2h(tile_daoe_3up):
     def _short_bound_full(self, tile):
@@ -377,6 +411,12 @@ class tile_daoe_3up_2h(tile_daoe_3up):
         return [s[0][5:5 + 8], s[0][-5 - 8:-5], s[3][5:5 + 8],
                 s[3][-18 - 8:-18]]
 
+    @property
+    def rotations(self):
+        return [(tile_daoe_5up_3h, (3, 2, 1, 0)),
+                (tile_daoe_3up_1h, (1, 0, 3, 2)),
+                (tile_daoe_5up_4h, (2, 3, 0, 1))]
+    
     _endtypes = ['DT', 'hairpin', 'TD', 'TD']
     _endlocs = [(0, 21, None), (3, 21, None), (3, 0, 5), (0, 0, 5)]
 
@@ -761,8 +801,15 @@ class tile_daoe_doublevert_53up_4h5h(tile_daoe_doublevert_53up):
 tilestructures = {
     'tile_daoe_5up': tile_daoe_5up,
     'tile_daoe_3up': tile_daoe_3up,
+    'tile_daoe_5up_1h': tile_daoe_5up_1h,
     'tile_daoe_5up_2h': tile_daoe_5up_2h,
+    'tile_daoe_5up_3h': tile_daoe_5up_3h,
+    'tile_daoe_5up_3b': tile_daoe_5up_3b,
+    'tile_daoe_5up_4h': tile_daoe_5up_4h,
+    'tile_daoe_3up_1h': tile_daoe_3up_1h,
     'tile_daoe_3up_2h': tile_daoe_3up_2h,
+    'tile_daoe_3up_3h': tile_daoe_3up_3h,
+    'tile_daoe_3up_4h': tile_daoe_3up_4h,
     'tile_daoe_doublehoriz_53up': tile_daoe_doublehoriz_53up,
     'tile_daoe_doublehoriz_53up_2h3h': tile_daoe_doublehoriz_53up_2h3h,
     'tile_daoe_doublehoriz_35up': tile_daoe_doublehoriz_35up,    

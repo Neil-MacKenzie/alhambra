@@ -396,6 +396,10 @@ class TileSet(CommentedMap):
         info = {
             'ntiles':
             len(self.tiles),
+            'nrt':
+            len([x for x in self.tiles if 'fake' not in x.keys()]),
+            'nft':
+            len([x for x in self.tiles if 'fake' in x.keys()]),
             'nends':
             len(self.ends),
             'ntends':
@@ -414,7 +418,11 @@ class TileSet(CommentedMap):
         eun = sum(1 for x in self.ends if 'name' not in x.keys())
         if eun > 0:
             info['ens'] += " ({} unnamed)".format(eun)
-        return "TileSet{name}: {ntiles} tiles, {nends} ends, {ntends} ends in tiles.\nTiles: {tns}\nEnds:  {ens}".format(
+        if info['nft'] > 0:
+            info['nft'] = " (+ {} fake)".format(info['nft'])
+        else:
+            info['nft'] = ""
+        return "TileSet{name}: {nrt} tiles{nft}, {nends} ends, {ntends} ends in tiles.\nTiles: {tns}\nEnds:  {ens}".format(
             **info)
 
     def __str__(self):
