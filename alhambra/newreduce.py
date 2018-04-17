@@ -34,8 +34,11 @@ def mergeproblem(ts, m):
         for b in ts.tiles + sum([x.rotations for x in ts.tiles], TileList()):
             if input_eq_siminput(a, b):
                 continue
-            if not ((not input_eq_siminput(a, b, m)) or eq_noio(a, b, m)):
-                return (a, b)
+            if input_eq_siminput(a, b, m):
+                if eq_noio(a, b, m) and (('label' in a) == ('label' in b)):
+                    continue
+                else:
+                    return (a, b)
     return None
 
 
@@ -104,7 +107,7 @@ def mergetiles(ts,
 
 def newtilereduce(ts, checkprofiles=None, oldclasses=None, checkld=False):
     rti = ts.tiles + sum([x.rotations for x in ts.tiles], TileList())
-    tpairs = [(x,y) for x in ts.tiles for y in rti]
+    tpairs = [(x, y) for x in ts.tiles for y in rti]
     random.shuffle(tpairs)
     m = GlueMergeSpec([])
     tm = TileMergeSpec([])
@@ -116,8 +119,12 @@ def newtilereduce(ts, checkprofiles=None, oldclasses=None, checkld=False):
         if m2:
             m = m2
             tm = tm2
-            print(t1.name, t2.name)
+            log.debug("tile reduction: {} {}".format(t1.name, t2.name))
             tm.add(t1.name, t2.name)
+    log.info("tilereduced {} - {} tiles, {} - {} ends".format(
+        len(ts.tiles),
+        sum(len(x) - 1 for x in tm._ecs),
+        len(ts.allends), sum(len(x) - 1 for x in m._ecs) // 2))
     return m, tm
 
 
@@ -127,6 +134,8 @@ def newgluereduce(ts,
                   checkprofiles=None,
                   oldclasses=None,
                   checkld=False):
+    pts = - sum(len(x)-1 for x in tm._ecs)
+    pgs = - sum(len(x)-1 for x in m._ecs)//2
     potentials = list(er.find_nonsens_pairs(ts))
     random.shuffle(potentials)
     while len(potentials) > 0:
@@ -156,12 +165,20 @@ def newgluereduce(ts,
                     [x for x in newld if x not in oldld]) > 0):
                     log.debug("lattice defect (w): {}".format(pp))
                     continue
-            print(pp)
+            log.debug(str(pp))
             m = m2
         else:
-            m2, tm2 = mergetiles(ts, mp, m2, tm, checkprofiles, oldclasses, checkld)
+            m2, tm2 = mergetiles(ts, mp, m2, tm, checkprofiles, oldclasses,
+                                 checkld)
             if m2:
-                print(m2)
+                log.debug(str(m2))
                 m = m2
                 tm = tm2
+    log.info("tilereduced {} - {} (-{} p) tiles, {}  - {} (-{} p) ends".format(
+        len(ts.tiles),
+        sum(len(x) - 1 for x in tm._ecs),
+        pts,
+        len(ts.allends),
+        sum(len(x) - 1 for x in m._ecs) // 2,
+        pgs))
     return m, tm
