@@ -1390,7 +1390,9 @@ class TileSet(CommentedMap):
                   rotate=False,
                   energetics=None,
                   ui=False,
-                  output=None):
+                  output=None,
+                  labelsonly=False,
+                  onlyreal=True):
         """Run Xgrow for the system.
         
         Parameters
@@ -1432,7 +1434,7 @@ class TileSet(CommentedMap):
         import xgrow
         return xgrow.run(
             self.generate_xgrow_dict(
-                perfect=perfect, rotate=rotate, energetics=energetics),
+                perfect=perfect, rotate=rotate, energetics=energetics, labelsonly=labelsonly, onlyreal=onlyreal),
             extraparams=xgrowparams,
             outputopts=output,
             ui=ui)
@@ -1441,7 +1443,8 @@ class TileSet(CommentedMap):
         return sensitivity.sensitivity_classes(
             ts, count=False, _maxorder=_maxorder)
 
-    def generate_xgrow_dict(ts, perfect=False, rotate=False, energetics=None):
+    def generate_xgrow_dict(ts, perfect=False, rotate=False, energetics=None,
+                            labelsonly=False, onlyreal=True):
         """Generate a Xgrow tileset dict.
 
         Parameters
@@ -1535,6 +1538,9 @@ class TileSet(CommentedMap):
                         'color': 'white'
                     })
 
+        if onlyreal:
+            ts.tiles = TileList([x for x in ts.tiles if 'fake' not in x])
+                    
         if rotate:
             rotatedtiles = []
             for tile in ts.tiles:
@@ -1550,8 +1556,13 @@ class TileSet(CommentedMap):
                     newtile['name'] = tile['name']
                 if 'conc' in tile:
                     newtile['stoic'] = tile['conc']
-                if 'color' in tile:
+                if ('color' in tile) and (not labelsonly):
                     newtile['color'] = tile['color']
+                elif labelsonly:
+                    if 'label' in tile.keys():
+                        newtile['color'] = 'white'
+                    else:
+                        newtile['color'] = 'gray50'
                 newtiles.append(newtile)
 
             if re.match('tile_daoe_doublehoriz', tile.structure.name):
@@ -1572,9 +1583,16 @@ class TileSet(CommentedMap):
                     newtile1['stoic'] = tile['conc']
                     newtile2['stoic'] = tile['conc']
 
-                if 'color' in tile:
+                if ('color' in tile) and (not labelsonly):                    
                     newtile1['color'] = tile['color']
                     newtile2['color'] = tile['color']
+                elif labelsonly:
+                    if 'label' in tile.keys():
+                        newtile1['color'] = 'white'
+                        newtile2['color'] = 'white'
+                    else:
+                        newtile1['color'] = 'gray50'
+                        newtile2['color'] = 'gray50'                        
 
                 newtiles.append(newtile1)
                 newtiles.append(newtile2)
@@ -1597,10 +1615,17 @@ class TileSet(CommentedMap):
                     newtile1['stoic'] = tile['conc']
                     newtile2['stoic'] = tile['conc']
 
-                if 'color' in tile:
+                if ('color' in tile) and (not labelsonly):                    
                     newtile1['color'] = tile['color']
                     newtile2['color'] = tile['color']
-
+                elif labelsonly:
+                    if 'label' in tile.keys():
+                        newtile1['color'] = 'white'
+                        newtile2['color'] = 'white'
+                    else:
+                        newtile1['color'] = 'gray50'
+                        newtile2['color'] = 'gray50'
+                
                 newtiles.append(newtile1)
                 newtiles.append(newtile2)
 
