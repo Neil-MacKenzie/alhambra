@@ -104,6 +104,28 @@ def mergetiles(ts,
     else:
         return mergetiles(ts, mp, m2, tm2, checkprofiles, oldclasses, checkld)
 
+def multireduce(ts, checkprofiles=None, checkld=False, trials=None, bestn=10, nthreads=None, pool=None):
+    if not nthreads:
+        nthreads = os.cpu_count()-1
+    if not trials:
+        trials = nthreads
+    import multiprocessing
+    if not pool:
+        pool = multiprocessing.Pool(nthreads)
+    oc = sp.sensitivity_profiles_fakesingles(ts, 3)
+    import functools
+    tp = functools.partial(newtilereduce, checkprofiles=checkprofiles, oldclasses=oc, checkld=checkld)
+    gp = functools.partial(_grp, checkprofiles=checkprofiles, oldclasses=oc, checkld=checkld)
+
+    tms = pool.map(tp, [ts]*trials)
+    tms.sort(key=lambda y: -sum(len(x)-1 for x in y[1]._ecs))
+
+    gm, tm = zip(*tms[0:bestn])
+    gms = pool.map(gp, list(zip([ts]*bestn,gm,tm))*trials//bestn)
+    gms.sort(key=lambda y: -sum(len(x)-1 for x in y[0]._ecs))
+
+    return applymerge(ts, *gms[0])
+    
 
 def newtilereduce(ts, checkprofiles=None, oldclasses=None, checkld=False):
     rti = ts.tiles + sum([x.rotations for x in ts.tiles], TileList())
@@ -127,7 +149,11 @@ def newtilereduce(ts, checkprofiles=None, oldclasses=None, checkld=False):
         len(ts.allends), sum(len(x) - 1 for x in m._ecs) // 2))
     return m, tm
 
-
+def _grp(x, **kwargs):
+    ts,m,tm = x
+    return newgluereduce(ts,m,tm,**kwargs)
+            
+                  
 def newgluereduce(ts,
                   m=GlueMergeSpec([]),
                   tm=TileMergeSpec([]),
