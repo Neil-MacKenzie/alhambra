@@ -106,6 +106,7 @@ def mergetiles(ts,
 
 def multireduce(ts, checkprofiles=None, checkld=False, trials=None, bestn=10, nthreads=None, pool=None):
     if not nthreads:
+        import os
         nthreads = os.cpu_count()-1
     if not trials:
         trials = nthreads
@@ -121,7 +122,7 @@ def multireduce(ts, checkprofiles=None, checkld=False, trials=None, bestn=10, nt
     tms.sort(key=lambda y: -sum(len(x)-1 for x in y[1]._ecs))
 
     gm, tm = zip(*tms[0:bestn])
-    gms = pool.map(gp, list(zip([ts]*bestn,gm,tm))*trials//bestn)
+    gms = pool.map(gp, list(zip([ts]*bestn,gm,tm))*(trials//bestn))
     gms.sort(key=lambda y: -sum(len(x)-1 for x in y[0]._ecs))
 
     return applymerge(ts, *gms[0])
