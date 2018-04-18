@@ -1549,6 +1549,8 @@ class TileSet(CommentedMap):
             ts.tiles += rotatedtiles
 
         for tile in ts.tiles:
+            if 'rotation' in tile.keys():
+                tile['name'] = tile['name']+'_rot{}'.format(tile['rotation'])
             if (re.match('tile_daoe_3up', tile.structure.name)
                     or re.match('tile_daoe_5up', tile.structure.name)):
                 newtile = {}
