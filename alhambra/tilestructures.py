@@ -622,6 +622,7 @@ class tile_daoe_doublehoriz_35up_1h2i(tile_daoe_doublehoriz_35up):
     edotparen = '5.16(7(4.7)+8)16[16{8)+5(29(16]16}8(+5.29)16[16{8)5)+8(16]16}8(+5.16)5.'
 
     def __init__(self):
+        self._endtypes = copy.copy(self._endtypes)
         self._endtypes[0] = 'hairpin'
         self._endtypes[1] = 'blunt'
 
@@ -650,6 +651,7 @@ class tile_daoe_doublehoriz_35up_4h5i(tile_daoe_doublehoriz_35up):
     edotparen = '5.16(5.+8)16[16{8)+5.29(16]16}8(5(+5)29)16[16{8)+8(16]16}8(+5.16)7(4.7)'
 
     def __init__(self):
+        self._endtypes = copy.copy(self._endtypes)
         self._endtypes[3] = 'hairpin'
         self._endtypes[4] = 'blunt'
 
@@ -676,6 +678,7 @@ class tile_daoe_doublehoriz_35up_4h5i(tile_daoe_doublehoriz_35up):
 
 class tile_daoe_doublehoriz_35up_2h3h(tile_daoe_doublehoriz_35up):
     def __init__(self):
+        self._endtypes = copy.copy(self._endtypes)
         self._endtypes[1] = 'hairpin'
         self._endtypes[2] = 'hairpin'
 
@@ -713,6 +716,7 @@ class tile_daoe_doublehoriz_35up_2h3h(tile_daoe_doublehoriz_35up):
 
 class tile_daoe_doublehoriz_53up_2h3h(tile_daoe_doublehoriz_35up):
     def __init__(self):
+        self._endtypes = copy.copy(self._endtypes)
         self._endtypes[1] = 'hairpin'
         self._endtypes[2] = 'hairpin'
 
@@ -751,6 +755,7 @@ class tile_daoe_doublehoriz_53up_2h3h(tile_daoe_doublehoriz_35up):
 
 class tile_daoe_doublevert_35up_4h5h(tile_daoe_doublevert_35up):
     def __init__(self):
+        self._endtypes = copy.copy(self._endtypes)
         self._endtypes[3] = 'hairpin'
         self._endtypes[4] = 'hairpin'
 
@@ -794,6 +799,7 @@ class tile_daoe_doublevert_35up_4h5h(tile_daoe_doublevert_35up):
 
 class tile_daoe_doublevert_53up_4h5h(tile_daoe_doublevert_53up):
     def __init__(self):
+        self._endtypes = copy.copy(self._endtypes)
         self._endtypes[3] = 'hairpin'
         self._endtypes[4] = 'hairpin'
 
