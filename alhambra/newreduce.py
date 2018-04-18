@@ -104,7 +104,7 @@ def mergetiles(ts,
     else:
         return mergetiles(ts, mp, m2, tm2, checkprofiles, oldclasses, checkld)
 
-def multireduce(ts, checkprofiles=None, checkld=False, trials=None, bestn=10, nthreads=None, pool=None):
+def multireduce(ts, checkprofiles=None, checkld=False, trials=None, bestn=10, nthreads=None, pool=None, retall=False):
     if not nthreads:
         import os
         nthreads = os.cpu_count()-1
@@ -125,8 +125,10 @@ def multireduce(ts, checkprofiles=None, checkld=False, trials=None, bestn=10, nt
     gms = pool.map(gp, list(zip([ts]*bestn,gm,tm))*(trials//bestn))
     gms.sort(key=lambda y: -sum(len(x)-1 for x in y[0]._ecs))
 
-    return applymerge(ts, *gms[0])
-    
+    if not retall:
+        return applymerge(ts, *gms[0])
+    if retall:
+        return applymerge(ts, *gms[0]), gms[0]
 
 def newtilereduce(ts, checkprofiles=None, oldclasses=None, checkld=False):
     rti = ts.tiles + sum([x.rotations for x in ts.tiles], TileList())
