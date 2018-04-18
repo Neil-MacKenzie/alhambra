@@ -105,6 +105,7 @@ def mergetiles(ts,
         return mergetiles(ts, mp, m2, tm2, checkprofiles, oldclasses, checkld)
 
 def multireduce(ts, checkprofiles=None, checkld=False, trials=None, bestn=10, nthreads=None, pool=None, retall=False):
+    ts = ts.copy()
     if not nthreads:
         import os
         nthreads = os.cpu_count()-1
