@@ -1544,7 +1544,8 @@ class TileSet(CommentedMap):
         if rotate:
             rotatedtiles = []
             for tile in ts.tiles:
-                rotatedtiles += tile.rotations
+                # only include rotated tiles that aren't identical (handles symmetric tiles)
+                rotatedtiles += [t for t in tile.rotations if (t['ends'] != tile['ends'])]
             ts.tiles += rotatedtiles
 
         for tile in ts.tiles:
