@@ -114,7 +114,10 @@ def multireduce(ts, checkprofiles=None, checkld=False, trials=None, bestn=10, nt
     import multiprocessing
     if not pool:
         pool = multiprocessing.Pool(nthreads)
-    oc = sp.sensitivity_profiles_fakesingles(ts, 3)
+    if checkprofiles:
+        oc = sp.sensitivity_profiles_fakesingles(ts, 3)
+    else:
+        oc = None
     import functools
     tp = functools.partial(newtilereduce, checkprofiles=checkprofiles, oldclasses=oc, checkld=checkld)
     gp = functools.partial(_grp, checkprofiles=checkprofiles, oldclasses=oc, checkld=checkld)
