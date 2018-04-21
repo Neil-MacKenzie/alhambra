@@ -140,6 +140,8 @@ def newtilereduce(ts, checkprofiles=None, oldclasses=None, checkld=False):
     for t1, t2 in tpairs:
         if tm.eq(t1.name, t2.name):
             continue
+        if ('fake' in t1.keys()) or ('fake' in t2.keys()):
+            continue
         m2, tm2 = mergetiles(
             ts, (t1, t2), m, tm, checkprofiles, oldclasses, checkld=checkld)
         if m2:
@@ -163,10 +165,11 @@ def newgluereduce(ts,
                   tm=TileMergeSpec([]),
                   checkprofiles=None,
                   oldclasses=None,
-                  checkld=False):
+                  checkld=False,
+                  _1go_only=False):
     pts = - sum(len(x)-1 for x in tm._ecs)
     pgs = - sum(len(x)-1 for x in m._ecs)//2
-    potentials = list(er.find_nonsens_pairs(ts))
+    potentials = list(er.find_nonsens_pairs(ts, _1go_only=_1go_only))
     random.shuffle(potentials)
     while len(potentials) > 0:
         pp = tuple(potentials.pop())

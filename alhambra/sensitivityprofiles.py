@@ -3,7 +3,9 @@ from .tilestructures import tile_daoe_single
 from .tiles import TileList, Tile
 from collections import Counter
 from .util import comp, GlueMergeSpec, TileMergeSpec
-
+import logging
+log = logging.getLogger(__name__)
+from . import endreduce as er
 
 def _fakesingle(tile):
     if not tile.structure.double:
@@ -42,6 +44,22 @@ def _fakesingles(tiles):
 _rev = [2, 3, 0, 1]
 
 
+def applymerge(ts, m, tm=TileMergeSpec([])):
+    for i in range(0, len(m._ecs) // 2):
+        for x in m._ecs[2 * i]:
+            ts = er.equate_pair(ts, ('merged{}'.format(i), x), doseed=True)
+        for x in m._ecs[2 * i + 1]:
+            ts = er.equate_pair(ts, ('merged{}/'.format(i), x), doseed=True)
+    for tc in tm._ecs:
+        z = list(tc)
+        for tn in z[1:]:
+            try:
+                ts.tiles[tn]['fake'] = z[0]
+            except:
+                continue
+    return ts
+
+
 def sensitivity_profiles_fakesingles(tileset,
                                      _maxorder=2,
                                      ms=GlueMergeSpec([]),
@@ -49,9 +67,13 @@ def sensitivity_profiles_fakesingles(tileset,
                                      oldclasses=None,
                                      checks=[],
                                      stopfirst=False):
-    singles = _fakesingles(tileset.tiles)
+
+    newts = tileset.copy()
+    newts = applymerge(newts, ms, tms)
+
+    singles = _fakesingles(newts.tiles)
     rotatedsingles = singles + _fakesingles(
-        sum([x.rotations for x in tileset.tiles], TileList()))
+        sum([x.rotations for x in newts.tiles], TileList()))
 
     spairs = {'1GO': set(), '1NGO': set(), '2NGO': set(), '2GO': set()}
     if _maxorder >= 3:
@@ -59,7 +81,7 @@ def sensitivity_profiles_fakesingles(tileset,
         spairs['22NGO'] = set()
 
     occ = dict()
-        
+
     # Convert tile names
     if oldclasses:
         for k, v in oldclasses.items():
@@ -73,10 +95,10 @@ def sensitivity_profiles_fakesingles(tileset,
             if t1.structure._endtypes[i] in {'fakedouble', 'hairpin'}:
                 continue
             for t2 in rotatedsingles:
-                if not ms.eq(t1['ends'][i], t2['ends'][i]):
+                if not t1['ends'][i] == t2['ends'][i]:
                     # not shared glue
                     continue
-                if all(ms.eq(x, y) for x, y in zip(t1['ends'], t2['ends'])):
+                if all(x == y for x, y in zip(t1['ends'], t2['ends'])):
                     # NoIO(t1) = NoIO(t2)
                     continue
                 # shared glue and not same tile: search for
@@ -85,7 +107,7 @@ def sensitivity_profiles_fakesingles(tileset,
                     if i == j:
                         # same edge
                         continue
-                    if ms.eq(t1['ends'][j], t2['ends'][j]):
+                    if t1['ends'][j] == t2['ends'][j]:
                         continue
                     if t1.structure._endtypes[j] != t2.structure._endtypes[j]:
                         continue
@@ -96,9 +118,8 @@ def sensitivity_profiles_fakesingles(tileset,
                     if t1['input'][i] and t1['input'][j]:
                         go1 = True
                         if (stopfirst and '1GO' in checks and
-                            ((tms._cm.get(t1.name, t1.name),
-                              tms._cm.get(t2.name, t2.name))
-                             not in occ['1GO'])):
+                            ((tms._cm.get(t1.name, t1.name), tms._cm.get(
+                                t2.name, t2.name)) not in occ['1GO'])):
                             return (t1, t2)
                         spairs['1GO'].add((t1.name, t2.name))
                     for k in (set(range(0, 4)) - {i, j}):
@@ -109,10 +130,10 @@ def sensitivity_profiles_fakesingles(tileset,
                         ec2 = comp(t2['ends'][k])
                         kc = _rev[k]
                         for t12 in singles:
-                            if not ms.eq(t12['ends'][kc], ec1):
+                            if not t12['ends'][kc] == ec1:
                                 continue
                             for t22 in rotatedsingles:
-                                if not ms.eq(t22['ends'][kc], ec2):
+                                if not t22['ends'][kc] == ec2:
                                     continue
                                 for m in range(0, 4):
                                     if m == kc:
@@ -121,16 +142,16 @@ def sensitivity_profiles_fakesingles(tileset,
                                             'fakedouble', 'hairpin'
                                     }:
                                         continue
-                                    if not ms.eq(t22['ends'][m],
-                                                 t12['ends'][m]):
+                                    if not t22['ends'][m] == t12['ends'][m]:
                                         continue
                                     spairs['2NGO'].add((t1.name, t2.name))
                                     if t12['input'][m] and t12['input'][kc] and go1:
                                         spairs['2GO'].add((t1.name, t2.name))
-                                        if (stopfirst and '2GO' in checks and
-                                            ((tms._cm.get(t1.name, t1.name),
-                                              tms._cm.get(t2.name, t2.name))
-                                             not in occ['2GO'])):
+                                        if (stopfirst and '2GO' in checks and (
+                                            (tms._cm.get(t1.name, t1.name),
+                                             tms._cm.get(
+                                                 t2.name,
+                                                 t2.name)) not in occ['2GO'])):
                                             return (t1, t2)
                                     if _maxorder > 2:
                                         for k2 in (set(range(0, 4)) - {
@@ -153,10 +174,14 @@ def sensitivity_profiles_fakesingles(tileset,
                                                                      t2.name))
                                                 spairs['22GO'].add((t1.name,
                                                                     t2.name))
-                                                if (stopfirst and '22GO' in checks
-                                                    and ((tms._cm.get(t1.name, t1.name),
-                                                          tms._cm.get(t2.name, t2.name))
-                                                         not in occ['22GO'])):
+                                                if (stopfirst
+                                                        and '22GO' in checks
+                                                        and
+                                                    ((tms._cm.get(
+                                                        t1.name,
+                                                        t1.name), tms._cm.get(
+                                                            t2.name, t2.name)
+                                                      ) not in occ['22GO'])):
                                                     return (t1, t2)
                                                 continue
 
@@ -164,22 +189,15 @@ def sensitivity_profiles_fakesingles(tileset,
                                             ec2_3 = comp(t2['ends'][k2])
                                             kc2 = _rev[k2]
                                             for t13 in singles:
-                                                if not ms.eq(
-                                                        t13['ends'][kc2],
-                                                        ec1_3):
+                                                if not t13['ends'][kc2] == ec1_3:
                                                     continue
                                                 for t23 in rotatedsingles:
-                                                    if not ms.eq(
-                                                            t23['ends'][kc2],
-                                                            ec2_3):
+                                                    if not t23['ends'][kc2] == ec2_3:
                                                         continue
                                                     for m2 in range(0, 4):
                                                         if m2 == kc2:
                                                             continue
-                                                        if not ms.eq(
-                                                                t23['ends']
-                                                            [m2], t13['ends']
-                                                            [m2]):
+                                                        if not t23['ends'][m2] == t13['ends'][m2]:
                                                             continue
                                                         if t13.structure._endtypes[
                                                                 m2] in {
@@ -190,14 +208,24 @@ def sensitivity_profiles_fakesingles(tileset,
                                                         spairs['22NGO'].add(
                                                             (t1.name, t2.name))
                                                         if (t12['input'][m] and
-                                                            t12['input'][kc] and
-                                                            t13['input'][m2] and
-                                                            t13['input'][kc2] and
-                                                            go1):
-                                                            if (stopfirst and '22GO' in checks
-                                                                and ((tms._cm.get(t1.name, t1.name),
-                                                                      tms._cm.get(t2.name, t2.name))
-                                                                     not in occ['22GO'])):
+                                                                t12['input']
+                                                            [kc] and
+                                                                t13['input']
+                                                            [m2] and
+                                                                t13['input']
+                                                            [kc2] and go1):
+                                                            if (stopfirst
+                                                                    and '22GO'
+                                                                    in checks
+                                                                    and
+                                                                ((tms._cm.get(
+                                                                    t1.name,
+                                                                    t1.name),
+                                                                  tms._cm.get(
+                                                                      t2.name,
+                                                                      t2.name)
+                                                                  ) not in
+                                                                 occ['22GO'])):
                                                                 return (t1, t2)
                                                             spairs['22GO'].add(
                                                                 (t1.name,
