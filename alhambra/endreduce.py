@@ -145,7 +145,7 @@ def equate_pair(ts, pair, unsafe=False, doseed=False):
         t['ends'] = [r.sub(rfunc, x) for x in t['ends']]
     if doseed and newts.seed:
         for t in newts.seed['adapters']:
-            if 'ends' in t.keys():
+            if 'ends' in t.keys():l
                 t['ends'] = [r.sub(rfunc, x) for x in t['ends']]
     return newts
 

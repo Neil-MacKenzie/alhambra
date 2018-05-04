@@ -64,7 +64,8 @@ def mergetiles(ts,
                tm2,
                checkprofiles=None,
                oldclasses=None,
-               checkld=False):
+               checkld=False,
+               grest=False):
     t1, t2 = t
     if t1.structure.name != t2.structure.name:
         return None, None
@@ -79,6 +80,8 @@ def mergetiles(ts,
             assert gt1 == gt2
             m2 = m2.copyadd(e1, e2)
     except ValueError:
+        return None, None
+    if (grest) and (glueuse(ts, m2) != grest):
         return None, None
     tm2 = tm2.copyadd(t1.name, t2.name)
     mp = mergeproblem(ts, m2)
@@ -104,20 +107,25 @@ def mergetiles(ts,
     else:
         return mergetiles(ts, mp, m2, tm2, checkprofiles, oldclasses, checkld)
 
-def multireduce(ts, checkprofiles=None, checkld=False, trials=None, bestn=10, nthreads=None, pool=None, retall=False):
+def multireduce(ts, checkprofiles=None, checkld=False, trials=None, bestn=10,
+                nthreads=None, pool=None, retall=False, grest=False):
     ts = ts.copy()
     if not nthreads:
         import os
         nthreads = os.cpu_count()-1
     if not trials:
         trials = nthreads
+    if grest:
+        grest = glueuse(ts, GlueMergeSpec([]))
     import multiprocessing
     if not pool:
         pool = multiprocessing.Pool(nthreads)
     oc = sp.sensitivity_profiles_fakesingles(ts, 3)
     import functools
-    tp = functools.partial(newtilereduce, checkprofiles=checkprofiles, oldclasses=oc, checkld=checkld)
-    gp = functools.partial(_grp, checkprofiles=checkprofiles, oldclasses=oc, checkld=checkld)
+    tp = functools.partial(newtilereduce, checkprofiles=checkprofiles,
+                           oldclasses=oc, checkld=checkld, grest=grest)
+    gp = functools.partial(_grp, checkprofiles=checkprofiles, oldclasses=oc,
+                           checkld=checkld, grest=grest)
 
     tms = pool.map(tp, [ts]*trials)
     tms.sort(key=lambda y: -sum(len(x)-1 for x in y[1]._ecs))
@@ -131,7 +139,7 @@ def multireduce(ts, checkprofiles=None, checkld=False, trials=None, bestn=10, nt
     if retall:
         return applymerge(ts, *gms[0]), gms[0]
 
-def newtilereduce(ts, checkprofiles=None, oldclasses=None, checkld=False):
+def newtilereduce(ts, checkprofiles=None, oldclasses=None, checkld=False, grest=False):
     rti = ts.tiles + sum([x.rotations for x in ts.tiles], TileList())
     tpairs = [(x, y) for x in ts.tiles for y in rti]
     random.shuffle(tpairs)
@@ -141,7 +149,7 @@ def newtilereduce(ts, checkprofiles=None, oldclasses=None, checkld=False):
         if tm.eq(t1.name, t2.name):
             continue
         m2, tm2 = mergetiles(
-            ts, (t1, t2), m, tm, checkprofiles, oldclasses, checkld=checkld)
+            ts, (t1, t2), m, tm, checkprofiles, oldclasses, checkld=checkld, grest=grest)
         if m2:
             m = m2
             tm = tm2
@@ -163,11 +171,13 @@ def newgluereduce(ts,
                   tm=TileMergeSpec([]),
                   checkprofiles=None,
                   oldclasses=None,
-                  checkld=False):
+                  checkld=False,
+                  grest=False):
     pts = - sum(len(x)-1 for x in tm._ecs)
     pgs = - sum(len(x)-1 for x in m._ecs)//2
     potentials = list(er.find_nonsens_pairs(ts))
     random.shuffle(potentials)
+
     while len(potentials) > 0:
         pp = tuple(potentials.pop())
         if m.eq(pp[0], pp[1]):
@@ -175,6 +185,8 @@ def newgluereduce(ts,
         try:
             m2 = m.copyadd(*pp)
         except ValueError:
+            continue
+        if (grest) and (glueuse(ts, m2) != grest):
             continue
         mp = mergeproblem(ts, m2)
         if (not mp) and checkprofiles:
@@ -199,12 +211,12 @@ def newgluereduce(ts,
             m = m2
         else:
             m2, tm2 = mergetiles(ts, mp, m2, tm, checkprofiles, oldclasses,
-                                 checkld)
+                                 checkld, grest=grest)
             if m2:
                 log.debug(str(m2))
                 m = m2
                 tm = tm2
-    log.info("tilereduced {} - {} (-{} p) tiles, {}  - {} (-{} p) ends".format(
+    log.info("endreduced {} - {} (-{} p) tiles, {}  - {} (-{} p) ends".format(
         len(ts.tiles),
         sum(len(x) - 1 for x in tm._ecs),
         pts,
@@ -212,3 +224,17 @@ def newgluereduce(ts,
         sum(len(x) - 1 for x in m._ecs) // 2,
         pgs))
     return m, tm
+
+
+def glueuse(x, m):
+    ud = {}
+    for e in x.allends:
+        ud[e.name] = set()
+        ud[comp(e.name)] = set()
+        for t in x.tiles:
+            for ee, i in zip(t.ends, t['input']):
+                if m.eq(e.name, ee):
+                    ud[e.name].add(i)
+                if m.eq(comp(e.name), ee):
+                    ud[comp(e.name)].add(i)
+    return ud
