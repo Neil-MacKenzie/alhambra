@@ -61,6 +61,24 @@ with getstructure) or a TileStructure.  Get always returns the TileStructure."""
                                      for i in endorder]
             tl.append(t)
         return tl
+
+
+    def named_rotations(self):
+        rl = self.structure.rotations
+        tl = TileList()
+        for ri, (structure, endorder) in enumerate(rl):
+            t = copy.copy(self)
+            if 'input' in t.keys():
+                del(t['input'])
+            t['ends'] = [t.ends[i] for i in endorder]
+            t['rotation'] = ri
+            t['name'] += '_rot_{}'.format(ri)
+            t.structure = structure()
+            t.structure._endtypes = [self.structure._endtypes[i]
+                                     for i in endorder]
+            tl.append(t)
+        return tl
+    
     
     def strands():
         doc = """Doc string"""

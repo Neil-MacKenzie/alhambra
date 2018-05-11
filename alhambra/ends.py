@@ -50,6 +50,18 @@ class End(CommentedMap):
     
         return locals()
     name = property(**name())
+
+
+    def strength():
+        def fget(self):
+            return self.get('strength', 1)
+    
+        def fset(self, value):
+            self['strength'] = value
+    
+        return locals()
+    strength = property(**strength())
+    
     
     @property
     def seq(self):
