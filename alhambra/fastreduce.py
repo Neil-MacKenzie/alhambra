@@ -7,10 +7,10 @@ from .ends import End
 from random import shuffle
 
 FTile = namedtuple("FTile", ("color", "use", "glues", "name", "used",
-                             "structure"))
+                             "structure", "dfake"))
 
 FTilesArray = namedtuple("FTilesArray", ("color", "use", "glues", "name",
-                                         "used", "structure"))
+                                         "used", "structure", "dfake"))
 
 TAU = 2
 
@@ -83,15 +83,17 @@ class FTileList():
                 FTile(
                     name=t.name,
                     color=color,
-                    use=use,
+                    use=[int(x) for x in use],
                     glues=glues,
                     used=used,
-                    structure=t.structure))
+                    structure=t.structure,
+                    dfake=False))
             if used:
                 self.totile[t.name] = self.tiles[-1]
         stiles = []
         htiles = []
         vtiles = []
+
         for t in self.tiles:
             if isinstance(t.structure, ts.tile_daoe_single):
                 stiles.append(t)
@@ -103,10 +105,55 @@ class FTileList():
                 vtiles.append(t)
             else:
                 raise NotImplementedError
-
         self.stiles = _ft_to_fta(stiles)
+
+        for tile in stiles:
+            x, y = _ffakedouble(tile, self.stiles, gluelist)
+            htiles += x
+            vtiles += y
+
         self.htiles = _ft_to_fta(htiles)
         self.vtiles = _ft_to_fta(vtiles)
+
+
+RSEL = (2, 3, 0, 1)
+FTI = (1, 0, 1, 0)
+FTS = (ts.tile_daoe_doublevert(), ts.tile_daoe_doublehoriz(),
+       ts.tile_daoe_doublevert(), ts.tile_daoe_doublehoriz())
+
+
+def _fdg(dir, gs1, gs2):
+    if dir == 0:
+        return [gs2[0], gs2[1], gs1[1], gs1[2], gs1[3], gs2[3]]
+    elif dir == 1:
+        return [gs1[0], gs2[0], gs2[1], gs2[2], gs1[2], gs1[3]]
+    elif dir == 2:
+        return [gs1[0], gs1[1], gs2[1], gs2[2], gs2[3], gs1[3]]
+    elif dir == 3:
+        return [gs2[0], gs1[0], gs1[1], gs1[2], gs2[2], gs2[3]]
+    else:
+        raise ValueError(dir)
+
+
+def _ffakedouble(tile, sta, gluelist):
+    faketiles = ([], [])
+    for dir in range(0, 4):
+        if tile.use[dir] == 1:
+            continue
+        oti = np.nonzero(
+            (gluelist.complement[tile.glues[dir]] == sta.glues[:, RSEL[dir]]) &
+            (sta.use[:, RSEL[dir]] == 1) & (sta.used))
+        for i in oti[0]:
+            faketiles[FTI[dir]].append(
+                FTile(
+                    color=False,
+                    used=True,
+                    name=tile.name + '_{}_'.format(dir) + sta.name[i],
+                    structure=FTS[dir],
+                    glues=_fdg(dir, tile.glues, sta.glues[i]),
+                    use=_fdg(dir, tile.use, sta.use[i]),
+                    dfake=True))
+    return faketiles
 
 
 # THESE SELECTORS ARE 1-INDEXED!!! 0 corresponds to fake double tile bond.
@@ -144,8 +191,8 @@ def _ffakesingle(ftile, gluelist):
             glues=g,
             name=n,
             used=ud,
-            structure=ts.tile_daoe_single())
-        for u, g, n, ud in zip(use, glues, names, used)
+            structure=ts.tile_daoe_single(),
+            dfake=False) for u, g, n, ud in zip(use, glues, names, used)
     ]
 
 
@@ -156,7 +203,8 @@ def _ft_to_fta(ftiles):
         glues=np.array([x.glues for x in ftiles]),
         use=np.array([x.use for x in ftiles]),
         used=np.array([x.used for x in ftiles]),
-        structure=np.array([x.structure.name for x in ftiles]))
+        structure=np.array([x.structure.name for x in ftiles]),
+        dfake=np.array([x.dfake for x in ftiles]))
 
 
 class FTileSystem():
@@ -173,31 +221,34 @@ class FTileSystem():
                 'strength': 0
             })
         ])
-        self.tilelist = FTileList(
-            tilesystem.tiles + sum([x.named_rotations()
-                                    for x in tilesystem.tiles], TileList()),
-            self.gluelist)
+        self.tilelist = FTileList(tilesystem.tiles + sum(
+            [x.named_rotations()
+             for x in tilesystem.tiles], TileList()), self.gluelist)
 
     def applyequiv(self, ts, equiv):
         ts = ts.copy()
         alreadythere = []
         for tile in ts.tiles:
-            tile.ends = [self.gluelist.name[equiv[self.gluelist.tonum[e]]]
-                         for e in tile.ends]
+            tile.ends = [
+                self.gluelist.name[equiv[self.gluelist.tonum[e]]]
+                for e in tile.ends
+            ]
             if (tile.ends, 'label' in tile.keys()) in alreadythere:
                 tile['fake'] = True
                 continue
-            rs = [tile]+tile.rotations
+            rs = [tile] + tile.rotations
             alreadythere += [(t.ends, 'label' in t.keys()) for t in rs]
         if 'seed' in ts.keys():
             for t in ts.seed['adapters']:
                 if 'ends' in t.keys():
-                    t['ends'] = [self.gluelist.name[equiv[self.gluelist.tonum[e]]]
-                                 for e in t['ends']]
+                    t['ends'] = [
+                        self.gluelist.name[equiv[self.gluelist.tonum[e]]]
+                        for e in t['ends']
+                    ]
         return ts
 
 
-def ptins(fts, equiv):
+def ptins(fts, equiv, tau=2):
     """Calculate potential tile attachments to input neighborhoods"""
     ptins = []
     for ta in [fts.tilelist.stiles, fts.tilelist.htiles, fts.tilelist.vtiles]:
@@ -210,7 +261,11 @@ def ptins(fts, equiv):
             strs = np.sum(
                 fts.gluelist.strength[ta.glues[ti, isel]] * gsel,
                 axis=1)  # strengths of matching
-            matches = np.nonzero(strs >= TAU)  # indices of matching
+            matches = np.nonzero((strs >= tau) & (~ta.dfake))
+            # indices of matching
+            # (excludes fake doubles, which can't actually attach
+            # (because they are
+            # actually two singles) to their own local neighborhoods)
             ptin.append(matches)
         ptins.append(ptin)
     return ptins
@@ -224,12 +279,16 @@ def isatamequiv(fts, equiv, initptins=None):
             fts.tilelist.stiles, fts.tilelist.htiles, fts.tilelist.vtiles
     ]):
         for xx, yy in zip(x, y):
-            if np.all(xx[0] == yy[0]):  # No change
+            if len(xx[0]) == len(yy[0]) and (np.all(
+                    xx[0] == yy[0])):  # No change
                 continue
             elif len(xx[0]) == 1:  # Deterministic start
-                mm = ~np.all(equiv[tl.glues[xx]] == equiv[tl.glues[yy]], axis=1)
+                mm = ~np.all(
+                    equiv[tl.glues[xx]] == equiv[tl.glues[yy]], axis=1)
                 if np.any(mm):
                     return False, (tl.name[xx[0][0]], tl.name[yy[0][mm][0]])
+            elif len(xx[0]) == 0:
+                return False, None
             else:
                 raise NotImplementedError
     return True, None
@@ -251,9 +310,9 @@ def _findpotentialtilemerges(fts, equiv):
         t1 = fts.tilelist.tiles[ti]
         if not t1.used:
             continue
-        ppairs += [(t1, t) for t in fts.tilelist.tiles[ti:] if
-                   (t1.color == t.color) and
-                   (t1.structure.name == t.structure.name)]
+        ppairs += [(t1, t) for t in fts.tilelist.tiles[ti:]
+                   if (t1.color == t.color) and (
+                       t1.structure.name == t.structure.name)]
     shuffle(ppairs)
     return ppairs
 
@@ -262,20 +321,21 @@ def _findpotentialgluemerges(fts, equiv):
     ppairs = []
     for g1 in np.arange(0, len(fts.gluelist.strength)):
         g2s = g1 + 1 + np.nonzero(
-            (fts.gluelist.strength[g1+1:] == fts.gluelist.strength[g1]) &
-            (fts.gluelist.structure[g1+1:] == fts.gluelist.structure[g1]))[0]
+            (fts.gluelist.strength[g1 + 1:] == fts.gluelist.strength[g1]) &
+            (fts.gluelist.structure[g1 + 1:] == fts.gluelist.structure[g1]))[0]
         ppairs += [(g1, g2) for g2 in g2s]
     shuffle(ppairs)
     return ppairs
 
 
 def _recfix(fts, equiv, tp, initptins):
-    equiv = tilemerge(fts, equiv,
-                      fts.tilelist.totile[tp[0]],
+    equiv = tilemerge(fts, equiv, fts.tilelist.totile[tp[0]],
                       fts.tilelist.totile[tp[1]])
     ae, badpair = isatamequiv(fts, equiv, initptins=initptins)
     if ae:
         return equiv
+    elif badpair is None:
+        raise ValueError
     else:
         return _recfix(fts, equiv, badpair, initptins)
 
@@ -292,6 +352,8 @@ def _tilereduce(fts, equiv, initptins=None):
         ae, badpair = isatamequiv(fts, nequiv, initptins=initptins)
         if ae:
             equiv = nequiv
+        elif badpair is None:
+            continue
         else:
             try:
                 equiv = _recfix(fts, equiv, badpair, initptins)
@@ -300,7 +362,7 @@ def _tilereduce(fts, equiv, initptins=None):
             except KeyError:
                 continue
     return equiv
-    
+
 
 def _gluereduce(fts, equiv, initptins=None):
     todo = _findpotentialgluemerges(fts, equiv)
@@ -314,6 +376,8 @@ def _gluereduce(fts, equiv, initptins=None):
         ae, badpair = isatamequiv(fts, nequiv, initptins=initptins)
         if ae:
             equiv = nequiv
+        elif badpair is None:
+            continue
         else:
             try:
                 equiv = _recfix(fts, equiv, badpair, initptins)
