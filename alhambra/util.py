@@ -147,6 +147,10 @@ with no output.
 RoundTripRepresenter.add_representer(NamedList,
                                      RoundTripRepresenter.represent_list)
 
+import numpy as np
+RoundTripRepresenter.add_representer(np.str_,
+                                     RoundTripRepresenter.represent_str)
+
 
 class ProgressLogger(object):
     def __init__(self, logger, N, seconds_interval=60):
@@ -189,7 +193,7 @@ def base(endname):
 
 
 class GlueMergeSpec:
-    def __init__(self, ops):
+    def __init__(self, ops=[]):
         self._cm = {}
         self._ecs = []
         for op in ops:
@@ -247,7 +251,7 @@ class GlueMergeSpec:
 
 
 class TileMergeSpec:
-    def __init__(self, ops):
+    def __init__(self, ops=[]):
         self._cm = {}
         self._ecs = []
         for op in ops:

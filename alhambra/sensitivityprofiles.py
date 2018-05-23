@@ -59,7 +59,7 @@ def sensitivity_profiles_fakesingles(tileset,
         spairs['22NGO'] = set()
 
     occ = dict()
-        
+
     # Convert tile names
     if oldclasses:
         for k, v in oldclasses.items():
