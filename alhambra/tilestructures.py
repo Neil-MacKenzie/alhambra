@@ -164,8 +164,8 @@ class tile_daoe(TileStructure):
 
     def get_endlist(self, tile):
         es = EndList()
-        for (strand, start, end), endtype, endname in zip(
-                self._endlocs, self._endtypes, tile['ends']):
+        for (strand, start, end), endtype, endname, endinput in zip(
+                self._endlocs, self._endtypes, tile['ends'], tile.get('input', [None]*len(tile['ends']))):
 
             if endtype in ('blunt', 'inert', 'hairpin'):
                 continue
@@ -186,8 +186,10 @@ class tile_daoe(TileStructure):
             else:
                 seq = None
 
+            isc = False
             if endname[-1] == '/':
                 endname = endname[:-1]
+                isc = True
                 if seq:
                     seq = revcomp(seq)
 
@@ -195,6 +197,19 @@ class tile_daoe(TileStructure):
 
             if seq:
                 e.fseq = seq
+
+            if endinput is not None:
+                if isc:
+                    m = 0b11
+                else:
+                    m = 0b00
+                if endinput == -1:
+                    use = 0b00 ^ m
+                elif endinput == 0:
+                    use = 0b10 ^ m
+                elif endinput == 1:
+                    use = 0b01 ^ m
+                e.use = use
 
             es.merge(EndList([e]), in_place=True)  # FIXME
         return es

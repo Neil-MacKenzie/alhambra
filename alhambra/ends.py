@@ -51,6 +51,15 @@ class End(CommentedMap):
         return locals()
     name = property(**name())
 
+    def use():
+        def fget(self):
+            return self.get('use', 0b0)
+    
+        def fset(self, value):
+            self['use'] = value
+    
+        return locals()
+    use = property(**use())
 
     def strength():
         def fget(self):
@@ -101,6 +110,8 @@ class End(CommentedMap):
             if i in out.keys() and i == 'fseq':
                 # we merge sequences
                 out[i] = seq.merge(out[i], v)
+            elif i in out.keys() and i == 'use':
+                out[i] = out[i] | v
             elif i in out.keys() and out[i] != v:
                 # we insisted all others must be equal
                 raise ValueError(

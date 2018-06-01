@@ -25,6 +25,7 @@ class FGlueList():
         self.strength = []
         self.structure = []
         self.complement = []
+        self.use = []
         self.tonum = {}
         # self.use = []
         for i, g in enumerate(glues):
@@ -37,10 +38,13 @@ class FGlueList():
             self.tonum.update({g.name: 2 * i, g.name + '/': 2 * i + 1})
             self.strength.append(g.strength)
             self.strength.append(g.strength)
+            self.use.append(g.use)
+            self.use.append((g.use // 2) + (g.use % 2) * 2)
         self.name = np.array(self.name)
         self.strength = np.array(self.strength)
         self.structure = np.array(self.structure)
         self.complement = np.array(self.complement)
+        self.use = np.array(self.use)
 
     def blankequiv(self):
         return np.arange(0, len(self.name))
@@ -48,13 +52,15 @@ class FGlueList():
     def iseq(self, equiv, a, b):
         return equiv[a] == equiv[b]
 
-    def domerge(self, equiv, a, b):
+    def domerge(self, equiv, a, b, preserveuse=False):
         if self.structure[a] != self.structure[b]:
             raise ValueError("structure")
         elif self.strength[a] != self.strength[b]:
             raise ValueError("strength")
         elif equiv[a] == equiv[self.complement[b]]:
             raise ValueError("self-comp")
+        elif preserveuse and (self.use[a] != self.use[b]):
+            raise ValueError("use")
         else:
             equiv = copy(equiv)
             newg, oldg = sorted((equiv[a], equiv[b]))
@@ -534,13 +540,13 @@ def isatamequiv(fts, equiv, initptins=None):
     return True, None
 
 
-def tilemerge(fts, equiv, t1, t2):
+def tilemerge(fts, equiv, t1, t2, preserveuse=False):
     if t1.structure.name != t2.structure.name:
         raise ValueError
     if t1.color != t2.color:
         raise ValueError
     for g1, g2 in zip(t1.glues, t2.glues):
-        equiv = fts.gluelist.domerge(equiv, g1, g2)
+        equiv = fts.gluelist.domerge(equiv, g1, g2, preserveuse=preserveuse)
     return equiv
 
 
@@ -580,12 +586,17 @@ def _recfix(fts,
             orig22go=None,
             check22go=False,
             checkld=False,
-            chain=None):
+            chain=None,
+            preserveuse=False):
     log = logging.getLogger(__name__)
     if chain is None:
         chain = []
-    equiv = tilemerge(fts, equiv, fts.tilelist.totile[tp[0]],
-                      fts.tilelist.totile[tp[1]])
+    equiv = tilemerge(
+        fts,
+        equiv,
+        fts.tilelist.totile[tp[0]],
+        fts.tilelist.totile[tp[1]],
+        preserveuse=preserveuse)
     ae, badpair = isatamequiv(fts, equiv, initptins=initptins)
     if check2go and ae:
         ae, badpair, _ = is_2go_equiv(
@@ -617,7 +628,8 @@ def _recfix(fts,
             orig22go=orig22go,
             check22go=check22go,
             checkld=checkld,
-            chain=chain)
+            chain=chain,
+            preserveuse=preserveuse)
 
 
 def _tilereduce(fts,
@@ -625,7 +637,8 @@ def _tilereduce(fts,
                 check2go=False,
                 initptins=None,
                 check22go=False,
-                checkld=False):
+                checkld=False,
+                preserveuse=False):
     log = logging.getLogger(__name__)
     if equiv is None:
         equiv = fts.gluelist.blankequiv()
@@ -641,7 +654,7 @@ def _tilereduce(fts,
         origsens = None
     for todoi, (t1, t2) in enumerate(todo):
         try:
-            nequiv = tilemerge(fts, equiv, t1, t2)
+            nequiv = tilemerge(fts, equiv, t1, t2, preserveuse=preserveuse)
         except ValueError:
             continue
         ae, badpair = isatamequiv(fts, nequiv, initptins=initptins)
@@ -675,7 +688,8 @@ def _tilereduce(fts,
                     check22go=check22go,
                     orig22go=orig22go,
                     checkld=checkld,
-                    chain=[(t1.name, t2.name)])
+                    chain=[(t1.name, t2.name)],
+                    preserveuse=preserveuse)
             except ValueError:
                 continue
             except KeyError:
@@ -688,7 +702,8 @@ def _gluereduce(fts,
                 check2go=False,
                 check22go=False,
                 checkld=False,
-                initptins=None):
+                initptins=None,
+                preserveuse=False):
     log = logging.getLogger(__name__)
     if equiv is None:
         equiv = fts.gluelist.blankequiv()
@@ -704,7 +719,8 @@ def _gluereduce(fts,
         orig22go = None
     for todoi, (g1, g2) in enumerate(todo):
         try:
-            nequiv = fts.gluelist.domerge(equiv, g1, g2)
+            nequiv = fts.gluelist.domerge(
+                equiv, g1, g2, preserveuse=preserveuse)
         except ValueError:
             continue
         ae, badpair = isatamequiv(fts, nequiv, initptins=initptins)
@@ -738,7 +754,8 @@ def _gluereduce(fts,
                     origsens,
                     check22go=check22go,
                     checkld=checkld,
-                    chain=[(fts.gluelist.name[g1], fts.gluelist.name[g2])])
+                    chain=[(fts.gluelist.name[g1], fts.gluelist.name[g2])],
+                    preserveuse=preserveuse)
             except ValueError:
                 continue
             except KeyError:
