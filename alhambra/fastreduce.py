@@ -6,6 +6,8 @@ from .tiles import TileList
 from .ends import End
 from random import shuffle
 from . import util
+from . import fastlatticedefect as fld
+import logging
 
 FTile = namedtuple("FTile", ("color", "use", "glues", "name", "used",
                              "structure", "dfake", "sfake"))
@@ -74,6 +76,8 @@ class FTileList():
         self.totile = {}
         for t in tiles:
             glues = np.array([gluelist.tonum[x] for x in t.ends])
+            if 'fake' in t.keys():
+                continue
             if 'input' not in t.keys():
                 used = False
                 use = np.array([U_UNUSED for _ in t.ends])
@@ -519,8 +523,8 @@ def isatamequiv(fts, equiv, initptins=None):
                 continue
             elif len(xx[0]) == 1:  # Deterministic start
                 mm = ~np.all(
-                    (equiv[tl.glues[xx]] == equiv[tl.glues[yy]]), axis=1) | ~(
-                        tl.color[xx] == tl.color[yy])
+                    (equiv[tl.glues[xx]] == equiv[tl.glues[yy]]),
+                    axis=1) | ~(tl.color[xx] == tl.color[yy])
                 if np.any(mm):
                     return False, (tl.name[xx[0][0]], tl.name[yy[0][mm][0]])
             elif len(xx[0]) == 0:
@@ -546,9 +550,11 @@ def _findpotentialtilemerges(fts, equiv):
         t1 = fts.tilelist.tiles[ti]
         if not t1.used:
             continue
-        ppairs += [(t1, t) for t in fts.tilelist.tiles[ti:]
-                   if (t1.color == t.color) and (
-                       t1.structure.name == t.structure.name)]
+        ppairs += [
+            (t1, t) for t in fts.tilelist.tiles[ti:]
+            if (t1.color == t.color) and (
+                t1.structure.name == t.structure.name) and (t1.name != t.name)
+        ]
     shuffle(ppairs)
     return ppairs
 
@@ -572,7 +578,12 @@ def _recfix(fts,
             ins2go=None,
             orig2go=None,
             orig22go=None,
-            check22go=False):
+            check22go=False,
+            checkld=False,
+            chain=None):
+    log = logging.getLogger(__name__)
+    if chain is None:
+        chain = []
     equiv = tilemerge(fts, equiv, fts.tilelist.totile[tp[0]],
                       fts.tilelist.totile[tp[1]])
     ae, badpair = isatamequiv(fts, equiv, initptins=initptins)
@@ -582,11 +593,19 @@ def _recfix(fts,
     if ae and check22go:
         ae, badpair, _ = is_22go_equiv(
             fts, equiv, ins2go=ins2go, orig22go=orig22go)
+    if ae and checkld:
+        ld_e = fld.latticedefects(fts, 'e', equiv=equiv)
+        ld_w = fld.latticedefects(fts, 'w', equiv=equiv)
+        if (len(ld_e) > 0) or (len(ld_w) > 0):
+            raise ValueError
     if ae:
+        log.debug(
+            "Recfix succeeds with {}, {}, {}".format(tp[0], tp[1], chain))
         return equiv
     elif badpair is None:
         raise ValueError
     else:
+        chain.append(tp)
         return _recfix(
             fts,
             equiv,
@@ -596,14 +615,18 @@ def _recfix(fts,
             ins2go,
             orig2go,
             orig22go=orig22go,
-            check22go=check22go)
+            check22go=check22go,
+            checkld=checkld,
+            chain=chain)
 
 
 def _tilereduce(fts,
                 equiv=None,
                 check2go=False,
                 initptins=None,
-                check22go=False):
+                check22go=False,
+                checkld=False):
+    log = logging.getLogger(__name__)
     if equiv is None:
         equiv = fts.gluelist.blankequiv()
     todo = _findpotentialtilemerges(fts, equiv)
@@ -614,8 +637,9 @@ def _tilereduce(fts,
         origsens, orig22go = gen_2go_profile(fts, ins2go=ins2go, also22go=True)
     else:
         ins2go = None
+        orig22go = None
         origsens = None
-    for t1, t2 in todo:
+    for todoi, (t1, t2) in enumerate(todo):
         try:
             nequiv = tilemerge(fts, equiv, t1, t2)
         except ValueError:
@@ -627,8 +651,15 @@ def _tilereduce(fts,
         if ae and check22go:
             ae, badpair, _ = is_22go_equiv(
                 fts, nequiv, ins2go=ins2go, orig22go=orig22go)
+        if ae and checkld:
+            ld_e = fld.latticedefects(fts, 'e', equiv=nequiv)
+            ld_w = fld.latticedefects(fts, 'w', equiv=nequiv)
+            if (len(ld_e) > 0) or (len(ld_w) > 0):
+                continue
         if ae:
             equiv = nequiv
+            log.debug("Reduced {}, {} ({} of {} pairs done)".format(
+                t1.name, t2.name, todoi, len(todo)))
         elif badpair is None:
             continue
         else:
@@ -642,7 +673,9 @@ def _tilereduce(fts,
                     ins2go,
                     origsens,
                     check22go=check22go,
-                    orig22go=orig22go)
+                    orig22go=orig22go,
+                    checkld=checkld,
+                    chain=[(t1.name, t2.name)])
             except ValueError:
                 continue
             except KeyError:
@@ -654,7 +687,9 @@ def _gluereduce(fts,
                 equiv=None,
                 check2go=False,
                 check22go=False,
+                checkld=False,
                 initptins=None):
+    log = logging.getLogger(__name__)
     if equiv is None:
         equiv = fts.gluelist.blankequiv()
     todo = _findpotentialgluemerges(fts, equiv)
@@ -666,7 +701,8 @@ def _gluereduce(fts,
     else:
         ins2go = None
         origsens = None
-    for g1, g2 in todo:
+        orig22go = None
+    for todoi, (g1, g2) in enumerate(todo):
         try:
             nequiv = fts.gluelist.domerge(equiv, g1, g2)
         except ValueError:
@@ -678,8 +714,16 @@ def _gluereduce(fts,
         if ae and check22go:
             ae, badpair, _ = is_22go_equiv(
                 fts, nequiv, ins2go=ins2go, orig22go=orig22go)
+        if ae and checkld:
+            ld_e = fld.latticedefects(fts, 'e', equiv=nequiv)
+            ld_w = fld.latticedefects(fts, 'w', equiv=nequiv)
+            if (len(ld_e) > 0) or (len(ld_w) > 0):
+                continue
         if ae:
             equiv = nequiv
+            log.debug("Glue reduction: {}, {} ({}/{} done)".format(
+                fts.gluelist.name[g1], fts.gluelist.name[g2], todoi, len(
+                    todo)))
         elif badpair is None:
             continue
         else:
@@ -692,7 +736,9 @@ def _gluereduce(fts,
                     check2go,
                     ins2go,
                     origsens,
-                    check22go=check22go)
+                    check22go=check22go,
+                    checkld=checkld,
+                    chain=[(fts.gluelist.name[g1], fts.gluelist.name[g2])])
             except ValueError:
                 continue
             except KeyError:
