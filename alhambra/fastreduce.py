@@ -100,7 +100,7 @@ class FTileList():
                     used=used,
                     structure=t.structure,
                     dfake=0,
-                    sfake=False))
+                    sfake=0))
             assert t.name not in self.totile.keys()
             self.totile[t.name] = self.tiles[-1]
         stiles = []
@@ -120,8 +120,8 @@ class FTileList():
                 raise NotImplementedError
         self.stiles = _ft_to_fta(stiles)
 
-        for tile in stiles:
-            x, y = _ffakedouble(tile, self.stiles, gluelist)
+        for i in range(0, len(self.stiles)):
+            x, y = _ffakedouble_n(i, self.stiles, gluelist)
             htiles += x
             vtiles += y
 
@@ -148,7 +148,7 @@ def _fdg(dir, gs1, gs2):
         raise ValueError(dir)
 
 
-def _ffakedouble(tile, sta, gluelist, outputonly=True, dir4=False, equiv=None):
+def _ffakedouble_n(tn, sta, gluelist, outputonly=True, dir4=False, equiv=None):
     if equiv is None:
         equiv = gluelist.blankequiv()
     if not dir4:
@@ -157,27 +157,40 @@ def _ffakedouble(tile, sta, gluelist, outputonly=True, dir4=False, equiv=None):
     else:
         faketiles = ([], [], [], [])
         fti = (0, 1, 2, 3)
+    if sta.sfake[tn]:
+        ddir = np.flatnonzero(gluelist.tonum['fakedouble'] == sta.glues[tn])[0]
     for dir in range(0, 4):
-        if (tile.use[dir] == 1) and outputonly:
+        if (sta.use[tn, dir] == 1) and outputonly:
             continue
         if outputonly:
-            oti = np.nonzero((equiv[gluelist.complement[tile.glues[dir]]] ==
+            oti = np.nonzero((equiv[gluelist.complement[sta.glues[tn, dir]]] ==
                               equiv[sta.glues[:, RSEL[dir]]]) &
                              (sta.use[:, RSEL[dir]] == 1) & (sta.used))
         else:
-            oti = np.nonzero((equiv[gluelist.complement[tile.glues[dir]]] ==
+            oti = np.nonzero((equiv[gluelist.complement[sta.glues[tn, dir]]] ==
                               equiv[sta.glues[:, RSEL[dir]]]))
         for i in oti[0]:
             faketiles[fti[dir]].append(
                 FTile(
                     color=False,
                     used=True,
-                    name=tile.name + '_{}_'.format(dir) + sta.name[i],
+                    name=sta.name[tn] + '_{}_'.format(dir) + sta.name[i],
                     structure=FTS[dir],
-                    glues=np.array(_fdg(dir, tile.glues, sta.glues[i])),
-                    use=np.array(_fdg(dir, tile.use, sta.use[i])),
+                    glues=np.array(_fdg(dir, sta.glues[tn, :], sta.glues[i])),
+                    use=np.array(_fdg(dir, sta.use[tn, :], sta.use[i])),
                     dfake=dir + 1,
-                    sfake=(tile.sfake or sta.sfake[i])))
+                    sfake=(sta.sfake[tn] or sta.sfake[i])))
+        if sta.sfake[tn] and (dir == ddir):
+            faketiles[fti[dir]].append(
+                FTile(
+                    color=False,
+                    used=True,
+                    name=sta.name[tn] + '_{}_'.format(dir) + sta.name[tn+sta.sfake[tn]],
+                    structure=FTS[dir],
+                    glues=np.array(_fdg(dir, sta.glues[tn, :], sta.glues[tn+sta.sfake[tn]])),
+                    use=np.array(_fdg(dir, sta.use[tn, :], sta.use[tn+sta.sfake[tn]])),
+                    dfake=dir + 1,
+                    sfake=True))
     return faketiles
 
 
@@ -201,7 +214,7 @@ def _ffakesingle(ftile, gluelist):
     fuse = [[([-1] + list(ftile.use))[x] for x in y] for y in sel]
     use = []
     used = []
-    names = [ftile.name + '_fakedouble_a', ftile.name + 'fakedouble_b']
+    names = [ftile.name + '_fakedouble_a', ftile.name + '_fakedouble_b']
     for gu in zip(glues, fuse):
         if sum(gluelist.strength[g] for g, u in zip(*gu) if u == 1) >= TAU:
             use.append(gu[1])
@@ -218,7 +231,7 @@ def _ffakesingle(ftile, gluelist):
             used=ud,
             structure=ts.tile_daoe_single(),
             dfake=0,
-            sfake=True) for u, g, n, ud in zip(use, glues, names, used)
+            sfake=sfo) for u, g, n, ud, sfo in zip(use, glues, names, used, [1, -1])
     ]
 
 
@@ -333,14 +346,14 @@ def is_2go_single_nn(fts,
                 return False, False, None, None
 
     if in2go is None:
-        in2go = _ffakedouble(
-            fta_to_ft(fts.tilelist.stiles, tn, fts.tilelist.stiles.used),
+        in2go = _ffakedouble_n(
+            np.flatnonzero(fts.tilelist.stiles.used)[tn],
             fts.tilelist.stiles,
             fts.gluelist,
             outputonly=True,
             dir4=True)
-    incorrect = _ffakedouble(
-        fta_to_ft(fts.tilelist.stiles, un),
+    incorrect = _ffakedouble_n(
+        un,
         fts.tilelist.stiles,
         fts.gluelist,
         outputonly=False,
@@ -390,12 +403,12 @@ def is_2go_single_nn(fts,
 
 
 def gen_2go_single_ins(fts, tau=2):
-    ssel = np.nonzero(fts.tilelist.stiles.used)
+    ssel = np.flatnonzero(fts.tilelist.stiles.used)
     ins = []
-    for tn in ssel[0]:
+    for tn in ssel:
         ins.append(
-            _ffakedouble(
-                fta_to_ft(fts.tilelist.stiles, tn),
+            _ffakedouble_n(
+                tn,
                 fts.tilelist.stiles,
                 fts.gluelist,
                 outputonly=True,
@@ -644,7 +657,7 @@ def _tilereduce(fts,
         equiv = fts.gluelist.blankequiv()
     todo = _findpotentialtilemerges(fts, equiv)
     if initptins is None:
-        initptins = ptins(fts, equiv)
+        initptins = ptins(fts)
     if check2go or check22go:
         ins2go = gen_2go_single_ins(fts)
         origsens, orig22go = gen_2go_profile(fts, ins2go=ins2go, also22go=True)
