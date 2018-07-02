@@ -1545,7 +1545,16 @@ class TileSet(CommentedMap):
             rotatedtiles = []
             for tile in ts.tiles:
                 # only include rotated tiles that aren't identical (handles symmetric tiles)
-                rotatedtiles += [t for t in tile.rotations if (t['ends'] != tile['ends'])]
+                trot = [t for t in tile.rotations if (t['ends'] != tile['ends'])]
+                td = []
+                for i, tr in enumerate(trot):
+                    for j in range(0, i):
+                        if tr['ends'] == trot[j]['ends']:
+                            td.append(i)
+                            break
+                for i in reversed(td):
+                    del(trot[i])
+                rotatedtiles += trot
             ts.tiles += rotatedtiles
 
         for tile in ts.tiles:
