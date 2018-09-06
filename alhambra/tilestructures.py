@@ -293,7 +293,7 @@ class tile_daoe_single(tile_daoe):
 
 
 class tile_daoe_5up(tile_daoe_single):
-    _orient = ('5', '3')
+    _orient = ('3', '5') # SW, then NE of whole tile
     _endtypes = ['TD', 'TD', 'DT', 'DT']
     # endlocs is strand, loc, length
     _endlocs = [(0, 0, 5), (3, 0, 5), (3, 21, None), (0, 21, None)]
@@ -321,7 +321,7 @@ class tile_daoe_5up(tile_daoe_single):
                 for i, seq in enumerate(seqs)]
 
 class tile_daoe_3up(tile_daoe_single):
-    _orient = ('3', '5')
+    _orient = ('5', '3')
     _endtypes = ['DT', 'DT', 'TD', 'TD']
     _endlocs = [(0, 21, None), (3, 21, None), (3, 0, 5), (0, 0, 5)]
     # valid edotparen for both 3up and 5up
@@ -349,25 +349,25 @@ class tile_daoe_3up(tile_daoe_single):
 
 
 class tile_daoe_5up_1h(tile_daoe_5up):
-    _orient = ('5', '3')
+    _orient = ('3', '5')
     _endtypes = ['hairpin', 'TD', 'DT', 'DT']
 
 
 class tile_daoe_5up_3h(tile_daoe_5up):
-    _orient = ('5', '3')
+    _orient = ('3', '5')
     _endtypes = ['TD', 'TD', 'hairpin', 'DT']
 
 class tile_daoe_5up_3b(tile_daoe_5up):
-    _orient = ('5', '3')
+    _orient = ('3', '5')
     _endtypes = ['TD', 'TD', 'hairpin', 'DT']
 
 class tile_daoe_5up_4h(tile_daoe_5up):
-    _orient = ('5', '3')
+    _orient = ('3', '5')
     _endtypes = ['TD', 'TD', 'DT', 'hairpin']
 
 
 class tile_daoe_5up_2h(tile_daoe_5up):
-    _orient = ('5', '3')
+    _orient = ('3', '5')
     _endtypes = ['TD', 'hairpin', 'DT', 'DT']
     _endlocs = [(0, 0, 5), (3, 0, 18), (3, -5, None), (0, -5, None)]
 
@@ -472,7 +472,7 @@ class tile_daoe_doublevert(tile_daoe):
 
 class tile_daoe_doublehoriz_35up(tile_daoe_doublehoriz):
     _endtypes = ['DT', 'TD', 'TD', 'DT', 'TD', 'TD']
-    _orient = ('3', '5')
+    _orient = ('5', '5')
     _endlocs = [(0, -5, None), (2, 0, 5), (5, 0, 5), (5, -5, None),
                 (3, 0, 5), (0, 0, 5)]
     
@@ -525,7 +525,7 @@ class tile_daoe_doublehoriz_35up(tile_daoe_doublehoriz):
 class tile_daoe_doublehoriz_53up(tile_daoe_doublehoriz):
 
     _endtypes = ['TD', 'DT', 'DT', 'TD', 'DT', 'DT']
-    _orient = ('5', '3')
+    _orient = ('3', '3')
     _endlocs = [(0, 0, 5), (2, -5, None), (5, -5, None), (5, 0, 5),
                 (3, -5, None), (0, -5, None)]
 
@@ -595,7 +595,7 @@ class tile_daoe_doublevert_35up(tile_daoe_doublevert):
         return [g(e) for e in el]
 
     _endtypes = ['DT', 'DT', 'TD', 'DT', 'DT', 'TD']
-    _orient = ('3', '5')
+    _orient = ('3', '3')
     _endlocs = [(0, -5, None), (3, -5, None), (5, 0, 5),
                 (5, -5, None), (2, -5, None), (0, 0, 5)]
 
@@ -628,7 +628,7 @@ class tile_daoe_doublevert_53up(tile_daoe_doublevert):
         return [g(e) for e in el]
 
     _endtypes = ['TD', 'TD', 'DT', 'TD', 'TD', 'DT']
-    _orient = ('5', '3')
+    _orient = ('5', '5')
     _endlocs = [(0, 0, 5), (3, 0, 5), (5, -5, None),
                 (5, 0, 5), (2, 0, 5), (0, -5, None)]
     
