@@ -227,7 +227,13 @@ class tile_daoe(TileStructure):
 
         tilediag = tilediagfile.getroot().find("./*[@class='tile']")
 
-        fill = xcolors.get(tile.get('color', None), None)
+        c = tile.get('color', None)
+        if c is None:
+            fill = None
+        elif c[0] == "#":
+            fill = c
+        else:
+            fill = xcolors.get(c, None)
 
         tilediag.find("./*[@class='tilename']").text = tile.name
         if fill:
@@ -255,7 +261,14 @@ class tile_daoe(TileStructure):
             if end and ('color' in end.keys()):
                 ec = tilediag.find("./*[@class='endcolor_{}']".format(loc))
                 s = cssutils.parseStyle(ec.attrib['style'])
-                s['fill'] = xcolors[end['color']]
+                c = end.get('color', None)
+                if c is None:
+                    fill = None
+                elif c[0] == "#":
+                    fill = c
+                else:
+                    fill = xcolors.get(c, None)
+                s['fill'] = fill
                 ec.attrib['style'] = s.getCssText('')
 
         return (tilediag, 1)
