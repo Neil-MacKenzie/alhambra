@@ -31,9 +31,8 @@ this is not currently the case for xgrow and xgrowutils.
 
 # Usage
 
-See the documentation in the docs folder.  (Note: If you are reading this after the
-DNA 24 conference, I will be putting the documentation online by 2018-10-15, which
-should be more convenient to access.)
+[Documentation is available online on readthedocs.io](https://alhambra.readthedocs.io/en/latest/).  
+It is also available in the docs/ folder.
 
 # Questions
 
