@@ -13,6 +13,7 @@ Alhambra Documentation
    tutorial
    fileformat
    alhambra
+   references
 
 
 
