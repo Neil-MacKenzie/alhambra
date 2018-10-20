@@ -17,6 +17,7 @@ from . import seeds
 from . import util
 from . import seq
 from . import sensitivitynew as sensitivity
+from . import fastreduce
 
 from peppercompiler import compiler as compiler
 from peppercompiler.design import spurious_design as spurious_design
@@ -1871,45 +1872,113 @@ class TileSet(CommentedMap):
         pylab.xlabel('stickydesign ΔG')
         pylab.suptitle('16 nt arm region strengths')
 
-    def reduce_ends(ts,
-                    checkld=False,
-                    _wraparound=False,
-                    _classes=('2GO', ),
-                    _smo=2,
-                    _unsafe=False):
-        from . import endreduce
-        return endreduce.reduce_ends(
-            ts,
-            checkld=checkld,
-            _wraparound=_wraparound,
-            _classes=_classes,
-            _smo=_smo,
-            _unsafe=_unsafe)
+    def reduce_ends(tileset, preserve, tries, threads):
+        pass
 
-    def reduce_tiles(tileset,
-                     colors=None,
-                     rotation=True,
-                     checkld=2,
-                     _unsafe=True,
-                     _smo=2,
-                     _classes=('2GO', ),
-                     update=1000):
-        from . import tilereduce
-        return tilereduce.reduce_tiles(
-            tileset,
-            colors=colors,
-            rotation=rotation,
-            checkld=checkld,
-            _unsafe=_unsafe,
-            _smo=_smo,
-            _classes=_classes,
-            update=update)
+    def reduce_tiles(tileset, preserve=('s22','ld'), tries=10, threads=1, returntype='equiv', best=1, key=None, initequiv=None):
+        """
+        Apply tile reduction algorithm, preserving some set of properties, and using a multiprocessing pool.
 
+        Parameters
+        ----------
+        tileset: TileSet  
+            The system to reduce. 
+
+        preserve: a tuple or list of strings, optional
+            The properties to preserve.  Currently supported are 's1' for first order
+            sensitivity, 's2' for second order sensitivity, 's22' for two-by-two sensitivity,
+            'ld' for small lattice defects, and 'gs' for glue sense (to avoid spurious
+            hierarchical attachment).  Default is currently ('s22', 'ld').
+
+        tries: int, optional
+            The number of times to run the algorithm.
+
+        threads: int, optional
+            The number of threads to use (using multiprocessing).
+
+        returntype: 'TileSet' or 'equiv' (default 'equiv')
+            The type of object to return.  If 'equiv', returns an array of glue equivalences
+            (or list, if best != 1) that can be applied to the tileset with apply_equiv, or used 
+            for further reduction.  If 'TileSet', return a TileSet with the equiv already applied
+            (or a list, if best != 1).
+
+        best: int or None, optional
+            The number of systems to return.  If 1, the result will be returned
+            directly; if k > 1, a list will be returned of the best k results (per cmp);
+            if k = None, a list of *all* results will be returned, sorted by cmp. (default 1)
+
+        key: function (ts, equiv1, equiv2) -> some number/comparable
+            A comparison function for equivs, to sort the results. FIXME: documentation needed.
+            Default (if None) here is to sort by number of glues in the system, regardless of number 
+            of tiles.
+
+        initequiv: equiv
+            If provided, the equivalence array to start from.  If None, start from the tileset without
+            any merged glues.
+
+        Returns
+        -------
+        reduced: single TileSet or equiv, or list
+            The reduced system/systems
+        """
+        return fastreduce.reduce_tiles(tileset, preserve, tries, threads, returntype, best, key, initequiv)
+
+    def reduce_ends(tileset, preserve=('s22','ld'), tries=10, threads=1, returntype='equiv', best=1, key=None, initequiv=None):
+        """
+        Apply end reduction algorithm, preserving some set of properties, and using a multiprocessing pool.
+
+        Parameters
+        ----------
+        tileset: TileSet  
+            The system to reduce. 
+
+        preserve: a tuple or list of strings, optional
+            The properties to preserve.  Currently supported are 's1' for first order
+            sensitivity, 's2' for second order sensitivity, 's22' for two-by-two sensitivity,
+            'ld' for small lattice defects, and 'gs' for glue sense (to avoid spurious
+            hierarchical attachment).  Default is currently ('s22', 'ld').
+
+        tries: int, optional
+            The number of times to run the algorithm.
+
+        threads: int, optional
+            The number of threads to use (using multiprocessing).
+
+        returntype: 'TileSet' or 'equiv' (default 'equiv')
+            The type of object to return.  If 'equiv', returns an array of glue equivalences
+            (or list, if best != 1) that can be applied to the tileset with apply_equiv, or used 
+            for further reduction.  If 'TileSet', return a TileSet with the equiv already applied
+            (or a list, if best != 1).
+
+        best: int or None, optional
+            The number of systems to return.  If 1, the result will be returned
+            directly; if k > 1, a list will be returned of the best k results (per cmp);
+            if k = None, a list of *all* results will be returned, sorted by cmp. (default 1)
+
+        key: function (ts, equiv1, equiv2) -> some number/comparable
+            A comparison function for equivs, to sort the results. FIXME: documentation needed.
+            Default (if None) here is to sort by number of glues in the system, regardless of number 
+            of tiles.
+
+        initequiv: equiv
+            If provided, the equivalence array to start from.  If None, start from the tileset without
+            any merged glues.
+
+        Returns
+        -------
+        reduced: single TileSet or equiv, or list
+            The reduced system/systems
+        """
+        return fastreduce.reduce_ends(tileset, preserve, tries, threads, returntype, best, key, initequiv)
+
+    
     def latticedefects(ts, direction='e', depth=2, pp=True, rotate=False):
         from . import latticedefect
         return latticedefect.latticedefects(
             ts, direction=direction, depth=depth, pp=pp, rotate=rotate)
 
+    def apply_equiv(ts, equiv):
+        return fastreduce._FastTileSet(ts).applyequiv(ts, equiv)
 
 RoundTripRepresenter.add_representer(TileSet,
                                      RoundTripRepresenter.represent_dict)

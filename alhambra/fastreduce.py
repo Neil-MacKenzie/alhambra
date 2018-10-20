@@ -1,7 +1,7 @@
 from collections import namedtuple
 from copy import copy
 import numpy as np
-from . import tilestructures as ts
+from . import tilestructures
 from .tiles import TileList
 from .ends import End
 from random import shuffle
@@ -108,12 +108,12 @@ class FTileList():
         vtiles = []
 
         for t in self.tiles:
-            if isinstance(t.structure, ts.tile_daoe_single):
+            if isinstance(t.structure, tilestructures.tile_daoe_single):
                 stiles.append(t)
-            elif isinstance(t.structure, ts.tile_daoe_doublehoriz):
+            elif isinstance(t.structure, tilestructures.tile_daoe_doublehoriz):
                 stiles += _ffakesingle(t, gluelist)
                 htiles.append(t)
-            elif isinstance(t.structure, ts.tile_daoe_doublevert):
+            elif isinstance(t.structure, tilestructures.tile_daoe_doublevert):
                 stiles += _ffakesingle(t, gluelist)
                 vtiles.append(t)
             else:
@@ -131,8 +131,8 @@ class FTileList():
 
 RSEL = (2, 3, 0, 1)
 FTI = (1, 0, 1, 0)
-FTS = (ts.tile_daoe_doublevert(), ts.tile_daoe_doublehoriz(),
-       ts.tile_daoe_doublevert(), ts.tile_daoe_doublehoriz())
+FTS = (tilestructures.tile_daoe_doublevert(), tilestructures.tile_daoe_doublehoriz(),
+       tilestructures.tile_daoe_doublevert(), tilestructures.tile_daoe_doublehoriz())
 
 
 def _fdg(dir, gs1, gs2):
@@ -201,9 +201,9 @@ VSEL = ((1, 2, 0, 6), (0, 3, 4, 5))
 
 def _ffakesingle(ftile, gluelist):
     # FIXME: should be more generalized.  Currently only tau=2
-    if isinstance(ftile.structure, ts.tile_daoe_doublehoriz):
+    if isinstance(ftile.structure, tilestructures.tile_daoe_doublehoriz):
         sel = HSEL
-    elif isinstance(ftile.structure, ts.tile_daoe_doublevert):
+    elif isinstance(ftile.structure, tilestructures.tile_daoe_doublevert):
         sel = VSEL
     else:
         raise NotImplementedError
@@ -229,7 +229,7 @@ def _ffakesingle(ftile, gluelist):
             glues=g,
             name=n,
             used=ud,
-            structure=ts.tile_daoe_single(),
+            structure=tilestructures.tile_daoe_single(),
             dfake=0,
             sfake=sfo) for u, g, n, ud, sfo in zip(use, glues, names, used, [1, -1])
     ]
@@ -247,7 +247,7 @@ def _ft_to_fta(ftiles):
         sfake=np.array([x.sfake for x in ftiles]))
 
 
-class FTileSystem():
+class _FastTileSet():
     def __init__(self, tilesystem):
         self.gluelist = FGlueList(tilesystem.allends + [
             End({
@@ -774,3 +774,210 @@ def _gluereduce(fts,
             except KeyError:
                 continue
     return equiv
+
+def _single_reduce_tiles(p):    
+    feq, ts, fts, params = p
+    #starttime = time.time()
+    initptins = ptins(fts)
+    e = _tilereduce(fts, equiv=feq, initptins=initptins, **params)
+    #endtime = time.time()
+    #te = fts.applyequiv(ts, e)
+    #nt = len([y for y in te.tiles if 'fake' not in y.keys()])
+    #ng = len(te.allends)
+
+    #a = isatamequiv(fts, e)
+    #g2 = is_2go_equiv(fts, e)[0]
+    #g22 = is_22go_equiv(fts, e)[0]
+    #lde = len(fld.latticedefects(fts, equiv=e, direction='e')) == 0
+    #ldw = len(fld.latticedefects(fts, equiv=e, direction='w')) == 0
+    #print('TR: Found {}t, {}g: aTAM {} 2GO {} 22GO {} LD {}/{} in {}s'.format(
+    #    nt, ng, a, g2, g22, lde, ldw, endtime - starttime))
+    #te.to_file(nb + 'step1-{}t{}g.yaml'.format(nt, ng))
+    return e
+
+def _single_reduce_ends(p):
+    equiv, ts, fts, params = p
+    #starttime = time.time()
+    initptins = ptins(fts)
+    e = _gluereduce(fts, equiv=equiv, initptins=initptins, **params)
+    # FIXME: all this is code for checking things and printing logs.
+    #endtime = time.time()
+    #te = fts.applyequiv(ts, e)
+    #nt = len([y for y in te.tiles if 'fake' not in y.keys()])
+    #ng = len(te.allends)
+    #a = isatamequiv(fts, e)
+    #g2 = is_2go_equiv(fts, e)[0]
+    #g22 = is_22go_equiv(fts, e)[0]
+    #lde = len(fld.latticedefects(fts, equiv=e, direction='e')) == 0
+    #ldw = len(fld.latticedefects(fts, equiv=e, direction='w')) == 0
+    #print('ER: Found {}t, {}g: aTAM {} 2GO {} 22GO {} LD {}/{} in {}s'.format(
+    #    nt, ng, a, g2, g22, lde, ldw, endtime - starttime))
+    #te.to_file(nb + '-step2-{}t{}g.yaml'.format(nt, ng))
+    return e
+
+def reduce_tiles(tileset, preserve=('s22','ld'), tries=10, threads=1, returntype='equiv', best=1, key=None, initequiv=None):
+    """
+    Apply tile reduction algorithm, preserving some set of properties, and using a multiprocessing pool.
+
+    Parameters
+    ----------
+    tileset: TileSet  
+        The system to reduce. 
+
+    preserve: a tuple or list of strings, optional
+        The properties to preserve.  Currently supported are 's1' for first order
+        sensitivity, 's2' for second order sensitivity, 's22' for two-by-two sensitivity,
+        'ld' for small lattice defects, and 'gs' for glue sense (to avoid spurious
+        hierarchical attachment).  Default is currently ('s22', 'ld').
+
+    tries: int, optional
+        The number of times to run the algorithm.
+
+    threads: int, optional
+        The number of threads to use (using multiprocessing).
+
+    returntype: 'TileSet' or 'equiv' (default 'equiv')
+        The type of object to return.  If 'equiv', returns an array of glue equivalences
+        (or list, if best != 1) that can be applied to the tileset with apply_equiv, or used 
+        for further reduction.  If 'TileSet', return a TileSet with the equiv already applied
+        (or a list, if best != 1).
+
+    best: int or None, optional
+        The number of systems to return.  If 1, the result will be returned
+        directly; if k > 1, a list will be returned of the best k results (per cmp);
+        if k = None, a list of *all* results will be returned, sorted by cmp. (default 1)
+
+    key: function (ts, equiv1, equiv2) -> some number/comparable
+        A comparison function for equivs, to sort the results. FIXME: documentation needed.
+        Default (if None) here is to sort by number of glues in the system, regardless of number 
+        of tiles.
+
+    initequiv: equiv
+        If provided, the equivalence array to start from.  If None, start from the tileset without
+        any merged glues.
+
+    Returns
+    -------
+    reduced: single TileSet
+        The reduced system/systems
+    """
+
+
+    fts = _FastTileSet(tileset)
+
+    if key is None:
+        key = lambda x: len(np.unique(x)) # number of unique numbers in equiv, equivalent
+                                          # to number of glues in reduced system. FIXME?
+
+    #FIXME: could do a better job here
+    params = {
+        'check2go': 's2' in preserve,
+        'check22go': 's22' in preserve,
+        'checkld': 'ld' in preserve,
+        'preserveuse': 'gs' in preserve
+        }
+
+    if initequiv is None:
+        initequiv = fts.gluelist.blankequiv()
+
+    if threads > 1:
+        from multiprocessing import Pool
+        with Pool(threads) as pool:
+            equivs = pool.map(_single_reduce_tiles, [[initequiv, tileset, fts, params]] * tries)
+    else:
+        equivs = [_single_reduce_tiles(x) for x in ([[initequiv, tileset, fts, params]] * tries)]
+
+    equivs.sort(key=key)
+
+    if returntype == 'TileSet':
+        equivs = [ tileset.apply_equiv(equiv) for equiv in equivs ]
+
+    if best == 1:
+        return equivs[0]
+    else:
+        return equivs[0:best]
+
+
+def reduce_ends(tileset, preserve=('s22','ld'), tries=10, threads=1, returntype='equiv', best=1, key=None, initequiv=None):
+    """
+    Apply end reduction algorithm, preserving some set of properties, and using a multiprocessing pool.
+
+    Parameters
+    ----------
+    tileset: TileSet  
+        The system to reduce. 
+
+    preserve: a tuple or list of strings, optional
+        The properties to preserve.  Currently supported are 's1' for first order
+        sensitivity, 's2' for second order sensitivity, 's22' for two-by-two sensitivity,
+        'ld' for small lattice defects, and 'gs' for glue sense (to avoid spurious
+        hierarchical attachment).  Default is currently ('s22', 'ld').
+
+    tries: int, optional
+        The number of times to run the algorithm.
+
+    threads: int, optional
+        The number of threads to use (using multiprocessing).
+
+    returntype: 'TileSet' or 'equiv' (default 'equiv')
+        The type of object to return.  If 'equiv', returns an array of glue equivalences
+        (or list, if best != 1) that can be applied to the tileset with apply_equiv, or used 
+        for further reduction.  If 'TileSet', return a TileSet with the equiv already applied
+        (or a list, if best != 1).
+
+    best: int or None, optional
+        The number of systems to return.  If 1, the result will be returned
+        directly; if k > 1, a list will be returned of the best k results (per cmp);
+        if k = None, a list of *all* results will be returned, sorted by cmp. (default 1)
+
+    key: function (ts, equiv1, equiv2) -> some number/comparable
+        A comparison function for equivs, to sort the results. FIXME: documentation needed.
+        Default (if None) here is to sort by number of glues in the system, regardless of number 
+        of tiles.
+
+    initequiv: equiv
+        If provided, the equivalence array to start from.  If None, start from the tileset without
+        any merged glues.
+
+    Returns
+    -------
+    reduced: single TileSet
+        The reduced system/systems
+    """
+
+
+    fts = _FastTileSet(tileset)
+
+    if key is None:
+        key = lambda x: len(np.unique(x)) # number of unique numbers in equiv, equivalent
+                                          # to number of glues in reduced system. FIXME?
+
+    #FIXME: could do a better job here
+    params = {
+        'check2go': 's2' in preserve,
+        'check22go': 's22' in preserve,
+        'checkld': 'ld' in preserve,
+        'preserveuse': 'gs' in preserve
+        }
+
+    if initequiv is None:
+        initequiv = fts.gluelist.blankequiv()
+
+    if threads > 1:
+        from multiprocessing import Pool
+        with Pool(threads) as pool:
+            equivs = pool.map(_single_reduce_ends, [[initequiv, tileset, fts, params]] * tries)
+    else:
+        equivs = [_single_reduce_ends(x) for x in ([[initequiv, tileset, fts, params]] * tries)]
+
+    equivs.sort(key=key)
+
+    if returntype == 'TileSet':
+        equivs = [ tileset.apply_equiv(equiv) for equiv in equivs ]
+
+    if best == 1:
+        return equivs[0]
+    else:
+        return equivs[0:best]
+
+    
