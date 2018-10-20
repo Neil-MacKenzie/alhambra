@@ -13,14 +13,15 @@ current (semi-)stable version from the Python Package Index, you can simply use
 
     pip install alhambra
 	
-(If you are reading this after the DNA 24 conference, I would suggest waiting
-until 2018-10-15 to do so, as I will be making a few changes, adding documentation,
-and putting out a new release for pip that won't be very outdated.  The current pip
-version does not include the reduction code.)
+To install a prerelease version with reduction (from DNA 24) and other significant
+improvements, use
+
+	pip install alhambra=1.0.0a1
 	
-Alhambra is designed to work with Python 3, but should also work with Python
-2.7, though some exceptions may fail, as it makes heavy use of exception
-chaining.
+Once more documentation is present, and more tests are done, this new version will
+become the default.
+	
+Alhambra is designed to work with Python 3, and may fail with Python 2.
 
 To install development versions, you can check out this github repository, and
 use `pip -e` or some other method for installing Python packages.  Multiple
@@ -31,8 +32,10 @@ this is not currently the case for xgrow and xgrowutils.
 
 # Usage
 
-[Documentation is available online on readthedocs.io](https://alhambra.readthedocs.io/en/latest/).  
-It is also available in the docs/ folder.
+[Documentation is available online on readthedocs.io](https://alhambra.readthedocs.io/en/latest/).  In particular, see 
+[the tutorial](https://alhambra.readthedocs.io/en/latest/tutorial.html).  It is also available in the docs/ folder.
+
+Most user-facing functions are on the TileSet class.
 
 # Questions
 
