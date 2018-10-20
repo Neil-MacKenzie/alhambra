@@ -5,6 +5,14 @@ Submodules
 ----------
 
 
+alhambra\.tilesets module
+-------------------------
+
+.. automodule:: alhambra.tilesets
+    :members:
+    :undoc-members:
+    :show-inheritance:
+
 alhambra\.ends module
 ---------------------
 
@@ -37,26 +45,10 @@ alhambra\.tiles module
     :undoc-members:
     :show-inheritance:
 
-alhambra\.tilesets module
--------------------------
-
-.. automodule:: alhambra.tilesets
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
 alhambra\.tilestructures module
 -------------------------------
 
 .. automodule:: alhambra.tilestructures
-    :members:
-    :undoc-members:
-    :show-inheritance:
-
-Module contents
----------------
-
-.. automodule:: alhambra
     :members:
     :undoc-members:
     :show-inheritance:

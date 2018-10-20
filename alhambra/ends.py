@@ -5,7 +5,7 @@ import copy
 from peppercompiler.DNA_classes import wc
 from . import seq
 import stickydesign as sd
-import stickydesign2 as sd2
+import stickydesign.stickydesign2 as sd2
 from .util import DEFAULT_SD2_MULTIMODEL_ENERGETICS, DEFAULT_MM_ENERGETICS_NAMES
 
 
@@ -172,7 +172,7 @@ class EndList(NamedList):
 
     def _pandas_data(self, models=DEFAULT_SD2_MULTIMODEL_ENERGETICS,
                      modelnames=DEFAULT_MM_ENERGETICS_NAMES):
-        import stickydesign2.plots as s2pl
+        import stickydesign.stickydesign2.plots as s2pl
         return s2pl._pandas_data(self._epas, self._epans, models, modelnames)
     
     def merge(endlist1, endlist2, fail_immediate=False,

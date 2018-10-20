@@ -36,7 +36,7 @@ from datetime import datetime, timezone
 
 import logging
 
-import stickydesign2 as sd2
+import stickydesign.stickydesign2 as sd2
 
 from .util import DEFAULT_SD2_MULTIMODEL_ENERGETICS, DEFAULT_MM_ENERGETICS_NAMES, DEFAULT_REGION_ENERGETICS, DEFAULT_MULTIMODEL_ENERGETICS, DEFAULT_ENERGETICS
 

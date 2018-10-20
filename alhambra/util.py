@@ -7,7 +7,7 @@ from ruamel.yaml.representer import RoundTripRepresenter
 from . import seq
 
 import stickydesign as sd
-import stickydesign2 as sd2
+import stickydesign.stickydesign2 as sd2
 
 DEFAULT_ENERGETICS = sd.EnergeticsDAOE(temperature=33, coaxparams=True)
 
