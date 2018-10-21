@@ -1,11 +1,11 @@
 
-A Tutorial Run-Through of Alhambra
-==================================
+A Tutorial for Alhambra
+=======================
 
 Alhambra is primarily designed to be used as a Python module, whether
-through your own scripts or in a Jupyter notebook: we suggest the
-latter. Tile sets can be written either as YAML files, or just as a
-Python dictionary, in a relatively simple and extensible format.
+through your own scripts or in a Jupyter notebook. Tile sets can be written
+either as YAML files, or just as a Python dictionary, in a relatively simple
+and extensible format.
 
 Currently, Alhambra supports:
 
@@ -402,3 +402,61 @@ first, let’s put a biotin label on tile A:
 
 You can use standard Python techniques to output this any way you’d like
 (eg, using csv.writer or Pandas DataFrames)
+
+
+A More Complicated Example: XOR
+-------------------------------
+
+To illustrate more complex tile systems, we will use a fixed-width XOR ribbon that implements uniform proofreading.
+
+Seeds
++++++
+
+Many tile systems start growth from a DNA origami or other pre-assembled seed structure.  
+
+Lattice Defects
++++++++++++++++
+
+Rotated Tiles
++++++++++++++
+
+Reduction
++++++++++
+
+Tile or glue reduction ([EvWi2018]_) of a :py:class:`alhambra.TileSet` is done through two methods: :meth:`alhambra.TileSet.reduce_tiles` for tiles, and :meth:`alhambra.TileSet.reduce_ends` for glues.  
+
+By default, each returns an "equiv" array that denotes what glues in the TileSet are equivalent (note that, if the set is modified, the equiv array may no longer be valid).  These can use the Python multiprocessing library to run concurrently in multiple threads.  As the searches are nondeterministic, multiple runs may give different results, and thus repeated tries are supported.
+
+Reduction can try to preserve several things:
+
+- 's2' preserves second-order sensitive pairs, adding no new pairs.
+- 's22' preserves 2-by-2 sensitive pairs, adding no new pairs.
+- 'ld' preserves small lattice defect formation, adding no new configurations of tiles that could allow them.
+- 'gs' preserves glue "sense": glues used as inputs will continue to be used only as inputs, and glues used as outputs will be used only as outputs.
+
+Furthermore, reduction requires that our tiles specify "use annotations," specifying how tiles attach.
+
+With these added, to try to reduce the number of tile types in our system, we might try:
+
+.. code:: ipython3
+
+	  xor_equiv_tr = xor.reduce_tiles(preserve=['s22', 'ld'], tries=20, threads=5)
+
+This will return an equiv that has the least number of tiles.  Rather than applying this to our system, we can go on to reduce the number of glues/ends in the system, starting from the equiv:
+
+.. code:: ipython3
+
+	  xor_equiv_er = xor.reduce_tiles(preserve=['s22', 'ld'], tries=20, threads=5, initequiv=xor_equiv_tr)
+
+Now, we can apply this to obtain a reduced-size TileSet:
+
+.. code:: ipython3
+
+	  xor_reduced = xor.apply_equiv(xor_equiv_er)
+
+Note that, by default, reduction makes use of rotated tiles, so simulations of the new system may not work if rotation is not turned on.  Additionally, merged tiles are not removed from the system: instead, they gain a "fake" key, with a value of the real tile that implements them.
+
+Sticky End Sequence Assignment
+++++++++++++++++++++++++++++++
+
+([EvWi2013]_)
