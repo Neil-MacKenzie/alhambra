@@ -1,3 +1,4 @@
+"""A module"""
 from ruamel.yaml.comments import CommentedMap
 from .util import NamedList
 from .ends import EndList
@@ -6,6 +7,7 @@ import copy
 
 
 class Tile(dict):
+    """A class representing one tile."""
     def __init__(self, val={}):
         dict.__init__(self, val)
 

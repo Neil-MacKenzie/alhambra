@@ -48,7 +48,7 @@ class TileSet(CommentedMap):
 
     This class parses and manipulates Alhambra tilesets.  Note that,
     unless you have already imported or made a dict, you will likely
-    want to construct this with TileSet.from_file .
+    want to construct this with :meth:`TileSet.from_file`.
 
     Parameters
     ----------
@@ -76,15 +76,16 @@ class TileSet(CommentedMap):
 
         Parameters
         ----------
+
         name_or_stream : file-like or path-like object
             The path of the file, or a file object, to lead.
 
 
         Returns
         -------
-        TileSet
-            The loaded TileSet.
 
+        TileSet : TileSet
+            The loaded TileSet.
         """
         # Assume a stream:
         if getattr(name_or_stream, 'read', None) is None:
@@ -820,7 +821,7 @@ class TileSet(CommentedMap):
 
         return newtileset, newendnames
 
-    def add_info(self, ititle, data):
+    def _add_info(self, ititle, data):
         if 'info' not in self.keys():
             self['info'] = {}
         if ititle not in self['info'].keys():

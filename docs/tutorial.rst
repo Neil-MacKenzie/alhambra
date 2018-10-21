@@ -1,3 +1,4 @@
+.. py:currentmodule:: alhambra
 
 A Tutorial for Alhambra
 =======================
@@ -423,7 +424,7 @@ Rotated Tiles
 Reduction
 +++++++++
 
-Tile or glue reduction ([EvWi2018]_) of a :py:class:`alhambra.TileSet` is done through two methods: :meth:`alhambra.TileSet.reduce_tiles` for tiles, and :meth:`alhambra.TileSet.reduce_ends` for glues.  
+Tile or glue reduction ([EvWi2018]_) of a :py:class:`TileSet` is done through two methods: :meth:`TileSet.reduce_tiles` for tiles, and :meth:`TileSet.reduce_ends` for glues.  
 
 By default, each returns an "equiv" array that denotes what glues in the TileSet are equivalent (note that, if the set is modified, the equiv array may no longer be valid).  These can use the Python multiprocessing library to run concurrently in multiple threads.  As the searches are nondeterministic, multiple runs may give different results, and thus repeated tries are supported.
 
