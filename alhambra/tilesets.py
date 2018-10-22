@@ -173,7 +173,7 @@ class TileSet(CommentedMap):
         """Information on the tileset's seed"""
         return self.get('seed', None)
 
-    def create_abstract_diagrams(self, filename, *options):
+    def create_abstract_diagrams(self, filename, only_real=True, *options):
         """Write abstract tile diagrams in SVG for the TileSet.
 
         Parameters
@@ -181,6 +181,10 @@ class TileSet(CommentedMap):
 
         filename : str
             a path or filename for the SVG output.
+        only_real: bool
+            If True, only create diagrams for tiles that are not fake (ie,
+            tiles that actually exist in the system, rather than being provided
+            by other tiles as a result of reduction/etc.) (default is True)
         *options
             (currently unused)
         """
@@ -194,6 +198,8 @@ class TileSet(CommentedMap):
 
         pos = 0
         for tile in self.tiles:
+            if tile.is_fake:
+                continue
             group, n = tile.abstract_diagram(self)
 
             group.attrib['transform'] = "translate({},{})".format(
@@ -226,6 +232,8 @@ class TileSet(CommentedMap):
         baseroot = base.getroot()
         pos = 150
         for tile in tileset.tiles:
+            if tile.is_fake:
+                continue
             group = tile.sequence_diagram()
 
             group.attrib['transform'] = 'translate(0,{})'.format(pos)
@@ -332,7 +340,7 @@ class TileSet(CommentedMap):
         list
             a list of tuple (strand_name, strand_sequence) for the system.
         """
-        return [y for x in self.tiles for y in x.orderableseqs]
+        return [y for x in self.tiles if not x.is_fake for y in x.orderableseqs]
 
     def check_consistent(self):
         """Check the TileSet consistency.
@@ -395,9 +403,9 @@ class TileSet(CommentedMap):
             'ntiles':
             len(self.tiles),
             'nrt':
-            len([x for x in self.tiles if 'fake' not in x.keys()]),
+            len([x for x in self.tiles if not x.is_fake]),
             'nft':
-            len([x for x in self.tiles if 'fake' in x.keys()]),
+            len([x for x in self.tiles if x.is_fake]),
             'nends':
             len(self.ends),
             'ntends':
@@ -1156,8 +1164,8 @@ class TileSet(CommentedMap):
 
         if not basename:
             import uuid
-            basename = str(uuid.uuid4()).replace('-', '')
-            # FIXME: is this a valid basename?
+            basename = str(uuid.uuid4()).replace('-', '') 
+           # FIXME: is this a valid basename?
 
         newtileset = copy.deepcopy(tileset)
 
@@ -1282,6 +1290,8 @@ class TileSet(CommentedMap):
         compstring = ""
 
         for tile in tileset.tiles:
+            if tile.is_fake:
+                continue
             e = [[], []]
             for end in tile['ends']:
                 if (end == 'hp'):
@@ -1328,6 +1338,8 @@ class TileSet(CommentedMap):
         seqsstring = open(basename + '.seqs').read()
 
         for tile in tset.tiles:
+            if tile.is_fake:
+                continue
             pepperstrands = re.compile('strand ' + tile['name'] +
                                        '-([^ ]+) = ([^\n]+)').findall(
                                            seqsstring)
@@ -1875,7 +1887,7 @@ class TileSet(CommentedMap):
         pylab.suptitle('16 nt arm region strengths')
 
 
-    def reduce_tiles(tileset, preserve=('s22','ld'), tries=10, threads=1, returntype='equiv', best=1, key=None, initequiv=None):
+    def reduce_tiles(tileset, preserve=['s22','ld'], tries=10, threads=1, returntype='equiv', best=1, key=None, initequiv=None):
         """
         Apply tile reduction algorithm, preserving some set of properties, and using a multiprocessing pool.
 
@@ -1923,7 +1935,7 @@ class TileSet(CommentedMap):
         """
         return fastreduce.reduce_tiles(tileset, preserve, tries, threads, returntype, best, key, initequiv)
 
-    def reduce_ends(tileset, preserve=('s22','ld'), tries=10, threads=1, returntype='equiv', best=1, key=None, initequiv=None):
+    def reduce_ends(tileset, preserve=['s22','ld'], tries=10, threads=1, returntype='equiv', best=1, key=None, initequiv=None):
         """
         Apply end reduction algorithm, preserving some set of properties, and using a multiprocessing pool.
 

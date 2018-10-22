@@ -1,4 +1,4 @@
-__version__ = '1.0.0dev1'
+__version__ = '1.0.0'
 __all__ = ["TileSet", "Tile", "TileList", "End", "EndList", "TileStructure"]
 
 from .tilesets import TileSet

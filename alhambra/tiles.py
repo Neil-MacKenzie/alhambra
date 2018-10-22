@@ -64,6 +64,17 @@ with getstructure) or a TileStructure.  Get always returns the TileStructure."""
             tl.append(t)
         return tl
 
+    @property
+    def is_fake(self):
+        """Is the tile fake?
+
+        Returns
+        -------
+        bool
+            True if the tile is fake, False otherwise.
+        """
+        return ('fake' in self.keys())
+
 
     def named_rotations(self):
         rl = self.structure.rotations

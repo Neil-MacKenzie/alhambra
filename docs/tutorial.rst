@@ -405,21 +405,34 @@ You can use standard Python techniques to output this any way you’d like
 (eg, using csv.writer or Pandas DataFrames)
 
 
-A More Complicated Example: XOR
--------------------------------
-
-To illustrate more complex tile systems, we will use a fixed-width XOR ribbon that implements uniform proofreading [WiBe2004]_, growing from an origami seed.
+More Complicated Systems
+------------------------
 
 Seeds
 +++++
 
-Many tile systems start growth from a DNA origami or other pre-assembled seed structure.  
+Many tile systems start growth from a DNA origami or other pre-assembled seed structure, with "adapter tiles" that act as initial tiles.  This is handled by the 'seed' entry in a tile system definition, and affects several parts of Alhambra:
 
-Lattice Defects
-+++++++++++++++
+The adapter tiles used by our currently-supported seed structures mimic tiles in the system, reusing one of the short strands of the tiles to present the same sticky ends.  This means that their sequence is entirely determined by the origami sequence and tile sequence, and no further sequence design is necessary.
+
+Simulations will use a seed if it is present in the TileSet, by creating a special "seed" tile and glue, along with adapter tiles, in the Xgrow input.  However, the initial seed structure is not automatically added at the moment: use the "importfile" option in 'xgrow_args' or in arguments to Xgrow to add this.  For tall rectangle seeds, "tallrect.seed" is in the examples folder.
+
+To run simulations of a seeded TileSet without a seed, delete any "importfile" option in the system, and delete the 'seed' key in the set.  Otherwise, the (fake) seed tiles may cause problems.
+
+During tile and glue reduction, the changing of glues on adapters is done automatically.  However, tile reduction may remove tiles that are used for adapters, which is not currently handled in sequence design, as they may be rotated versions of remaining tiles.
+
+To generate sequences for the adapters (from tile and origami sequences) after all other sequences have been designed, use `TileSet.create_adapter_sequences`.  Diagrams of the adapter sequences can be generated with `TileSet.create_adapter_sequence_diagrams`.
 
 Rotated Tiles
 +++++++++++++
+
+While tiles in abstract models are usually considered to have fixed orientations, most DX tiles can attach in several different orientations.  Alhambra supports the handling of such rotated tiles in several situations.
+
+For simulations via `TileSet.run_xgrow`, rotated tiles can be included with the ``rotate=True`` parameter.
+
+Reduction makes use of rotated tiles by default, and this can't currently be changed.  Thus, simulations after reduction should include rotated tiles.
+
+The rotations of a `Tile` can be obtained using `Tile.rotations`.
 
 Reduction
 +++++++++
@@ -460,4 +473,4 @@ Note that, by default, reduction makes use of rotated tiles, so simulations of t
 Sticky End Sequence Assignment
 ++++++++++++++++++++++++++++++
 
-([EvWi2013]_)
+For more complicated systems, it can make sense to try to optimize the assignment of sequences to particular abstract sticky ends, avoiding high spurious interactions between sensitive pairs of ends ([EvWi2013]_; note that this does not use the new sensitivity definitions in [EvWi2018]_).  This can be performed with `TileSet.reorder_ends`: it should be done *after* sticky end sequences are generated, and before the tile/core sequences are generated.
