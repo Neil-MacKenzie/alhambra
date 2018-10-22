@@ -12,15 +12,7 @@ Alhambra is designed to be installed as a Python package.  To install the
 current (semi-)stable version from the Python Package Index, you can simply use
 
     pip install alhambra
-	
-To install a prerelease version with reduction (from DNA 24) and other significant
-improvements, use
-
-	pip install alhambra=1.0.0a1
-	
-Once more documentation is present, and more tests are done, this new version will
-become the default.
-	
+		
 Alhambra is designed to work with Python 3, and may fail with Python 2.
 
 To install development versions, you can check out this github repository, and
@@ -28,7 +20,8 @@ use `pip -e` or some other method for installing Python packages.  Multiple
 versions can be handled through `virtualenv`.
 
 All Alhambra requirements should be handled through setuptools dependencies, but
-this is not currently the case for xgrow and xgrowutils.
+note that xgrow and peppercompiler both rely on C code being compiled, which may
+fail.
 
 # Usage
 
