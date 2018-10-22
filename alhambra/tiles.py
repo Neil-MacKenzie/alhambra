@@ -168,6 +168,7 @@ with getstructure) or a TileStructure.  Get always returns the TileStructure."""
 
 
 class TileList(NamedList):
+    """A list of `Tile` instances, taking into account tile names."""
     def __init__(self, val=[]):
         NamedList.__init__(self, val)
         for i, tile in enumerate(self):
@@ -184,10 +185,8 @@ class TileList(NamedList):
     Parameters
     ----------
 
-    tilelist: either a list of tile description dicts, or a list of tile instances.
-        If 
-
-    fail_immediate: (default True) if True, immediately fail on a failure,
+    fail_immediate : bool
+        (default True) if True, immediately fail on a failure,
         with ValueError( tilename, exception ) from exception  If False, collect 
         exceptions, then raise ValueError( "message", [(tilename, exception)] , 
         output ).

@@ -10,6 +10,7 @@ from .util import DEFAULT_SD2_MULTIMODEL_ENERGETICS, DEFAULT_MM_ENERGETICS_NAMES
 
 
 class End(CommentedMap):
+    """A class representing a single end of some type, with or without a sequence."""
     def __str__(self):
         if self.fseq:
             if self.etype == 'DT':
@@ -62,6 +63,7 @@ class End(CommentedMap):
     use = property(**use())
 
     def strength():
+        """The strength of the End (as int)"""
         def fget(self):
             return self.get('strength', 1)
     

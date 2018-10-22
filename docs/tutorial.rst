@@ -12,7 +12,7 @@ Currently, Alhambra supports:
 
 -  DAO-E tiles, though other DX tile structures could be added simply.
 -  Biotin labels from IDT using Schulman’s labelling scheme (two biotins
-   on one helix of the tile).
+   on one helix of the tile) [ScYW2012]_.
 -  Seeded systems using a few different origami seeds, with more easily
    added.
 
@@ -408,7 +408,7 @@ You can use standard Python techniques to output this any way you’d like
 A More Complicated Example: XOR
 -------------------------------
 
-To illustrate more complex tile systems, we will use a fixed-width XOR ribbon that implements uniform proofreading.
+To illustrate more complex tile systems, we will use a fixed-width XOR ribbon that implements uniform proofreading [WiBe2004]_, growing from an origami seed.
 
 Seeds
 +++++
