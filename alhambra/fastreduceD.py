@@ -18,9 +18,13 @@ FTilesArray = namedtuple("FTilesArray",
 
 TAU = 2
 
-# Use is now going to have 4 possible values: Null, Input, Output, Both, Permanent
-uN=0; uI=1; uO=2; uB=3; uP=4; # null, input, output, both, permanent
+other = [2,3,0,1]
 
+# Use is now going to have 4 possible values: Null, Input, Output, Both, Permanent
+uU=0; uN=1; uI=2; uO=3; uB=4; uP=5; # null, input, output, both, permanent
+invertuse = [0, 1, 3, 2, 4, 5]
+usedict = {'U': uU, 'N': uN, 'I': uI, 'O': uO, 'B': uB,
+           'u': uU, 'n': uN, 'i': uI, 'o': uO, 'b': uB}
 
 class FGlueList():
     def __init__(self, glues):
@@ -42,7 +46,7 @@ class FGlueList():
             self.strength.append(g.strength)
             self.strength.append(g.strength)
             self.use.append(g.use)
-            self.use.append((g.use // 2) + (g.use % 2) * 2)
+            self.use.append(invertuse[g.use])
         self.name = np.array(self.name)
         self.strength = np.array(self.strength)
         self.structure = np.array(self.structure)
@@ -74,9 +78,9 @@ class FGlueList():
         return equiv
 
 
-U_UNUSED = -1
-U_INPUT = 1
-U_OUTPUT = 0
+#U_UNUSED = -1
+#U_INPUT = 1
+#U_OUTPUT = 0
 
 
 class FTileList():
@@ -87,12 +91,16 @@ class FTileList():
             glues = np.array([gluelist.tonum[x] for x in t.ends])
             if 'fake' in t.keys():
                 continue
-            if 'input' not in t.keys():
-                used = False
-                use = np.array([U_UNUSED for _ in t.ends])
+            if 'use' not in t.keys():
+                if 'input' in t.keys():
+                    use = np.array([ [uO, uI][int(x)] for x in t['input']])
+                    used = True
+                else:
+                    used = False
+                    use = np.array([uU for _ in t.ends])
             else:
                 used = True
-                use = np.array([int(x) for x in t['input']])
+                use = np.array([usedict(x) for x in t['use']])
             color = 'label' in t.keys()
             self.tiles.append(
                 FTile(
@@ -163,12 +171,12 @@ def _ffakedouble_n(tn, sta, gluelist, outputonly=True, dir4=False, equiv=None):
     if sta.sfake[tn]:
         ddir = np.flatnonzero(gluelist.tonum['fakedouble'] == sta.glues[tn])[0]
     for dir in range(0, 4):
-        if (sta.use[tn, dir] == 1) and outputonly:
+        if (sta.use[tn, dir] == uI) and outputonly:
             continue
         if outputonly:
             oti = np.nonzero((equiv[gluelist.complement[sta.glues[tn, dir]]] ==
                               equiv[sta.glues[:, RSEL[dir]]]) &
-                             (sta.use[:, RSEL[dir]] == 1) & (sta.used))
+                             (sta.use[:, RSEL[dir]] == uI) & (sta.used))
         else:
             oti = np.nonzero((equiv[gluelist.complement[sta.glues[tn, dir]]] ==
                               equiv[sta.glues[:, RSEL[dir]]]))
@@ -214,16 +222,16 @@ def _ffakesingle(ftile, gluelist):
     # Start by making the tiles, then change around the inputs
     fdb = gluelist.tonum['fakedouble']
     glues = [[([fdb] + list(ftile.glues))[x] for x in y] for y in sel]
-    fuse = [[([-1] + list(ftile.use))[x] for x in y] for y in sel]
+    fuse = [[([uP] + list(ftile.use))[x] for x in y] for y in sel]
     use = []
     used = []
     names = [ftile.name + '_fakedouble_a', ftile.name + '_fakedouble_b']
     for gu in zip(glues, fuse):
-        if sum(gluelist.strength[g] for g, u in zip(*gu) if u == 1) >= TAU:
+        if sum(gluelist.strength[g] for g, u in zip(*gu) if u == uI) >= TAU:
             use.append(gu[1])
             used.append(True)
         else:
-            use.append([-1, -1, -1, -1])
+            use.append(gu[1])
             used.append(False)
     return [
         FTile(
@@ -310,7 +318,7 @@ def ptins(fts, equiv=None, tau=2):
         ptin = []
         for ti in np.arange(0, len(ta.used))[ta.used]:
             # Only iterate through used tiles
-            isel = ta.use[ti] == 1  # used edges
+            isel = ta.use[ti] == uI  # used edges
             gsel = equiv[ta.glues[ti, isel]] == equiv[ta.glues[:, isel]]
             # matching glues
             strs = np.sum(
@@ -325,17 +333,111 @@ def ptins(fts, equiv=None, tau=2):
         ptins.append(ptin)
     return ptins
 
+def gmatch(fts, g1, g2, equiv=None):
+    if equiv is None:
+        equiv = fts.gluelist.blankequiv()
+    return( equiv[g1] == equiv[g2] )
 
-def is_2go_single_nn(fts,
-                     tn,
-                     un,
-                     equiv,
-                     tau=2,
-                     in2go=None,
-                     retall=False,
-                     also22go=False):
+def gcomp(fts, g1, g2, equiv=None):
+    if equiv is None:
+        equiv = fts.gluelist.blankequiv()
+    return( equiv[fts.gluelist.complement[g1]] == equiv[g2] )
+
+
+def findmovetiles(fts, tilei, direction, allin, allout):
+    use = fts.tilelist.stiles.use[tilei,direction]
+    if (use == uN):
+        return {}
+    if (use == uP):
+        otherdoublei = tilei + fts.tilelist.stiles.sfake[tilei]
+        return {(otherdoublei, allin, allout, other[direction])}
+    if (use == uI):
+        tilematches = np.nonzero(gcomp(fts, fts.tilelist.stiles.glues[:,other[direction]],fts.tilelist.stiles.glues[tilei,direction]) & 
+                                 ( (fts.tilelist.stiles.use[:,other[direction]] == uO) | (fts.tilelist.stiles.use[:,other[direction]] == uB) ))[0]
+        return {(tmatch, allin, False, other[direction]) for tmatch in tilematches}
+    if (use == uO):
+        tilematches = np.nonzero(gcomp(fts, fts.tilelist.stiles.glues[:,other[direction]],fts.tilelist.stiles.glues[tilei,direction]) & 
+                                 ( (fts.tilelist.stiles.use[:,other[direction]] == uI) | (fts.tilelist.stiles.use[:,other[direction]] == uB) ))[0]
+        return {(tmatch, False, allout, other[direction]) for tmatch in tilematches}        
+    
+def _2go_moveandfill(fts, t,i,allin=True,allout=True,pdir=None,x=0,y=0,d=None):
+    if d == None:
+        d = dict()
+    s = d.get((x,y), set())
+    d[(x,y)] = s
+    for edge in (0,1,2,3):
+        if allin:
+            continue
+        elif edge == pdir:
+            if (fts.tilelist.stiles.use[t,edge] == uI) & (not allout):
+                s.add( (edge, fts.tilelist.stiles.glues[t,edge], t) )
+        elif fts.tilelist.stiles.use[t,edge] == uI:
+            s.add( (edge, fts.tilelist.stiles.glues[t,edge], t) )
+    if i == 0:
+        return d
+    for edge in (0,1,2,3):
+        if edge == pdir:
+            continue
+        dx, dy = directions[edge]
+        moves = findmovetiles(fts, t, edge, allin, allout)
+        for newt, newallin, newallout, newpdir in moves:
+            d = _2go_moveandfill(fts, newt, i-1, newallin, newallout, newpdir, x+dx, y+dy, d)
+    return d
+
+def _2go_findtrialmoves(fts, tilei, direction, equiv=None):
+    use = fts.tilelist.stiles.use[tilei,direction]
+    if (use == uN):
+        return {}
+    if (use == uP):
+        otherdoublei = tilei + fts.tilelist.stiles.sfake[tilei]
+        return {(otherdoublei, 0, other[direction])}  # other tile, (is not a new tile -> 0), prev direction
+    else:
+        tilematches = np.nonzero(gcomp(fts, fts.tilelist.stiles.glues[:,other[direction]],fts.tilelist.stiles.glues[tilei,direction], equiv))[0]
+        return {(tmatch, 1, other[direction]) for tmatch in tilematches}
+
+directions = [(0,-1),(1,0),(0,1),(-1,0)]
+
+def _2go_checkandmove(fts, ct, x, y, i, tmap, exclude=tuple(), equiv=None):
+
+    for direction in (0,1,2,3):
+        if direction in exclude:
+            continue
+        if (fts.tilelist.stiles.use[ct,direction] == uP) | (fts.tilelist.stiles.use[ct,direction] == uN):
+            continue
+        for d, mg, ot in tmap.get((x,y), set()):
+            if d != direction:
+                continue # FIXME optimize out
+            if gmatch(fts, mg, fts.tilelist.stiles.glues[ct,direction], equiv):
+                return True, ot, ct, x, y
+    # Move to next, if we still have moves
+    if i==0:
+        return False, None, None, None, None # reached the end
+    for direction in (0,1,2,3):
+        if direction in exclude:
+            continue
+        tm = _2go_findtrialmoves(fts, ct, direction, equiv)
+        dx, dy = directions[direction]
+        for newct, inccount, newexclude in tm:
+            #print("checkandmove({}, {}, {}, {},tmap, ({}))".format(newct, x+dx, y+dy, i-inccount, newexclude))
+            r =  _2go_checkandmove(fts, newct, x+dx, y+dy, i-inccount, tmap, (newexclude,), equiv)
+            if r[0] is not False:
+                return r
+    return False, None, None, None, None
+
+def is_2go_nn(fts,
+              tn,
+              un,
+              equiv,
+              tau=2,
+              tmaps=None,
+              retall=False,
+              also22go=False):
+
+    if also22go:
+        raise NotImplementedError()
+    
     # Before starting, check to see if t and u are actually the same:
-    if np.all(equiv[fts.tilelist.stiles.glues[fts.tilelist.stiles.used][tn]] ==
+    if np.all(equiv[fts.tilelist.stiles.glues[tn]] ==
               equiv[fts.tilelist.stiles.glues[un]]):
         if not also22go:
             if not retall:
@@ -348,95 +450,50 @@ def is_2go_single_nn(fts,
             else:
                 return False, False, None, None
 
-    if in2go is None:
-        in2go = _ffakedouble_n(
-            np.flatnonzero(fts.tilelist.stiles.used)[tn],
-            fts.tilelist.stiles,
-            fts.gluelist,
-            outputonly=True,
-            dir4=True)
-    incorrect = _ffakedouble_n(
-        un,
-        fts.tilelist.stiles,
-        fts.gluelist,
-        outputonly=False,
-        dir4=True,
-        equiv=equiv)
-    is2go = None
-    for tvs, uws in zip(in2go, incorrect):
-        for tv in tvs:
-            for uw in uws:
-                if np.sum(fts.gluelist.strength[tv.glues[(
-                        equiv[tv.glues] == equiv[uw.glues]) & (
-                            tv.use == 1)]]) >= tau:
-                    if also22go and uw.sfake:
-                        if not retall:
-                            return True, True
-                        else:
-                            return True, True, (ts, uw), None
-                    elif also22go:
-                        is2go = (tv, uw)
-                        for dirr, (tvs2,
-                                   uws2) in enumerate(zip(in2go, incorrect)):
-                            if dirr + 1 == tv.dfake:
-                                continue
-                            for tv2 in tvs2:
-                                for uw2 in uws2:
-                                    if np.sum(fts.gluelist.strength[tv2.glues[(
-                                            equiv[tv2.glues] == equiv[uw2.glues]
-                                    ) & (tv2.use == 1)]]) >= tau:
-                                        if not retall:
-                                            return True, True
-                                        else:
-                                            return True, True, (tv, uw), (tv2,
-                                                                          uw2)
-                    elif not retall:
-                        return True
-                    else:
-                        return True, (tv, uw)
-    if also22go:
-        if retall:
-            return (not (is2go is None)), False, is2go, None
-        else:
-            return (not (is2go is None)), False
-    elif not retall:
-        return False
+    if tmaps is not None:
+        tmap = tmaps[tn]
     else:
-        return False, None
+        tmap = _2go_moveandfill(fts,tn,2)
 
+    res = _2go_checkandmove(fts, un, 0, 0, 1, tmap=tmap, exclude=tuple(), equiv=equiv)
+    if res[0] is False:
+        if not retall:
+            return False
+        else:
+            return False, None
+    else:
+        if not retall:
+            return True
+        else:
+            return True, (res[1], res[2])
+        
+def gen_2go_maps(fts):
+    sel = np.flatnonzero(fts.tilelist.stiles.used)
+    maps = dict()
+    for t in sel:
+        maps[t] = _2go_moveandfill(fts,t,2)
+    return maps
 
-def gen_2go_single_ins(fts, tau=2):
-    ssel = np.flatnonzero(fts.tilelist.stiles.used)
-    ins = []
-    for tn in ssel:
-        ins.append(
-            _ffakedouble_n(
-                tn,
-                fts.tilelist.stiles,
-                fts.gluelist,
-                outputonly=True,
-                dir4=True))
-    return ins
-
-
-def gen_2go_profile(fts, equiv=None, ins2go=None, also22go=False):
-    if ins2go is None:
-        ins2go = gen_2go_single_ins(fts, tau=2)
+def gen_2go_profile(fts, equiv=None, tmaps=None, also22go=False):
+    if tmaps is None:
+        tmaps = gen_2go_maps(fts)
     if equiv is None:
         equiv = fts.gluelist.blankequiv()
     sens1s = ptins(fts, tau=1, equiv=equiv)[0]
     sens2s = []
     sens22s = []
-    for tn, (uns, in2go) in enumerate(zip(sens1s, ins2go)):
+    sel = np.flatnonzero(fts.tilelist.stiles.used)
+    for tn, uns in enumerate(sens1s):
+        t = sel[tn]
         x2 = []
         x22 = []
         for un in uns[0]:
             if also22go:
                 s2, s22 = is_2go_single_nn(
-                    fts, tn, un, equiv, tau=2, in2go=in2go, also22go=True)
+                    fts, t, un, equiv, tau=2, in2go=in2go, also22go=True)
             else:
-                s2 = is_2go_single_nn(
-                    fts, tn, un, equiv, tau=2, in2go=in2go, also22go=False)
+                s2 = is_2go_nn(
+                    fts, t, un, equiv, tmaps=tmaps, also22go=False)
             if s2:
                 x2.append(un)
             if also22go and s22:
@@ -451,19 +508,21 @@ def gen_2go_profile(fts, equiv=None, ins2go=None, also22go=False):
         return sens2s
 
 
-def is_2go_equiv(fts, equiv=None, ins2go=None, origsens=None):
-    if ins2go is None:
-        ins2go = gen_2go_single_ins(fts, tau=2)
+def is_2go_equiv(fts, equiv=None, tmaps=None, origsens=None):
+    if tmaps is None:
+        tmaps = gen_2go_maps(fts)
     if equiv is None:
         equiv = fts.gluelist.blankequiv()
     if origsens is None:
-        origsens = gen_2go_profile(fts)
+        origsens = gen_2go_profile(fts, tmaps=tmaps)
     sens1s = ptins(fts, tau=1, equiv=equiv)[0]
-
-    for tn, (uns, in2go, os) in enumerate(zip(sens1s, ins2go, origsens)):
+    sel = np.flatnonzero(fts.tilelist.stiles.used)
+    
+    for tn, (uns, os) in enumerate(zip(sens1s, origsens)):
+        t = sel[tn]
         for un in uns[0]:
-            r, p = is_2go_single_nn(
-                fts, tn, un, equiv, tau=2, in2go=in2go, retall=True)
+            r, p = is_2go_nn(
+                fts, t, un, equiv, tmaps=tmaps, retall=True)
             if (r and (un not in os)):
                 # Next if checks to see if sensitive tile is actually identical
                 # to an already sensitive tile:
@@ -477,7 +536,7 @@ def is_2go_equiv(fts, equiv=None, ins2go=None, origsens=None):
                             axis=1)):
                     return False, (
                         fts.tilelist.stiles.name[fts.tilelist.stiles.used][tn],
-                        fts.tilelist.stiles.name[un]), p
+                        fts.tilelist.stiles.name[un]), [fts.tilelist.stiles.name[x] for x in p]
     return True, None, None
 
 
@@ -597,7 +656,7 @@ def _recfix(fts,
             tp,
             initptins,
             check2go=False,
-            ins2go=None,
+            tmaps=None,
             orig2go=None,
             orig22go=None,
             check22go=False,
@@ -616,10 +675,10 @@ def _recfix(fts,
     ae, badpair = isatamequiv(fts, equiv, initptins=initptins)
     if check2go and ae:
         ae, badpair, _ = is_2go_equiv(
-            fts, equiv, ins2go=ins2go, origsens=orig2go)
+            fts, equiv, tmaps=tmaps, origsens=orig2go)
     if ae and check22go:
         ae, badpair, _ = is_22go_equiv(
-            fts, equiv, ins2go=ins2go, orig22go=orig22go)
+            fts, equiv, tmaps=tmaps, orig22go=orig22go)
     if ae and checkld:
         ld_e = fld.latticedefects(fts, 'e', equiv=equiv)
         ld_w = fld.latticedefects(fts, 'w', equiv=equiv)
@@ -639,7 +698,7 @@ def _recfix(fts,
             badpair,
             initptins,
             check2go,
-            ins2go,
+            tmaps,
             orig2go,
             orig22go=orig22go,
             check22go=check22go,
@@ -661,12 +720,11 @@ def _tilereduce(fts,
     todo = _findpotentialtilemerges(fts, equiv)
     if initptins is None:
         initptins = ptins(fts)
-    if check2go or check22go:
-        ins2go = gen_2go_single_ins(fts)
-        origsens, orig22go = gen_2go_profile(fts, ins2go=ins2go, also22go=True)
+    if check2go:
+        tmaps = gen_2go_maps(fts)
+        origsens = gen_2go_profile(fts, tmaps=tmaps)
     else:
-        ins2go = None
-        orig22go = None
+        tmaps = None
         origsens = None
     for todoi, (t1, t2) in enumerate(todo):
         try:
@@ -676,7 +734,7 @@ def _tilereduce(fts,
         ae, badpair = isatamequiv(fts, nequiv, initptins=initptins)
         if ae and check2go:
             ae, badpair, _ = is_2go_equiv(
-                fts, nequiv, ins2go=ins2go, origsens=origsens)
+                fts, nequiv, tmaps, origsens=origsens)
         if ae and check22go:
             ae, badpair, _ = is_22go_equiv(
                 fts, nequiv, ins2go=ins2go, orig22go=orig22go)
@@ -699,10 +757,9 @@ def _tilereduce(fts,
                     badpair,
                     initptins,
                     check2go,
-                    ins2go,
+                    tmaps,
                     origsens,
                     check22go=check22go,
-                    orig22go=orig22go,
                     checkld=checkld,
                     chain=[(t1.name, t2.name)],
                     preserveuse=preserveuse)
@@ -726,9 +783,9 @@ def _gluereduce(fts,
     todo = _findpotentialgluemerges(fts, equiv)
     if initptins is None:
         initptins = ptins(fts)
-    if check2go or check22go:
-        ins2go = gen_2go_single_ins(fts)
-        origsens, orig22go = gen_2go_profile(fts, ins2go=ins2go, also22go=True)
+    if check2go:
+        tmaps = gen_2go_maps(fts)
+        origsens = gen_2go_profile(fts, tmaps=tmaps)
     else:
         ins2go = None
         origsens = None
@@ -742,7 +799,7 @@ def _gluereduce(fts,
         ae, badpair = isatamequiv(fts, nequiv, initptins=initptins)
         if ae and check2go:
             ae, badpair, _ = is_2go_equiv(
-                fts, nequiv, ins2go=ins2go, origsens=origsens)
+                fts, nequiv, tmaps=tmaps, origsens=origsens)
         if ae and check22go:
             ae, badpair, _ = is_22go_equiv(
                 fts, nequiv, ins2go=ins2go, orig22go=orig22go)
@@ -766,7 +823,7 @@ def _gluereduce(fts,
                     badpair,
                     initptins,
                     check2go,
-                    ins2go,
+                    tmaps,
                     origsens,
                     check22go=check22go,
                     checkld=checkld,
