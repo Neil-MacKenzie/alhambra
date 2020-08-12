@@ -439,14 +439,6 @@ class TileSet(CommentedMap):
         """Return a full (deep) copy of the TileSet"""
         return copy.deepcopy(self)
 
-    def __deepcopy__(self, memo):
-        # type: (Any) -> Any
-        res = self.__class__()
-        memo[id(self)] = res
-        for k in self:
-            res[k] = copy.deepcopy(self[k])
-            self.copy_attributes(res, deep=True)
-        return res
 
     def dump(self, stream):
         """Dump the tileset into a stream in YAML format.

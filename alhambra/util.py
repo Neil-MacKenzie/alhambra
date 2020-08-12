@@ -134,14 +134,6 @@ with no output.
     def keys(self):
         return [x['name'] for x in self if 'name' in x.keys()]
 
-    def __deepcopy__(self, memo):
-        # FIXME: this is here waiting on ruamel.yaml bugfix.
-        res = self.__class__()
-        memo[id(self)] = res
-        for k in self:
-            res.append(copy.deepcopy(k))
-            self.copy_attributes(res, deep=True)
-        return res
 
 
 RoundTripRepresenter.add_representer(NamedList,
