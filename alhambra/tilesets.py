@@ -20,10 +20,10 @@ from . import sensitivitynew as sensitivity
 from . import fastreduce
 
 # Need to disable this for now
-# from peppercompiler import compiler as compiler
-# from peppercompiler.design import spurious_design as spurious_design
-# from peppercompiler import finish as finish
-# from peppercompiler.DNA_classes import wc
+from peppercompiler import compiler as compiler
+from peppercompiler.design import spurious_design as spurious_design
+from peppercompiler import finish as finish
+from peppercompiler.DNA_classes import wc
 
 import numpy as np
 import stickydesign as sd
