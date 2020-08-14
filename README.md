@@ -33,3 +33,7 @@ Most user-facing functions are on the TileSet class.
 # Questions
 
 Please send any questions to Constantine Evans, at cevans@evanslabs.org or cge@dna.caltech.edu.
+
+# Versions
+
+* v1.1.0: fixes broken workaround for ruamel.yaml bug now fixed upstream, adds double-tile sensitivity, includes seed file to make xor example work.
